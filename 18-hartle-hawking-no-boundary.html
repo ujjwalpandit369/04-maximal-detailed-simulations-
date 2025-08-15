@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: The Hartle-Hawking No-Boundary Proposal</title>
+    <style>
+        /* Consistent CSS */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #5e3a8c; --secondary-color: #b1a5c1; --accent-color: #f9b115;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .sim-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; }
+        .vis-panel canvas { width: 100%; aspect-ratio: 1; border: 2px solid var(--border-color); background-color: #fff; }
+        .controls-panel { grid-column: 1 / -1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deep Simulation: The Hartle-Hawking No-Boundary Proposal</h1>
+        <p class="subtitle">Visualizing a candidate for the initial quantum state of the universe.</p>
+    </header>
+
+    <div class="container">
+        <div class="controls-panel">
+            <h4>Scalar Field Potential V(φ)</h4>
+            <label>Inflationary Plateau Height: <span id="v0-value">0.1</span></label>
+            <input type="range" id="v0-slider" min="0.01" max="0.5" step="0.01" value="0.1">
+            <button id="recalculate-btn">Recalculate Wave Function</button>
+        </div>
+
+        <div class="sim-container">
+            <div class="vis-panel">
+                <h4>Minisuperspace Wave Function |Ψ(a, φ)|²</h4>
+                <canvas id="main-canvas" width="512" height="512"></canvas>
+            </div>
+            <div class="vis-panel">
+                <h4>Potential V(φ) and Classical Boundary</h4>
+                <canvas id="potential-canvas" width="512" height="512"></canvas>
+            </div>
+        </div>
+
+        <div class="content-section" id="exposition-section">
+            <h2>Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: A Universe From Nothing</h3>
+                <p>Where did the universe come from? And what were the "initial conditions" at the Big Bang? The "No-Boundary Proposal" by Stephen Hawking and James Hartle is one of the most famous and profound attempts to answer this question. The idea is that the universe didn't have a "beginning" in the traditional sense. Instead of a singular point in time where the laws of physics break down, they proposed that the universe's origin is more like the North Pole of the Earth. If you are at the North Pole and someone asks you "what's north of here?", there is no answer. The direction "north" ceases to exist. In the same way, the No-Boundary Proposal suggests that "before" the Big Bang, time itself did not exist. The universe was a purely spatial, four-dimensional "Euclidean" geometry, closed and finite like the surface of a sphere, with no boundary, no edge, and no beginning.</p>
+                <p>This simulation visualizes the wave function that results from this idea. The wave function tells us the probability of the universe emerging with certain properties. The horizontal axis is the size of the universe (`a`), and the vertical axis is the value of an energy field (`φ`). The bright areas show the most probable universes. The red line on the right plot shows the boundary between the "Euclidean" (no time) phase and the "Lorentzian" (real time) phase we live in. The No-Boundary wave function shows a high probability for the universe to spontaneously "tunnel" from the Euclidean nothingness into a state with a small size but a high value of the energy field. This high-energy state is the perfect starting point for a period of cosmic inflation, which is our leading theory for the early universe. In essence, the simulation shows how a quantum fluctuation from a timeless, boundary-less state could have given birth to our entire classical, evolving cosmos.</p>
+            </section>
+            <section>
+                <h3>Core Theory: The Path Integral and Euclidean Quantum Gravity</h3>
+                <p>The Hartle-Hawking "no-boundary" proposal is a specific prescription for the wave function of the universe, `Ψ`. It is defined by a Feynman path integral over all compact 4-dimensional Euclidean geometries `[g]` that have a given 3-geometry `[h]` as their only boundary:
+                <br><code>Ψ[h] = ∫ D[g] exp(-I_E[g])</code>
+                <br>where `I_E[g]` is the Euclidean action for gravity coupled to matter fields. The use of a Euclidean metric (where the time coordinate is imaginary, `t -> iτ`) is the key mathematical step. It smooths out the Big Bang singularity, replacing it with a regular point in a 4D space, much like the North Pole is a regular point on a 2-sphere.</p>
+                <p>In the minisuperspace approximation, this path integral is dominated by the classical solution with the smallest Euclidean action. The wave function can therefore be approximated using a semi-classical (WKB) approach: `Ψ ≈ exp(-I_E)`. For a universe with a scalar field `φ` having a potential `V(φ)`, the Euclidean action can be calculated. This leads to a wave function of the form:
+                <br><code>Ψ(a, φ) ≈ N * exp( - (1/3V(φ)) * [ (1 - a²V(φ))^(3/2) - 1 ] )</code> for `a²V(φ) < 1` (the Euclidean or "classically forbidden" region).
+                <br><code>Ψ(a, φ) ≈ N * exp( 1 / (3V(φ)) ) * cos( (a²V(φ) - 1)^(3/2) / (3V(φ)) - π/4 )</code> for `a²V(φ) > 1` (the Lorentzian or "classically allowed" region).
+                </p>
+                <p>This simulation calculates `|Ψ|²` based on these formulas. The key features are:
+                <ul>
+                    <li>In the Euclidean region, the wave function is exponentially suppressed. The probability of finding a universe here is very low, representing the "tunneling" barrier.</li>
+                    <li>In the Lorentzian region, the wave function is oscillatory, corresponding to a classical, evolving universe. The amplitude of these oscillations is proportional to `exp(1/(3V(φ)))`.</li>
+                </ul>
+                This has a profound physical prediction: the probability of the universe emerging from the "no-boundary" state is highest for values of the scalar field `φ` where the potential `V(φ)` is large. This provides a natural explanation for why cosmic inflation would have started. If `V(φ)` has a high plateau, the wave function will strongly prefer to create universes that start on that plateau, automatically setting the initial conditions for inflation.</p>
+            </section>
+        </div>
+    </div>
+
+    <script id="simulation-script">
+    document.addEventListener('DOMContentLoaded', () => {
+        const mainCanvas = document.getElementById('main-canvas');
+        const mCtx = mainCanvas.getContext('2d');
+        const potentialCanvas = document.getElementById('potential-canvas');
+        const pCtx = potentialCanvas.getContext('2d');
+        const recalculateBtn = document.getElementById('recalculate-btn');
+        const v0Slider = document.getElementById('v0-slider');
+
+        const A_RES = 256;
+        const PHI_RES = 256;
+        let probabilityGrid = new Float32Array(A_RES * PHI_RES);
+        let simParams = { v0: 0.1 };
+
+        function calculateWaveFunction() {
+            const V0 = simParams.v0;
+            const V = (phi_idx) => V0 * Math.exp(-0.05 * (phi_idx - PHI_RES/2)**2);
+
+            for (let i = 0; i < A_RES; i++) {
+                const a = (i / A_RES) * 5.0 + 0.1;
+                for (let j = 0; j < PHI_RES; j++) {
+                    const v_phi = V(j);
+                    if (v_phi < 1e-6) v_phi = 1e-6; // Avoid division by zero
+
+                    const classically_forbidden = (a * a * v_phi) < 1;
+                    let exponent;
+
+                    if (classically_forbidden) {
+                        // Euclidean region: exponential decay
+                        // Psi ~ exp(-I_E) => |Psi|^2 ~ exp(-2*I_E)
+                        // I_E ~ (1/3V) * (1 - (1-a^2V)^(3/2))
+                        // The exponent should be negative.
+                        const term = 1 - a * a * v_phi;
+                        exponent = (-2 / (3 * v_phi)) * (1 - Math.pow(term, 1.5));
+                    } else {
+                        // Lorentzian region: oscillatory
+                        // The probability is dominated by the exp term.
+                        // Psi ~ exp(1 / (3V)) * cos(...)
+                        exponent = (2 / (3 * v_phi));
+                    }
+
+                    probabilityGrid[j * A_RES + i] = Math.exp(exponent);
+                }
+            }
+            draw();
+        }
+
+        function draw() {
+            // --- Draw Wave Function Heatmap ---
+            let max_prob = 0;
+            for(const p of probabilityGrid) if(p > max_prob) max_prob = p;
+            if(max_prob === 0) max_prob = 1;
+
+            const imageData = mCtx.createImageData(A_RES, PHI_RES);
+            for (let j=0; j<PHI_RES; j++) for (let i=0; i<A_RES; i++) {
+                const idx = j*A_RES + i;
+                const prob = probabilityGrid[idx] / max_prob;
+                const intensity = Math.pow(prob, 0.5) * 255;
+                imageData.data[idx*4+0] = intensity;
+                imageData.data[idx*4+1] = intensity/2;
+                imageData.data[idx*4+2] = 255-intensity;
+                imageData.data[idx*4+3] = 255;
+            }
+            mCtx.putImageData(imageData, 0, 0);
+
+            // --- Draw Potential Plot ---
+            pCtx.clearRect(0,0,pCtx.canvas.width, pCtx.canvas.height);
+            pCtx.strokeStyle = '#007bff';
+            pCtx.lineWidth = 2;
+            pCtx.beginPath();
+            const V0 = simParams.v0;
+            const V = (phi_idx) => V0 * Math.exp(-0.05 * (phi_idx - PHI_RES/2)**2);
+            for(let j=0; j<PHI_RES; ++j) {
+                const x = j / PHI_RES * pCtx.canvas.width;
+                const y = pCtx.canvas.height * (1 - V(j) / 0.6);
+                if(j===0) pCtx.moveTo(x,y); else pCtx.lineTo(x,y);
+            }
+            pCtx.stroke();
+
+            // Draw classical boundary line a^2V=1
+            pCtx.strokeStyle = 'rgba(220, 53, 69, 0.7)';
+            pCtx.lineWidth = 1;
+            pCtx.beginPath();
+             for(let j=0; j<PHI_RES; ++j) {
+                const v_phi = V(j);
+                if (v_phi < 1e-6) continue;
+                const a_boundary = 1 / Math.sqrt(v_phi);
+                const x = j / PHI_RES * pCtx.canvas.width;
+                const y = pCtx.canvas.height * (1 - a_boundary / 5.1); // Map 'a' to y-axis
+                if(j===0) pCtx.moveTo(x,y); else pCtx.lineTo(x,y);
+            }
+            pCtx.stroke();
+        }
+
+        recalculateBtn.addEventListener('click', calculateWaveFunction);
+        v0Slider.addEventListener('input', e => {
+            simParams.v0 = parseFloat(e.target.value);
+            document.getElementById('v0-value').textContent = simParams.v0.toFixed(2);
+        });
+
+        calculateWaveFunction();
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Monopole & Anti-monopole Interactions</title>
+    <style>
+        /* Reusing consistent CSS from previous files */
+        :root {
+            --bg-color: #f0f4f8; --text-color: #1c2a38; --header-color: #0d1b2a;
+            --primary-color: #3a7ca5; --secondary-color: #ff6f61; --accent-color: #6a994e;
+            --border-color: #dbe2e9; --code-bg-color: #e0e6ec; --shadow-color: rgba(0, 0, 0, 0.1);
+            --font-family: 'Georgia', 'Times New Roman', serif; --font-family-sans: 'Helvetica', 'Arial', sans-serif;
+            --max-width: 1200px;
+        }
+        .high-contrast {
+            --bg-color: #000000; --text-color: #ffffff; --header-color: #ffffff; --primary-color: #ffff00;
+            --secondary-color: #ff00ff; --accent-color: #00ffff; --border-color: #666666; --code-bg-color: #222222;
+        }
+        .colorblind-friendly {
+            --primary-color: #0072B2; --secondary-color: #D55E00; --accent-color: #009E73;
+        }
+        body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: var(--max-width); margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3 { font-family: var(--font-family-sans); color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; } h2 { font-size: 2.2em; } h3 { font-size: 1.8em; }
+        p { margin-bottom: 1.5em; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        header h1 { color: var(--bg-color); } .subtitle { font-size: 1.2em; font-style: italic; opacity: 0.9; }
+        .metadata-bar { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 15px; margin-top: 20px; font-family: var(--font-family-sans); font-size: 0.9em; }
+        .metadata-item { background: var(--primary-color); padding: 5px 12px; border-radius: 15px; color: white; }
+        .sim-container { display: grid; grid-template-columns: 1fr 350px; gap: 30px; margin-top: 30px; }
+        .vis-panel { display: flex; flex-direction: column; gap: 20px; }
+        #main-canvas { width: 100%; aspect-ratio: 1; border: 2px solid var(--border-color); background-color: #000; }
+        .controls-panel { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px var(--shadow-color); border: 1px solid var(--border-color); overflow-y: auto; max-height: 80vh; }
+        .control-group { margin-bottom: 25px; } .control-group h3 { font-size: 1.2em; margin-top: 0; padding-bottom: 5px; border-bottom: 1px solid var(--border-color); }
+        .control { margin-bottom: 15px; }
+        .control label { display: block; font-family: var(--font-family-sans); font-weight: bold; font-size: 0.95em; margin-bottom: 5px; }
+        .control .tooltip { font-size: 0.8em; color: #666; margin-left: 8px; }
+        .control input[type="range"] { width: 100%; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .metrics-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; padding: 15px; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; }
+        .metric-item { padding: 10px; background: var(--bg-color); border-radius: 5px; text-align: center; }
+        .metric-item .label { font-family: var(--font-family-sans); font-size: 0.9em; opacity: 0.8; }
+        .metric-item .value { font-size: 1.4em; font-weight: bold; color: var(--accent-color); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-color); }
+        .qa-item { margin-bottom: 2em; border-left: 4px solid var(--secondary-color); padding-left: 1.5em; }
+        .qa-item strong { font-family: var(--font-family-sans); font-size: 1.1em; }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="colorblind-friendly">
+
+    <header>
+        <h1>Deep Simulation: Monopole & Anti-monopole Interactions</h1>
+        <p class="subtitle">An N-body simulation of point-like topological defects and the cosmological Monopole Problem.</p>
+        <div class="metadata-bar">
+            <span>Filename: 04-magnetic-monopole-interactions-and-annihilation.html</span>
+            <span>CPU Intensity: Heavy</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="sim-container">
+            <div class="vis-panel">
+                <canvas id="main-canvas" width="800" height="800" aria-label="N-body simulation of monopoles."></canvas>
+                <div class="metrics-panel" id="metrics-panel"></div>
+            </div>
+            <div class="controls-panel">
+                <div class="control-group">
+                    <h3>Global Controls</h3>
+                    <button id="start-stop-btn">Start</button>
+                    <button id="reset-btn">Reset</button>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Number of Pairs: <span id="num-pairs-value" class="value-display">50</span></label>
+                        <input type="range" id="num-pairs-slider" min="5" max="200" step="5" value="50">
+                    </div>
+                    <div class="control">
+                        <label>Interaction Strength: <span id="strength-value" class="value-display">100</span></label>
+                        <input type="range" id="strength-slider" min="10" max="500" step="10" value="100">
+                    </div>
+                    <div class="control">
+                        <label>Initial Temperature: <span id="temp-value" class="value-display">10</span></label>
+                        <input type="range" id="temp-slider" min="0" max="50" step="1" value="10">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>Overview</h2>
+            <p>This simulation models the behavior of magnetic monopoles, hypothetical point-like particles carrying a net magnetic charge. Unlike familiar magnets which always have a north and a south pole, a monopole would be an isolated "north" or "south" pole. Predicted by many Grand Unified Theories (GUTs), these particles would have been created copiously in the hot early universe. This simulation treats them as classical particles in a 2D box, interacting via a force analogous to the Coulomb force between electric charges. Positively charged monopoles repel each other, negatively charged anti-monopoles repel each other, and opposite charges attract. When a monopole and an anti-monopole get close enough, they annihilate, releasing their enormous mass-energy. This simulation allows you to explore the dynamics of a gas of these particles, from gentle interactions to violent annihilation cascades, providing insight into the "Monopole Problem"—the profound cosmological puzzle of why we see no monopoles today if they were so abundantly produced.</p>
+        </div>
+
+        <div class="content-section">
+            <h2>Full Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: Magnets with One Pole</h3>
+                <p>Everyone who has played with magnets knows a fundamental rule: if you break a bar magnet in half, you don't get a separate north pole and a south pole. Instead, you get two smaller magnets, each with its own north and south pole. No matter how many times you cut it, the poles always come in pairs. A magnetic monopole is a hypothetical particle that breaks this rule. It would be a fundamental particle that is a source of magnetic field, an isolated north or south pole all by itself. It would be to magnetism what the electron is to electricity.</p>
+                <p>Many advanced theories of physics predict that such particles should exist. If they do, they would be incredibly massive and would have been created in the fiery conditions of the Big Bang. Our universe would have been filled with a hot gas of these north poles (monopoles) and south poles (anti-monopoles). This simulation shows what would happen in such a gas. Just like positive and negative electric charges, these monopoles and anti-monopoles would interact. The "north" monopoles would repel other "norths," "souths" would repel other "souths," but "north" and "south" would attract each other. When a monopole and an anti-monopole meet, they would annihilate in a burst of energy, converting their immense mass into other particles. By watching this simulation, you can see how a universe filled with these particles would evolve, with pairs forming bound states, scattering off each other, and, most importantly, annihilating, thinning out their population over time.</p>
+            </section>
+            <section>
+                <h3>Core Theory: 't Hooft-Polyakov Monopoles and the Monopole Problem</h3>
+                <p>The modern concept of the magnetic monopole arises not from classical electromagnetism, but from quantum field theory. In the 1970s, Gerard 't Hooft and Alexander Polyakov independently showed that any Grand Unified Theory (GUT)—a theory that unifies the strong, weak, and electromagnetic forces at high energies—which breaks down to the standard model symmetry group `SU(3)xSU(2)xU(1)` in a certain way will inevitably contain stable, finite-energy, particle-like solutions corresponding to magnetic monopoles. These are not fundamental point particles but are topological defects in the Higgs field configuration, similar to the vortices from Page 1 but in 3D. The mass of these 't Hooft-Polyakov monopoles is predicted to be enormous, roughly `M_mono ≈ M_GUT / α_GUT`, where `M_GUT` is the energy scale of grand unification (~10¹⁶ GeV) and `α_GUT` is the fine-structure constant at that scale. This gives a mass of around 10¹⁷ GeV, or about 10⁻⁷ grams—the mass of an amoeba, packed into a single elementary particle!</p>
+                <p>The existence of these monopoles leads to the <strong>Monopole Problem</strong>. Using the Kibble-Zurek mechanism, one can estimate the number density of monopoles produced in the GUT phase transition. The prediction is roughly one monopole per horizon volume at the time of the transition. This would result in a universe today where the energy density of monopoles is about 10¹⁵ times greater than the observed critical density of the universe. In other words, the universe should be dominated by monopoles, and its expansion would be vastly different from what we observe. This glaring contradiction between a very general prediction of GUTs and cosmological observation is a major puzzle.</p>
+                <p>The leading solution to the monopole problem is <strong>cosmic inflation</strong>. This theory posits that the universe underwent a period of extremely rapid, exponential expansion in its first fraction of a second, before the GUT phase transition. This expansion would have taken the initial, tiny pre-inflationary patch of the universe and stretched it to a colossal size. Any monopoles that existed before or were created at the very beginning of inflation would be diluted to an incredibly low density—so low that the expected number of monopoles in our entire observable universe today would be less than one. Inflation effectively solves the monopole problem by ensuring we live in a region of space that is devoid of them.</p>
+            </section>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        const startStopBtn = document.getElementById('start-stop-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const numPairsSlider = document.getElementById('num-pairs-slider');
+        const strengthSlider = document.getElementById('strength-slider');
+        const tempSlider = document.getElementById('temp-slider');
+        const metricsPanel = document.getElementById('metrics-panel');
+
+        const size = 800;
+        let particles = [];
+        let isRunning = false;
+        let animationFrameId;
+
+        let state = {
+            numPairs: 50,
+            strength: 100,
+            temp: 10,
+            annihilationDist2: 16, // (4px)^2
+        };
+
+        function reset() {
+            isRunning = false;
+            startStopBtn.textContent = 'Start';
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+            particles = [];
+            for (let i = 0; i < state.numPairs; i++) {
+                // Monopole
+                particles.push({
+                    x: Math.random() * size, y: Math.random() * size,
+                    vx: (Math.random() - 0.5) * state.temp, vy: (Math.random() - 0.5) * state.temp,
+                    q: 1, fx: 0, fy: 0
+                });
+                // Anti-monopole
+                particles.push({
+                    x: Math.random() * size, y: Math.random() * size,
+                    vx: (Math.random() - 0.5) * state.temp, vy: (Math.random() - 0.5) * state.temp,
+                    q: -1, fx: 0, fy: 0
+                });
+            }
+            draw();
+            updateMetrics();
+        }
+
+        function simulationStep() {
+            const dt = 0.1;
+            const strength = state.strength;
+
+            // 1. Calculate forces
+            for(let i=0; i<particles.length; ++i) {
+                particles[i].fx = 0;
+                particles[i].fy = 0;
+            }
+
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p1 = particles[i];
+                    const p2 = particles[j];
+
+                    let dx = p1.x - p2.x;
+                    let dy = p1.y - p2.y;
+
+                    // Periodic boundary conditions
+                    if (dx > size / 2) dx -= size;
+                    if (dx < -size / 2) dx += size;
+                    if (dy > size / 2) dy -= size;
+                    if (dy < -size / 2) dy += size;
+
+                    const r2 = dx * dx + dy * dy;
+                    if (r2 < 1) r2 = 1; // Prevent division by zero
+
+                    const r = Math.sqrt(r2);
+                    const f = -strength * (p1.q * p2.q) / r2;
+
+                    const fx = f * dx / r;
+                    const fy = f * dy / r;
+
+                    p1.fx += fx;
+                    p1.fy += fy;
+                    p2.fx -= fx;
+                    p2.fy -= fy;
+                }
+            }
+
+            // 2. Update positions (Verlet integration)
+            for (const p of particles) {
+                const ax = p.fx; // mass = 1
+                const ay = p.fy;
+                p.vx += ax * dt;
+                p.vy += ay * dt;
+                p.x = (p.x + p.vx * dt + size) % size;
+                p.y = (p.y + p.vy * dt + size) % size;
+            }
+
+            // 3. Annihilation
+            const toRemove = new Set();
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    if (toRemove.has(i) || toRemove.has(j)) continue;
+
+                    const p1 = particles[i];
+                    const p2 = particles[j];
+
+                    if (p1.q * p2.q < 0) { // Opposite charges
+                        let dx = p1.x - p2.x;
+                        let dy = p1.y - p2.y;
+                        if (dx*dx + dy*dy < state.annihilationDist2) {
+                            toRemove.add(i);
+                            toRemove.add(j);
+                        }
+                    }
+                }
+            }
+            if(toRemove.size > 0) {
+                particles = particles.filter((_, i) => !toRemove.has(i));
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, size, size);
+
+            for (const p of particles) {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = p.q > 0 ? 'hsl(0, 80%, 60%)' : 'hsl(220, 80%, 60%)';
+                ctx.fill();
+            }
+        }
+
+        function updateMetrics() {
+            const monopoles = particles.filter(p => p.q > 0).length;
+            const anti_monopoles = particles.length - monopoles;
+            const kineticEnergy = particles.reduce((sum, p) => sum + 0.5 * (p.vx**2 + p.vy**2), 0);
+
+            metricsPanel.innerHTML = `
+                <div class="metric-item"><div class="label">Monopoles</div><div class="value">${monopoles}</div></div>
+                <div class="metric-item"><div class="label">Anti-monopoles</div><div class="value">${anti_monopoles}</div></div>
+                <div class="metric-item"><div class="label">Kinetic Energy</div><div class="value">${kineticEnergy.toFixed(0)}</div></div>
+            `;
+        }
+
+        function mainLoop() {
+            if (!isRunning) return;
+            simulationStep();
+            draw();
+            updateMetrics();
+            animationFrameId = requestAnimationFrame(mainLoop);
+        }
+
+        function setupControls() {
+            startStopBtn.addEventListener('click', () => {
+                isRunning = !isRunning;
+                startStopBtn.textContent = isRunning ? 'Pause' : 'Start';
+                if(isRunning) requestAnimationFrame(mainLoop);
+            });
+            resetBtn.addEventListener('click', reset);
+
+            numPairsSlider.addEventListener('input', e => {
+                document.getElementById('num-pairs-value').textContent = e.target.value;
+            });
+            numPairsSlider.addEventListener('change', e => { // only reset when user releases slider
+                state.numPairs = parseInt(e.target.value);
+                reset();
+            });
+
+            strengthSlider.addEventListener('input', e => {
+                state.strength = parseInt(e.target.value);
+                document.getElementById('strength-value').textContent = e.target.value;
+            });
+            tempSlider.addEventListener('input', e => {
+                document.getElementById('temp-value').textContent = e.target.value;
+            });
+            tempSlider.addEventListener('change', e => {
+                state.temp = parseInt(e.target.value);
+                reset();
+            });
+        }
+
+        // Init
+        setupControls();
+        reset();
+    });
+    </script>
+</body>
+</html>

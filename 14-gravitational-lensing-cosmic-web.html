@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Gravitational Lensing by N-body Structures</title>
+    <style>
+        /* Consistent CSS */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #5e3a8c; --secondary-color: #b1a5c1; --accent-color: #f9b115;
+            --border-color: #dee2e6;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .sim-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; }
+        .vis-panel { text-align: center; }
+        .vis-panel canvas { width: 100%; aspect-ratio: 1; border: 2px solid var(--border-color); background-color: #000; }
+        .controls-panel { grid-column: 1 / -1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deep Simulation: Gravitational Lensing by the Cosmic Web</h1>
+        <p class="subtitle">Using light from the distant universe to reveal the invisible structure of dark matter.</p>
+    </header>
+
+    <div class="container">
+        <div class="controls-panel">
+            <h3>Controls</h3>
+            <button id="start-nbody-btn">1. Run N-body Simulation</button>
+            <button id="lensing-btn" disabled>2. Activate Lensing</button>
+            <label for="source-select">Background Source:</label>
+            <select id="source-select">
+                <option value="grid">Grid of Dots</option>
+                <option value="galaxy">Galaxy</option>
+            </select>
+        </div>
+
+        <div class="sim-container">
+            <div class="vis-panel">
+                <h4>Dark Matter Distribution (The Lens)</h4>
+                <canvas id="nbody-canvas" width="256" height="256"></canvas>
+            </div>
+            <div class="vis-panel">
+                <h4>Lensed Image (What We "See")</h4>
+                <canvas id="lensing-canvas" width="256" height="256"></canvas>
+            </div>
+        </div>
+
+        <div class="content-section" id="exposition-section">
+            <h2>Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: Seeing the Invisible</h3>
+                <p>How can we map out dark matter if it's invisible? We use a cosmic trick predicted by Einstein's theory of General Relativity: <strong>gravitational lensing</strong>. The theory tells us that massive objects curve spacetime around them. Light, which normally travels in a straight line, follows this curvature. This means a massive object, like a cluster of galaxies (or more accurately, the dark matter halo it lives in), can act as a giant magnifying glass, bending and distorting the light from galaxies located far behind it.</p>
+                <p>This simulation is a two-step process that shows you how astronomers use this effect. First, click "Run N-body Simulation." This will run a simulation just like the previous ones to create a realistic cosmic web of dark matter on the left canvas. This is our "lens." Once it's done, the "Activate Lensing" button will appear. The right canvas shows what we "see" through this lens. The background is a uniform grid of dots (or a galaxy, which you can select). The light from this background passes through our dark matter lens, and its path is bent. The result is a distorted image. Where the mass density is high, the distortion is strong, creating beautiful arcs and magnifying the background. By studying these distortions, astronomers can work backwards and create a map of the invisible dark matter that must be causing them. You are, in effect, doing the same thing as a research astronomer: using light as a tool to see the unseen.</p>
+            </section>
+            <section>
+                <h3>Core Theory: The Lens Equation and Inverse Ray Shooting</h3>
+                <p>Gravitational lensing is described by the lens equation, which maps positions in the source plane (the true position of the background object, `β`) to the image plane (where we see the object, `θ`).
+                <br><code>β = θ - α(θ)</code>
+                <br>The key ingredient is the deflection angle `α(θ)`, which is determined by the gravitational potential `Φ` of the lensing mass distribution. Specifically, `α` is the gradient of the 2D projected potential: `α = ∇Φ`. In this simulation, the potential `Φ` is calculated from the N-body particle distribution using the Particle-Mesh method.</p>
+                <p>To create the lensed image, we use a technique called <strong>inverse ray shooting</strong>. Instead of tracing rays from the source to the observer (which is inefficient, as most rays don't reach the observer), we trace them backwards from the observer's screen (the image plane) to the source plane. The algorithm is as follows:
+                <ol>
+                    <li>First, run an N-body simulation to produce a realistic mass distribution and calculate its 2D gravitational potential `Φ(x,y)`.</li>
+                    <li>For each pixel `θ = (θ_x, θ_y)` on the lensing canvas (the image plane):</li>
+                    <li>Calculate the deflection angle `α(θ)` by taking the numerical gradient of the stored potential grid `Φ`.</li>
+                    <li>Use the lens equation `β = θ - α` to find the corresponding position `β = (β_x, β_y)` on the source plane.</li>
+                    <li>Look up the color of the source plane at position `β`. This may require interpolation if `β` falls between pixels on the source grid.</li>
+                    <li>Set the color of the pixel at `θ` to the color found in the previous step.</li>
+                </ol>
+                This process is repeated for every pixel on the screen to build up the final, distorted image. The resulting patterns of distortion, known as "shear" (stretching) and "convergence" (magnification), directly trace the underlying mass distribution, providing a powerful way to map dark matter.</p>
+            </section>
+        </div>
+    </div>
+
+    <script id="simulation-script">
+    document.addEventListener('DOMContentLoaded', () => {
+        const nbodyCanvas = document.getElementById('nbody-canvas');
+        const nCtx = nbodyCanvas.getContext('2d');
+        const lensingCanvas = document.getElementById('lensing-canvas');
+        const lCtx = lensingCanvas.getContext('2d');
+        const startNBodyBtn = document.getElementById('start-nbody-btn');
+        const lensingBtn = document.getElementById('lensing-btn');
+        const sourceSelect = document.getElementById('source-select');
+
+        let potentialGrid = null;
+        const GRID_RES = 256;
+
+        // --- Full FFT Implementation ---
+        function fft(re, im) {
+            const N = re.length;
+            if (N <= 1) return;
+            const even_re = new Float32Array(N / 2), even_im = new Float32Array(N / 2);
+            const odd_re = new Float32Array(N / 2), odd_im = new Float32Array(N / 2);
+            for (let i = 0; i < N / 2; i++) {
+                even_re[i] = re[2*i]; even_im[i] = im[2*i];
+                odd_re[i] = re[2*i+1]; odd_im[i] = im[2*i+1];
+            }
+            fft(even_re, even_im);
+            fft(odd_re, odd_im);
+            for (let k = 0; k < N / 2; k++) {
+                const angle = -2 * Math.PI * k / N;
+                const t_re = Math.cos(angle), t_im = Math.sin(angle);
+                const term_re = odd_re[k] * t_re - odd_im[k] * t_im;
+                const term_im = odd_re[k] * t_im + odd_im[k] * t_re;
+                re[k] = even_re[k] + term_re;
+                im[k] = even_im[k] + term_im;
+                re[k + N / 2] = even_re[k] - term_re;
+                im[k + N / 2] = even_im[k] - term_im;
+            }
+        }
+        function ifft(re, im) {
+             for (let i = 0; i < im.length; i++) im[i] *= -1;
+             fft(re, im);
+             for (let i = 0; i < re.length; i++) {
+                 re[i] /= re.length;
+                 im[i] /= -im.length;
+             }
+        }
+        function fft2d(re, im, res) {
+            for(let j=0; j<res; ++j) fft(re.subarray(j*res, (j+1)*res), im.subarray(j*res, (j+1)*res));
+            for(let i=0; i<res; ++i) {
+                const col_re = new Float32Array(res), col_im = new Float32Array(res);
+                for(let j=0; j<res; ++j) { col_re[j] = re[j*res + i]; col_im[j] = im[j*res + i]; }
+                fft(col_re, col_im);
+                for(let j=0; j<res; ++j) { re[j*res + i] = col_re[j]; im[j*res + i] = col_im[j]; }
+            }
+        }
+        function ifft2d(re, im, res) {
+            for(let j=0; j<res; ++j) ifft(re.subarray(j*res, (j+1)*res), im.subarray(j*res, (j+1)*res));
+            for(let i=0; i<res; ++i) {
+                const col_re = new Float32Array(res), col_im = new Float32Array(res);
+                for(let j=0; j<res; ++j) { col_re[j] = re[j*res + i]; col_im[j] = im[j*res + i]; }
+                ifft(col_re, col_im);
+                for(let j=0; j<res; ++j) { re[j*res + i] = col_re[j]; im[j*res + i] = col_im[j]; }
+            }
+        }
+
+        // --- N-Body Simulation ---
+        function runNBodySimulation(callback) {
+            const N_PARTS = 2048, N_STEPS = 150;
+            let step = 0;
+            let particles = Array.from({length: N_PARTS}, () => ({ x: Math.random(), y: Math.random(), vx: 0, vy: 0 }));
+            const grid_size = GRID_RES * GRID_RES;
+            let density_grid = new Float32Array(grid_size), potential_re = new Float32Array(grid_size);
+            let potential_im = new Float32Array(grid_size), force_grid_x = new Float32Array(grid_size), force_grid_y = new Float32Array(grid_size);
+
+            function nBodyStep() {
+                const dt = 0.01;
+                density_grid.fill(0);
+                const avg_density = N_PARTS / grid_size;
+                for (const p of particles) {
+                    const i = Math.floor(p.x * GRID_RES), j = Math.floor(p.y * GRID_RES);
+                    if (i >= 0 && i < GRID_RES && j >= 0 && j < GRID_RES) density_grid[j * GRID_RES + i] += 1;
+                }
+                for(let i=0; i<grid_size; ++i) density_grid[i] = (density_grid[i] - avg_density) / avg_density;
+                potential_re.set(density_grid);
+                potential_im.fill(0);
+                fft2d(potential_re, potential_im, GRID_RES);
+                for (let j = 0; j < GRID_RES; j++) for (let i = 0; i < GRID_RES; i++) {
+                    let kx = i > GRID_RES / 2 ? i - GRID_RES : i, ky = j > GRID_RES / 2 ? j - GRID_RES : j;
+                    const k2 = kx * kx + ky * ky;
+                    if (k2 === 0) continue;
+                    const inv_k2 = -1.0 / k2, idx = j * GRID_RES + i;
+                    potential_re[idx] *= inv_k2;
+                    potential_im[idx] *= inv_k2;
+                }
+                ifft2d(potential_re, potential_im, GRID_RES);
+                for (let j = 0; j < GRID_RES; j++) for (let i = 0; i < GRID_RES; i++) {
+                    const idx = j*GRID_RES+i, xp1 = j*GRID_RES+(i+1)%GRID_RES, xm1 = j*GRID_RES+(i-1+GRID_RES)%GRID_RES;
+                    const yp1 = ((j+1)%GRID_RES)*GRID_RES+i, ym1 = ((j-1+GRID_RES)%GRID_RES)*GRID_RES+i;
+                    force_grid_x[idx] = -(potential_re[xp1] - potential_re[xm1]) / 2;
+                    force_grid_y[idx] = -(potential_re[yp1] - potential_re[ym1]) / 2;
+                }
+                for(const p of particles) {
+                    const i = Math.floor(p.x * GRID_RES), j = Math.floor(p.y * GRID_RES);
+                    if (i >= 0 && i < GRID_RES && j >= 0 && j < GRID_RES) {
+                        const idx = j*GRID_RES + i;
+                        p.vx += force_grid_x[idx] * dt;
+                        p.vy += force_grid_y[idx] * dt;
+                    }
+                    p.x = (p.x + p.vx * dt + 1.0) % 1.0;
+                    p.y = (p.y + p.vy * dt + 1.0) % 1.0;
+                }
+                nCtx.fillStyle = 'black';
+                nCtx.fillRect(0, 0, nCtx.canvas.width, nCtx.canvas.height);
+                nCtx.fillStyle = '#b1a5c1';
+                for (const p of particles) nCtx.fillRect(p.x * nCtx.canvas.width, p.y * nCtx.canvas.height, 1, 1);
+                step++;
+                if(step < N_STEPS) requestAnimationFrame(nBodyStep);
+                else callback(potential_re);
+            }
+            nBodyStep();
+        }
+
+        function runLensing() { /* ... same as before ... */ }
+        function getSourceColor(x, y, type) { /* ... same as before ... */ }
+
+        // This is the same as before, just copying for completeness.
+        function runLensing() {
+            if (!potentialGrid) return;
+            const strength = 0.05, deflectionX = new Float32Array(GRID_RES*GRID_RES), deflectionY = new Float32Array(GRID_RES*GRID_RES);
+            for (let j=0; j<GRID_RES; j++) for (let i=0; i<GRID_RES; i++) {
+                const idx=j*GRID_RES+i, xp1=j*GRID_RES+(i+1)%GRID_RES, xm1=j*GRID_RES+(i-1+GRID_RES)%GRID_RES;
+                const yp1=((j+1)%GRID_RES)*GRID_RES+i, ym1=((j-1+GRID_RES)%GRID_RES)*GRID_RES+i;
+                deflectionX[idx] = (potentialGrid[xp1] - potentialGrid[xm1]) * strength;
+                deflectionY[idx] = (potentialGrid[yp1] - potentialGrid[ym1]) * strength;
+            }
+            const lensedImageData = lCtx.createImageData(GRID_RES, GRID_RES);
+            const sourceType = sourceSelect.value;
+            for (let j=0; j<GRID_RES; j++) for (let i=0; i<GRID_RES; i++) {
+                const screenIdx=j*GRID_RES+i, ax=deflectionX[screenIdx], ay=deflectionY[screenIdx];
+                const sourceX = i - ax, sourceY = j - ay;
+                const color = getSourceColor(sourceX, sourceY, sourceType);
+                const dataIdx = screenIdx * 4;
+                lensedImageData.data[dataIdx+0] = color.r; lensedImageData.data[dataIdx+1] = color.g;
+                lensedImageData.data[dataIdx+2] = color.b; lensedImageData.data[dataIdx+3] = 255;
+            }
+            lCtx.putImageData(lensedImageData, 0, 0);
+        }
+        function getSourceColor(x, y, type) {
+            if(type === 'grid') {
+                const spacing=20;
+                if (Math.abs(x%spacing)<1 || Math.abs(y%spacing)<1) return {r:255,g:255,b:0};
+            } else if (type === 'galaxy') {
+                const dx=x-GRID_RES/2, dy=y-GRID_RES/2, r=Math.sqrt(dx*dx+dy*dy);
+                const intensity = Math.exp(-r/15)*255;
+                return {r:intensity, g:intensity, b:intensity*0.5};
+            }
+            return {r:0,g:0,b:20};
+        }
+
+        startNBodyBtn.addEventListener('click', () => {
+            startNBodyBtn.textContent = "Running N-body...";
+            startNBodyBtn.disabled = true;
+            runNBodySimulation((finalPotential) => {
+                potentialGrid = finalPotential;
+                lensingBtn.disabled = false;
+                startNBodyBtn.textContent = "1. N-body Run Complete";
+                runLensing();
+            });
+        });
+        lensingBtn.addEventListener('click', runLensing);
+        sourceSelect.addEventListener('change', runLensing);
+    });
+    </script>
+</body>
+</html>
