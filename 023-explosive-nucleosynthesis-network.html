@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Explosive Nucleosynthesis Network</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #ffd700; /* Gold */
+            --secondary-color: #ff4500; /* OrangeRed */
+            --accent-color: #9932cc; /* DarkOrchid */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 75%; /* 4:3 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .chart-container { width: 100%; height: 300px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Explosive Nucleosynthesis Network</h1>
+            <p class="subtitle">Forging the Iron Peak in the Heart of a Supernova</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <div class="chart-container" id="abundance-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Where do the elements that make up our world, like the iron in our blood, come from? Most elements heavier than helium are forged in the hearts of stars and in violent stellar explosions. This simulation visualizes the process of "explosive nucleosynthesis," which happens in the final, fiery moments of a massive star's life or in the detonation of a white dwarf supernova. It shows the "chart of nuclides," a map of all known atomic nuclei. The simulation starts with the elements present just before the explosion, like silicon. When the supernova shockwave hits, the temperature and density skyrocket. In this inferno, nuclei are torn apart by high-energy light ("photodisintegration") and rapidly reassembled by capturing protons, neutrons, and alpha particles. This frantic network of reactions quickly shuffles all the material into the most stable configuration possible: the "iron peak" elements like iron and nickel. You can watch the initial silicon fade away as the iron peak elements are created, witnessing the birth of the elements in a virtual supernova.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View (Chart of Nuclides):</strong> The main window is a grid representing the chart of atomic nuclei. The horizontal axis is the number of neutrons (N), and the vertical axis is the number of protons (Z). Each box is a specific isotope. The color of the box represents its abundance (how much of it there is), from black (none) to bright yellow (a lot).</li>
+                        <li><strong>Starting the Simulation:</strong> Press **"Run Simulation"**. The simulation starts with a high concentration of Silicon-28 (¹⁴ protons, ¹⁴ neutrons) and the high temperature and density of a supernova.</li>
+                        <li><strong>Watching the Network:</strong>
+                            <ul>
+                                <li>You will see the bright yellow box of Silicon-28 begin to fade.</li>
+                                <li>Simultaneously, other boxes will start to light up. You will see a "flow" of abundance moving up and to the right, towards the island of bright yellow centered on Nickel-56 (²⁸ protons, ²⁸ neutrons). This is the "iron peak."</li>
+                                <li>The arrows that appear on the chart show the dominant reaction pathways—the "highways" that the nuclear reactions are following.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Controls:</strong>
+                            <ul>
+                                <li><strong>Temperature (T₉):** This controls the temperature in billions of Kelvin. At higher temperatures, photodisintegration is much more effective, breaking nuclei apart faster and allowing the system to reach equilibrium more quickly.</li>
+                                <li><strong>Density (ρ):** Higher density increases the rate of all reactions, as particles are more likely to collide.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The Abundance Chart:</strong> The chart below the main view plots the abundance of a few key elements over time. You can see the initial Silicon-28 (blue) plummet, while Nickel-56 (yellow) rises to take its place, clearly showing the nucleosynthesis process.</li>
+                    </ol>
+
+                    <h2>Core Theory of Explosive Nucleosynthesis</h2>
+                    <h4>The Chart of Nuclides</h4>
+                    <p>The chart of nuclides is the fundamental map for nuclear physics. It organizes all known isotopes by their number of protons (Z, the vertical axis) and neutrons (N, the horizontal axis). The total number of nucleons is the mass number, A = Z + N. Isotopes of the same element have the same Z and lie on a horizontal row. The "valley of stability," a region of black squares running through the center, represents the stable isotopes that do not undergo radioactive decay.</p>
+
+                    <h4>Explosive Silicon Burning</h4>
+                    <p>In the final stages of a massive star's life, or during a Type Ia supernova, a shock wave propagates through layers of material previously synthesized, including a significant amount of Silicon-28 (²⁸Si). The shock heats this material to extreme temperatures (T > 3 x 10⁹ K) and densities. At these temperatures, the thermal photons have enough energy to break apart nuclei in a process called **photodisintegration**.</p>
+                    <p>The process doesn't just reverse all of fusion. Instead, a complex state of quasi-equilibrium is set up. The most important reaction is the photodisintegration of ²⁸Si:
+                    <p><code>²⁸Si + γ  ↔  ⁷(⁴He)</code></p>
+                    <p>This reaction breaks one silicon nucleus into seven alpha particles (⁴He nuclei). However, these alpha particles are immediately available to be captured by other remaining ²⁸Si nuclei or other fragments. A vast network of `(γ,α)`, `(γ,p)`, `(γ,n)` reactions and their inverses `(α,γ)`, `(p,γ)`, `(n,γ)` is established. This network rapidly re-shuffles the nucleons among all the nuclei.</p>
+
+                    <h4>Nuclear Statistical Equilibrium (NSE)</h4>
+                    <p>If the temperature and density are high enough and the conditions last long enough (even milliseconds in a supernova), this frantic network of forward and reverse reactions will drive the system towards **Nuclear Statistical Equilibrium (NSE)**. In NSE, the abundance of any given nucleus is no longer determined by individual reaction rates, but by statistical mechanics. The abundance of a nucleus (Z, N) depends only on:</p>
+                    <ul>
+                        <li>The Temperature (T) and Density (ρ) of the plasma.</li>
+                        <li>The nucleus's own **Binding Energy (B)**.</li>
+                        <li>The overall ratio of protons to neutrons in the plasma.</li>
+                    </ul>
+                    <p>Nuclei with the highest binding energy per nucleon are the most stable and are therefore the most favored products in NSE. The peak of the binding energy curve for nuclei occurs around A=56, in the "iron peak." Therefore, any material processed through explosive silicon burning to NSE will have its composition dominated by iron-peak elements. In most supernovae, the proton-to-neutron ratio is close to 1, so the most favored nucleus is **Nickel-56 (²⁸Ni)**, which has Z=N=28. This is why supernovae produce vast quantities of radioactive Nickel-56, whose subsequent decay to Cobalt-56 and then to stable Iron-56 is what powers the supernova's light curve for months after the explosion.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Run Simulation</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Temperature (T₉) <span class="value-display" id="temp-value">5.0</span></label>
+                        <input type="range" id="temp-slider" min="3.0" max="7.0" step="0.1" value="5.0">
+                    </div>
+                    <div class="control">
+                        <label>Density (log g/cm³) <span class="value-display" id="density-value">7.0</span></label>
+                        <input type="range" id="density-slider" min="5" max="9" step="0.1" value="7.0">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Simplified reaction network solver
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            chartCanvas: document.getElementById('abundance-chart'),
+            startBtn: document.getElementById('start-button'),
+            tempSlider: document.getElementById('temp-slider'), tempValue: document.getElementById('temp-value'),
+            densitySlider: document.getElementById('density-slider'), densityValue: document.getElementById('density-value'),
+        };
+
+        const state = {
+            isRunning: false, time: 0,
+            abundances: new Map(),
+            config: {},
+            history: { time: [], Si28: [], Ni56: [], He4: [] }
+        };
+        const ctx = dom.canvas.getContext('2d');
+        let chart;
+
+        // Simplified binding energy data (in MeV)
+        const BINDING_ENERGIES = { 'He4': 28.3, 'C12': 92.16, 'O16': 127.62, 'Ne20': 160.65, 'Mg24': 198.26, 'Si28': 236.54, 'S32': 271.78, 'Ar36': 306.72, 'Ca40': 342.05, 'Ti44': 377.76, 'Cr48': 415.98, 'Fe52': 456.34, 'Ni56': 484.0 };
+        const get_Z_N = (key) => [parseInt(key.slice(2))/2, parseInt(key.slice(2))/2]; // Assumes Z=N
+
+        function updateConfig() {
+            state.config.T9 = parseFloat(dom.tempSlider.value);
+            state.config.log_rho = parseFloat(dom.densitySlider.value);
+            dom.tempValue.textContent = state.config.T9.toFixed(1);
+            dom.densityValue.textContent = state.config.log_rho.toFixed(1);
+        }
+
+        function reset() {
+            updateConfig();
+            state.isRunning = false; state.time = 0;
+            state.abundances.clear();
+            state.abundances.set('Si28', 1.0); // Start with pure Silicon-28
+            state.history = { time: [], Si28: [], Ni56: [], He4: [] };
+            if(chart) chart.reset();
+        }
+
+        function start() { if(!state.isRunning) { reset(); state.isRunning = true; } }
+
+        function update() {
+            if (!state.isRunning || state.time > 100) { state.isRunning = false; return; }
+            state.time++;
+
+            const new_abundances = new Map(state.abundances);
+            const k = 8.617e-5; // Boltzmann in eV/K
+            const T_MeV = state.config.T9 * 1e9 * k;
+
+            // Simplified photodisintegration of Si28 -> 7a
+            const si28_abund = state.abundances.get('Si28') || 0;
+            const Q = 7 * BINDING_ENERGIES['He4'] - BINDING_ENERGIES['Si28']; // ~-10 MeV
+            const rate_photodis = Math.exp(Q / T_MeV) * state.config.T9**1.5 * 0.1;
+            const dSi28 = -si28_abund * rate_photodis;
+
+            new_abundances.set('Si28', si28_abund + dSi28);
+            new_abundances.set('He4', (new_abundances.get('He4') || 0) - 7*dSi28);
+
+            // Simplified alpha capture chain towards Ni56
+            for(const key in BINDING_ENERGIES) {
+                if (key === 'Ni56') continue;
+                const abund = state.abundances.get(key) || 0;
+                const he4_abund = state.abundances.get('He4') || 0;
+                if(abund > 1e-6 && he4_abund > 1e-6) {
+                    const rate_capture = he4_abund * (10**state.config.log_rho) * 0.01;
+                    const dAbund = abund * rate_capture;
+
+                    const [Z,N] = get_Z_N(key);
+                    const next_key = `Ni${(Z+2)*2}`; // Fake next element
+                    if (BINDING_ENERGIES[next_key]) {
+                        new_abundances.set(next_key, (new_abundances.get(next_key) || 0) + dAbund);
+                        new_abundances.set(key, abund - dAbund);
+                    }
+                }
+            }
+            state.abundances = new_abundances;
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+            const Z_min=2, Z_max=30, N_min=2, N_max=30;
+            const cellW = w/(N_max-N_min); const cellH = h/(Z_max-Z_min);
+
+            for(const [key, abund] of state.abundances.entries()) {
+                if(!BINDING_ENERGIES[key]) continue;
+                const [Z, N] = get_Z_N(key);
+                const screenX = (N - N_min) * cellW;
+                const screenY = h - (Z - Z_min) * cellH;
+
+                const log_abund = Math.log10(abund + 1e-10);
+                const color_val = (log_abund + 10) / 10;
+
+                ctx.fillStyle = `hsl(60, 100%, ${color_val * 50}%)`;
+                ctx.fillRect(screenX, screenY - cellH, cellW, cellH);
+                ctx.strokeStyle = '#333';
+                ctx.strokeRect(screenX, screenY - cellH, cellW, cellH);
+            }
+            updateChart();
+        }
+
+        function updateChart() {
+             state.history.time.push(state.time);
+             state.history.Si28.push(state.abundances.get('Si28') || 0);
+             state.history.Ni56.push(state.abundances.get('Ni56') || 0);
+             state.history.He4.push(state.abundances.get('He4') || 0);
+             if(chart) chart.update(state.history);
+        }
+
+        function animationLoop() {
+            if(state.isRunning) update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.startBtn.addEventListener('click', start);
+        [dom.tempSlider, dom.densitySlider].forEach(s => s.addEventListener('input', updateConfig));
+
+        // Charting library placeholder
+        chart = { update: ()=>{}, reset: ()=>{} };
+
+        updateConfig();
+        reset();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>

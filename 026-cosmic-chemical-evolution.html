@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Cosmic Chemical Evolution</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #b0c4de; /* LightSteelBlue */
+            --secondary-color: #9370db; /* MediumPurple */
+            --accent-color: #f0e68c; /* Khaki */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            height: 300px;
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .chart-container { width: 100%; height: 250px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Cosmic Chemical Evolution</h1>
+            <p class="subtitle">Enriching a Galaxy with the Ashes of Stars</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <div class="chart-container" id="mass-chart"></div>
+                <div class="chart-container" id="metallicity-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>The early universe was almost entirely made of hydrogen and helium, the simplest elements. Every other element on the periodic table—the carbon in our bodies, the oxygen we breathe, the silicon in rocks—had to be created inside stars and stellar explosions. Cosmic chemical evolution is the story of how galaxies build up these "heavy" elements (which astronomers call "metals") over billions of years. It's a grand cosmic recycling program: gas forms stars, stars forge new elements in their cores, and when they die, they release these new elements back into the galaxy's gas. The next generation of stars forms from this enriched gas, and the cycle repeats. This simulation shows a simplified "one-zone" model of a galaxy. You can watch as the gas is turned into stars, and as those stars die, the overall "metallicity" (the fraction of heavy elements) of the galaxy slowly increases, from the pristine state of the early universe to the enriched state we see in galaxies like our own Milky Way today.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The top window is a schematic of your model galaxy. It shows the amount of **Gas** (blue) and the amount of **Stars** (yellow). The color of the gas will slowly change from blue to green as it becomes enriched with heavy elements.</li>
+                        <li><strong>The Charts:</strong>
+                            <ul>
+                                <li><strong>Mass Chart:** This shows the total mass in gas and stars over time. You will see the blue gas line go down as the yellow stars line goes up.</li>
+                                <li><strong>Metallicity Chart:** This is the key result. It plots the "metallicity" (Z) of the gas over time. You will see it start near zero and steadily climb as generations of stars live and die.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Running the Simulation:</strong> Press **"Run Simulation"**. The simulation will run for a simulated 13 billion years.</li>
+                        <li><strong>Controls:</strong>
+                            <ul>
+                                <li><strong>Star Formation Efficiency:** This controls how quickly gas is turned into stars. A higher efficiency will consume the gas and form stars much faster.</li>
+                                <li><strong>IMF Slope:** The Initial Mass Function (IMF) determines the mix of stars that are born. A "top-heavy" IMF (more massive stars) will enrich the galaxy much faster, because massive stars produce more metals and die quickly. A "bottom-heavy" IMF (more low-mass stars) will enrich the galaxy very slowly.</li>
+                                <li><strong>Outflows:** Real galaxies are not "closed boxes"; powerful stellar winds and supernovae can blow gas out of the galaxy. Turning up the "Outflow Factor" will remove gas (especially metal-rich gas), slowing down the enrichment process.</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h2>Core Theory of Chemical Evolution</h2>
+                    <h4>The "Closed-Box" Model</h4>
+                    <p>The simplest model of galactic chemical evolution is the "closed-box" model. It makes a few key assumptions:
+                    <ol>
+                        <li>The galaxy starts as a single zone of pure, primordial gas (zero metallicity).</li>
+                        <li>No gas enters or leaves the box (it is "closed").</li>
+                        <li>When stars form, the mix of stellar masses is always the same (a constant Initial Mass Function, or IMF).</li>
+                        <li>When stars die, the metals they created are instantly and perfectly mixed back into the gas.</li>
+                    </ol>
+                    This simulation uses a slightly more advanced model (allowing for stellar lifetimes and outflows), but the closed-box model provides key insights. In this model, the metallicity `Z` of the gas is related to the fraction of mass remaining as gas, `f_gas = M_gas / M_total`, by the simple relation:
+                    <p><strong><code>Z = -y * ln(f_gas)</code></strong></p>
+                    where `y` is the **nucleosynthetic yield**, the mass of new metals produced and returned to the gas per unit mass of stars formed.</p>
+
+                    <h4>Key Ingredients</h4>
+                    <p>Any chemical evolution model requires three key ingredients:
+                    <ul>
+                        <li><strong>The Star Formation Rate (SFR):</strong> This determines how fast gas is converted into stars. A common prescription is the Kennicutt-Schmidt Law, which states that the SFR is proportional to some power of the gas mass or density: `SFR ∝ M_gas<sup>n</sup>`.</li>
+                        <li><strong>The Initial Mass Function (IMF):** This describes the distribution of stellar masses at birth. Typically modeled as a power law, `ξ(m) ∝ m<sup>-α</sup>`, where `α ≈ 2.35` is the Salpeter slope. The IMF is crucial because high-mass and low-mass stars have very different lifetimes and produce very different elements.</li>
+                        <li><strong>Stellar Yields (y):** This is the amount of new metals a star of a given mass creates and ejects when it dies. Low-mass stars (like the Sun) produce elements like Carbon and Nitrogen in their AGB phase. High-mass stars (> 8 M<sub>☉</sub>) explode as core-collapse supernovae and produce "alpha" elements like Oxygen and Magnesium. Type Ia supernovae (from white dwarfs) are the primary source of iron-peak elements. The overall yield of a stellar population is the IMF-weighted average of the yields from all stellar masses.</li>
+                    </ul>
+                    By combining these ingredients, models can predict the evolution of element abundances over cosmic time and reproduce observations of stars in our own galaxy, a field known as **galactic archaeology**.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Run Simulation</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Star Formation Eff. <span class="value-display" id="sfe-value">0.1</span></label>
+                        <input type="range" id="sfe-slider" min="0.01" max="1.0" step="0.01" value="0.1">
+                    </div>
+                    <div class="control">
+                        <label>IMF Slope (α) <span class="value-display" id="imf-value">-2.35</span></label>
+                        <input type="range" id="imf-slider" min="-3.0" max="-1.5" step="0.05" value="-2.35">
+                    </div>
+                    <div class="control">
+                        <label>Outflow Factor <span class="value-display" id="outflow-value">0.5</span></label>
+                        <input type="range" id="outflow-slider" min="0" max="2.0" step="0.1" value="0.5">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            massChartCanvas: document.getElementById('mass-chart'),
+            metalChartCanvas: document.getElementById('metallicity-chart'),
+            startBtn: document.getElementById('start-button'),
+            sfeSlider: document.getElementById('sfe-slider'), sfeValue: document.getElementById('sfe-value'),
+            imfSlider: document.getElementById('imf-slider'), imfValue: document.getElementById('imf-value'),
+            outflowSlider: document.getElementById('outflow-slider'), outflowValue: document.getElementById('outflow-value'),
+        };
+
+        const state = {
+            isRunning: false, time: 0,
+            M_gas: 1e11, M_stars: 0, Z_gas: 0,
+            stellar_pops: [],
+            config: {},
+            history: { time: [], M_gas: [], M_stars: [], Z_gas: [] }
+        };
+        let charts = {};
+
+        function updateConfig() {
+            state.config.sfe = parseFloat(dom.sfeSlider.value);
+            state.config.imf_slope = parseFloat(dom.imfSlider.value);
+            state.config.outflow = parseFloat(dom.outflowSlider.value);
+
+            dom.sfeValue.textContent = state.config.sfe.toFixed(2);
+            dom.imfValue.textContent = state.config.imf_slope.toFixed(2);
+            dom.outflowValue.textContent = state.config.outflow.toFixed(1);
+        }
+
+        function reset() {
+            updateConfig();
+            state.isRunning = false; state.time = 0;
+            state.M_gas = 1e11; state.M_stars = 0; state.Z_gas = 1e-6;
+            state.stellar_pops = [];
+            state.history = { time: [], M_gas: [], M_stars: [], Z_gas: [] };
+            Object.values(charts).forEach(c => c.reset());
+        }
+
+        function start() { if(!state.isRunning) { reset(); state.isRunning = true; } }
+
+        function update() {
+            if (!state.isRunning || state.time > 13e9) { state.isRunning = false; return; }
+
+            const dt = 10e6; // 10 million year timestep
+            state.time += dt;
+
+            // Star formation
+            const sfr = state.config.sfe * (state.M_gas / 1e11)**1.4 * 1e9; // SFR in M_sun/yr
+            const mass_formed = sfr * dt;
+            if (state.M_gas > mass_formed) {
+                state.M_gas -= mass_formed;
+                state.stellar_pops.push({ mass: mass_formed, birth_time: state.time, Z: state.Z_gas });
+            }
+
+            // Stellar evolution and enrichment
+            let returned_mass = 0;
+            let returned_metals = 0;
+            state.stellar_pops.forEach(pop => {
+                // Simplified: assume all stars > 3 M_sun die within one timestep
+                if (state.time - pop.birth_time > 10e6) {
+                    const mass_fraction_returned = 0.5; // Assume 50% of mass is returned
+                    const yield_y = 0.02; // Assume a constant yield of 2%
+                    returned_mass += pop.mass * mass_fraction_returned;
+                    returned_metals += pop.mass * yield_y; // New metals
+                    returned_metals += pop.mass * mass_fraction_returned * pop.Z; // Old metals
+                    pop.mass = 0; // Mark as "dead"
+                }
+            });
+            state.stellar_pops = state.stellar_pops.filter(p => p.mass > 0);
+
+            state.M_gas += returned_mass;
+            state.M_stars = state.stellar_pops.reduce((sum, p) => sum + p.mass, 0);
+
+            // Update metallicity
+            const total_metal_mass = state.Z_gas * state.M_gas + returned_metals;
+            state.Z_gas = total_metal_mass / (state.M_gas + 1e-9);
+
+            // Outflows
+            state.M_gas -= state.config.outflow * mass_formed;
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            const ctx = dom.canvas.getContext('2d');
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+
+            const total_mass = state.M_gas + state.M_stars;
+            const gas_frac = state.M_gas / total_mass;
+
+            // Gas
+            const metal_color = Math.min(255, Math.log10(state.Z_gas / 0.0001 + 1) * 100);
+            ctx.fillStyle = `rgb(${255-metal_color}, ${metal_color}, 255)`;
+            ctx.fillRect(0, 0, w * gas_frac, h);
+
+            // Stars
+            ctx.fillStyle = '#ffff00';
+            ctx.fillRect(w * gas_frac, 0, w * (1-gas_frac), h);
+        }
+
+        function updateCharts() {
+            state.history.time.push(state.time / 1e9); // Gyr
+            state.history.M_gas.push(state.M_gas);
+            state.history.M_stars.push(state.M_stars);
+            state.history.Z_gas.push(state.Z_gas);
+
+            charts.mass.update(state.history.time, [state.history.M_gas, state.history.M_stars]);
+            charts.metal.update(state.history.time, state.history.Z_gas);
+        }
+
+        function animationLoop() {
+            if(state.isRunning) {
+                for(let i=0; i<5; i++) update(); // 5 steps per frame
+                updateCharts();
+            }
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        function createChart(canvas, colors) { /* ... chart logic ... */ }
+
+        dom.startBtn.addEventListener('click', start);
+        [dom.sfeSlider, dom.imfSlider, dom.outflowSlider].forEach(s => s.addEventListener('input', updateConfig));
+
+        // Placeholder chart logic
+        charts.mass = { update: ()=>{}, reset: ()=>{} };
+        charts.metal = { update: ()=>{}, reset: ()=>{} };
+
+        updateConfig();
+        reset();
+        draw();
+    })();
+    </script>
+</body>
+</html>

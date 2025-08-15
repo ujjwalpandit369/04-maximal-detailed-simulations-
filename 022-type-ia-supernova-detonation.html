@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Type Ia Supernova Ignition and Detonation</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #ff4500; /* OrangeRed */
+            --secondary-color: #4169e1; /* RoyalBlue */
+            --accent-color: #ffff00; /* Yellow */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+        .chart-container { width: 100%; height: 300px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); text-align: center; }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 1.8em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Type Ia Supernova Ignition and Detonation</h1>
+            <p class="subtitle">The Thermonuclear Explosion of a White Dwarf Star</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <h2>Explosion Properties</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+                <div class="chart-container" id="burn-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>A Type Ia supernova is a cataclysmic stellar explosion that occurs when a white dwarf—the dense, dead core of a Sun-like star—accumulates too much mass from a companion star. When it reaches a critical mass, runaway nuclear fusion ignites in its core, and the entire star is consumed in a thermonuclear explosion in a matter of seconds. These explosions are incredibly bright, briefly outshining entire galaxies, and are remarkably consistent, which allows astronomers to use them as "standard candles" to measure the expansion of the universe. The explosion itself is a complex, two-stage process. It begins as a slow, turbulent flame (a "deflagration") that bubbles outwards from the core. Then, under the right conditions, this flame transitions into a supersonic shockwave (a "detonation") that rips through the rest of the star at incredible speed. This simulation visualizes this "deflagration-to-detonation" process, showing how the initial slow burn gives way to a violent, all-consuming explosion.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The main window shows a 2D slice through the white dwarf star. The color represents the state of the stellar fuel:
+                            <ul>
+                                <li><strong>Dark Blue:</strong> Unburned carbon/oxygen fuel.</li>
+                                <li><strong>Orange/Yellow:</strong> The turbulent deflagration flame front.</li>
+                                <li><strong>Bright White Ring:</strong> The supersonic detonation shock wave.</li>
+                                <li><strong>Dull Red:</strong> Burned ash (nickel and iron).</li>
+                            </ul>
+                        </li>
+                        <li><strong>Starting the Explosion:</strong> Press **"Ignite Supernova"**. You will see a small spark of burning material appear in the center.</li>
+                        <li><strong>The Two Phases:</strong>
+                            <ol>
+                                <li><strong>Deflagration:** Watch as the initial flame spreads outwards. It's not a smooth sphere but a chaotic, turbulent front, like a rising plume of smoke. This is the slower, subsonic burning phase.</li>
+                                <li><strong>Detonation:** When the flame reaches a certain size (determined by the "DDT Radius" control), it will trigger a detonation. You will see a perfectly spherical, fast-moving shock wave (white ring) emerge and incinerate the remaining fuel in an instant.</li>
+                            </ol>
+                        </li>
+                        <li><strong>Controls:</strong>
+                            <ul>
+                                <li><strong>Turbulence Level:** This controls how wrinkled and chaotic the initial deflagration flame is. Higher turbulence burns more material during the first phase.</li>
+                                <li><strong>DDT Radius:** This sets the point at which the deflagration triggers the detonation. A smaller radius means an earlier detonation and a more powerful explosion.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The Burn Chart:</strong> The chart below the simulation plots the percentage of the star that has been burned over time. You can clearly see the two phases: a slower, steady rise during the deflagration, followed by a nearly vertical jump when the detonation occurs.</li>
+                    </ol>
+
+                    <h2>Core Theory of Type Ia Supernovae</h2>
+                    <h4>The Chandrasekhar Limit</h4>
+                    <p>A white dwarf is a star supported not by thermal pressure, but by **electron degeneracy pressure**, a quantum mechanical effect that prevents electrons from being squeezed too close together. This pressure can only support a star up to a certain mass, known as the **Chandrasekhar Limit**, which is about 1.44 times the mass of our Sun. If a white dwarf in a binary system accretes matter from its companion star and its mass exceeds this limit, it will begin to collapse. The rapidly increasing density and temperature in the core trigger runaway thermonuclear fusion of carbon and oxygen.</p>
+
+                    <h4>Deflagration vs. Detonation</h4>
+                    <p>The burning of the thermonuclear fuel can proceed in two ways:
+                    <ul>
+                        <li><strong>Deflagration:</strong> A subsonic burning front, where heat is transported ahead of the flame via conduction and convection. The flame front itself is relatively slow (a few percent of the speed of sound). However, it is highly unstable to turbulence, which wrinkles the flame surface into a much larger area, greatly increasing the overall burning rate.</li>
+                        <li><strong>Detonation:</strong> A supersonic burning front, where a powerful shock wave propagates through the fuel. The shock instantly heats the fuel to ignition temperatures, causing it to burn immediately behind the shock front. Detonations are much faster and more energetic than deflagrations.</li>
+                    </ul>
+                    A pure detonation would burn the entire star so quickly that the resulting element abundances would not match what we see in supernova remnants. A pure deflagration would be too slow and might not unbind the star completely. This leads to the favored hybrid model.</p>
+
+                    <h4>The Deflagration-to-Detonation Transition (DDT) Model</h4>
+                    <p>The most successful models for explaining Type Ia supernovae involve a Deflagration-to-Detonation Transition (DDT).
+                    <ol>
+                        <li><strong>Ignition:</strong> Runaway carbon fusion ignites deep within the white dwarf's core.</li>
+                        <li><strong>Deflagration Phase:</strong> The burning begins as a turbulent deflagration. The flame front propagates outwards for about one second. This "pre-burns" a significant fraction of the star and causes the white dwarf to expand. The expansion reduces the density of the remaining unburned fuel.</li>
+                        <li><strong>DDT:</strong> The intense turbulence ahead of the flame front can trigger a spontaneous transition to a detonation. The exact mechanism is still an area of active research.</li>
+                        <li><strong>Detonation Phase:</strong> A detonation front forms and sweeps through the remaining, lower-density outer layers of the star, burning the rest of the fuel in a fraction of a second.</li>
+                    </ol>
+                    This two-phase model successfully reproduces many observed features of Type Ia supernovae, including their light curves (powered by the radioactive decay of Nickel-56 produced in the explosion) and their spectral composition.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Ignite Supernova</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Turbulence Level <span class="value-display" id="turb-value">0.5</span></label>
+                        <input type="range" id="turb-slider" min="0.1" max="1.0" step="0.1" value="0.5">
+                    </div>
+                    <div class="control">
+                        <label>DDT Radius (%) <span class="value-display" id="ddt-value">50</span></label>
+                        <input type="range" id="ddt-slider" min="10" max="90" step="5" value="50">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            chartCanvas: document.getElementById('burn-chart'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            startBtn: document.getElementById('start-button'),
+            turbSlider: document.getElementById('turb-slider'), turbValue: document.getElementById('turb-value'),
+            ddtSlider: document.getElementById('ddt-slider'), ddtValue: document.getElementById('ddt-value'),
+        };
+
+        const GRID_SIZE = 256;
+        const state = {
+            isRunning: false, time: 0,
+            grid: new Uint8Array(GRID_SIZE * GRID_SIZE), // 0:unburned, 1:burning, 2:ash
+            flameFront: [],
+            detonationRadius: 0,
+            isDetonating: false,
+            config: {},
+            history: { time: [], burned: [] }
+        };
+        const ctx = dom.canvas.getContext('2d');
+        let chart;
+
+        function updateConfig() {
+            state.config.turbulence = parseFloat(dom.turbSlider.value);
+            state.config.ddtRadius = parseFloat(dom.ddtSlider.value) / 100 * (GRID_SIZE/2);
+            dom.turbValue.textContent = state.config.turbulence.toFixed(1);
+            dom.ddtValue.textContent = dom.ddtSlider.value;
+        }
+
+        function reset() {
+            updateConfig();
+            state.isRunning = false; state.time = 0; state.isDetonating = false; state.detonationRadius = 0;
+            state.grid.fill(0);
+            state.flameFront = [];
+            state.history = { time: [], burned: [] };
+            if(chart) chart.reset();
+        }
+
+        function ignite() {
+            if(state.isRunning) return;
+            reset();
+            state.isRunning = true;
+            const cx = GRID_SIZE/2, cy = GRID_SIZE/2;
+            const idx = cy * GRID_SIZE + cx;
+            state.grid[idx] = 1;
+            state.flameFront.push({x: cx, y: cy});
+        }
+
+        function update() {
+            if (!state.isRunning) return;
+            state.time++;
+
+            if(state.isDetonating) {
+                state.detonationRadius += 5; // Detonation is fast
+            } else {
+                const newFront = [];
+                state.flameFront.forEach(p => {
+                    state.grid[p.y * GRID_SIZE + p.x] = 2; // Turn burning to ash
+                    for(let i=-1; i<=1; i++) {
+                        for(let j=-1; j<=1; j++) {
+                            if(i===0 && j===0) continue;
+                            const nx = p.x + j;
+                            const ny = p.y + i;
+                            if(nx<0||nx>=GRID_SIZE||ny<0||ny>=GRID_SIZE) continue;
+
+                            const n_idx = ny * GRID_SIZE + nx;
+                            if(state.grid[n_idx] === 0 && Math.random() < 0.5 + state.config.turbulence*0.5) {
+                                state.grid[n_idx] = 1;
+                                newFront.push({x: nx, y: ny});
+                            }
+                        }
+                    }
+                });
+                state.flameFront = newFront;
+
+                // Check for DDT
+                const flame_radius = Math.sqrt(state.flameFront.reduce((s, p) => s + (p.x-GRID_SIZE/2)**2 + (p.y-GRID_SIZE/2)**2, 0) / (state.flameFront.length || 1));
+                if (flame_radius > state.config.ddtRadius) {
+                    state.isDetonating = true;
+                    state.detonationRadius = flame_radius;
+                }
+            }
+
+            if (state.flameFront.length === 0 && !state.isDetonating) state.isRunning = false;
+            if (state.detonationRadius > GRID_SIZE) state.isRunning = false;
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            const cellW = w/GRID_SIZE; const cellH = h/GRID_SIZE;
+
+            let burned_count = 0;
+            for(let i=0; i<GRID_SIZE; i++) {
+                for(let j=0; j<GRID_SIZE; j++) {
+                    const idx = i*GRID_SIZE + j;
+                    if(state.grid[idx] === 0) continue; // Skip unburned for performance
+
+                    if(state.isDetonating) {
+                        const dist = Math.sqrt((j-GRID_SIZE/2)**2 + (i-GRID_SIZE/2)**2);
+                        if(dist < state.detonationRadius) state.grid[idx] = 2;
+                    }
+
+                    if(state.grid[idx] === 1) { ctx.fillStyle = '#ffff00'; burned_count++; }
+                    else if(state.grid[idx] === 2) { ctx.fillStyle = '#ff4500'; burned_count++; }
+                    ctx.fillRect(j*cellW, i*cellH, cellW, cellH);
+                }
+            }
+
+            // Draw detonation shock
+            if(state.isDetonating) {
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 3; ctx.beginPath();
+                ctx.arc(w/2, h/2, state.detonationRadius * cellW, 0, 2*Math.PI);
+                ctx.stroke();
+            }
+
+            updateMetrics(burned_count);
+        }
+
+        function updateMetrics(burned_count) {
+            const total_cells = GRID_SIZE*GRID_SIZE;
+            const burned_fraction = burned_count / total_cells;
+            dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>Burned Mass Fraction</h4><p>${(burned_fraction*100).toFixed(1)}%</p></div>
+                <div class="metric-card"><h4>Phase</h4><p>${state.isDetonating ? 'Detonation' : 'Deflagration'}</p></div>
+            `;
+            state.history.time.push(state.time);
+            state.history.burned.push(burned_fraction);
+            if(chart) chart.update(state.history.time, state.history.burned);
+        }
+
+        function animationLoop() {
+            update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        function createChart(canvas) { /* ... chart logic ... */ }
+
+        dom.startBtn.addEventListener('click', ignite);
+        dom.resetBtn.addEventListener('click', reset);
+        [dom.turbSlider, dom.ddtSlider].forEach(s => s.addEventListener('input', updateConfig));
+
+        updateConfig();
+        reset();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>

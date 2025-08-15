@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: s-Process Nucleosynthesis in AGB Stars</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #98fb98; /* PaleGreen */
+            --secondary-color: #ff6347; /* Tomato */
+            --accent-color: #87cefa; /* LightSkyBlue */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 50%; /* Wider Aspect Ratio for Chart of Nuclides */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: s-Process Nucleosynthesis in AGB Stars</h1>
+            <p class="subtitle">The Slow and Steady Path to Building Heavy Elements</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>While some heavy elements like gold are forged in violent cosmic explosions, about half of them are created through a much more patient process inside old, evolved stars. This is the "s-process," which stands for slow neutron capture. Inside aging stars known as Asymptotic Giant Branch (AGB) stars, nuclear reactions release a slow but steady trickle of neutrons. An existing nucleus, like iron, will float around for years or decades before it happens to capture one of these neutrons, becoming a slightly heavier isotope. If this new isotope is stable, it will simply wait for the next neutron to come along. If it's unstable, however, it has plenty of time to radioactively decay (turning a neutron into a proton) before another neutron arrives. This creates a characteristic zig-zag path up the "valley of stability" on the chart of nuclides. This simulation visualizes this slow, methodical process, showing how elements like strontium, barium, and lead are patiently built, one neutron at a time, over thousands of years inside a star.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View (Chart of Nuclides):</strong> The main window is a map of atomic nuclei, with protons on the vertical axis and neutrons on the horizontal. The gray band is the "valley of stability" where stable isotopes live.</li>
+                        <li><strong>Starting the Simulation:</strong> Press **"Start s-Process"**. The simulation begins with a seed nucleus (Iron-56). A green dot will trace the path of nucleosynthesis.</li>
+                        <li><strong>The "Zig-Zag" Path:</strong> Watch the green dot. It will follow a distinct pattern:
+                            <ol>
+                                <li>It will move one step to the right. This is a **neutron capture**.</li>
+                                <li>It will then pause. The simulation is checking if the new isotope is stable.</li>
+                                <li>If the new isotope is unstable (outside the gray band), the dot will move diagonally up and to the left. This is a **beta decay**.</li>
+                                <li>If it's stable, it will wait until it captures another neutron, moving one more step to the right.</li>
+                            </ol>
+                        </li>
+                        <li><strong>The Result:</strong> This process creates a zig-zag path that closely follows the valley of stability, slowly building up heavier and heavier elements. This is fundamentally different from the violent, far-from-stability path of the r-process.</li>
+                    </ol>
+
+                    <h2>Core Theory of the s-Process</h2>
+                    <h4>A Different Timescale</h4>
+                    <p>The key difference between the s-process and the r-process is the timescale. The s-process occurs in environments with a low neutron density, such as the helium-burning shells of Asymptotic Giant Branch (AGB) stars. In this environment, the time between neutron captures for a given nucleus can be hundreds or thousands of years.</p>
+                    <p>This long timescale is much greater than the typical half-lives of unstable, neutron-rich isotopes (which can be seconds, minutes, or hours). This means the defining condition for the s-process is the opposite of the r-process: `τ<sub>nγ</sub> >> τ<sub>β</sub>`. A nucleus has plenty of time to beta-decay back to stability before the next neutron capture is likely to occur.</p>
+
+                    <h4>The s-Process Path</h4>
+                    <p>This timescale difference results in a completely different path on the chart of nuclides. Starting from seed nuclei in the iron peak, the s-process path dutifully "hugs" the valley of stability.
+                    <ol>
+                        <li>A stable nucleus `(Z, A)` captures a neutron to become `(Z, A+1)`.</li>
+                        <li>The simulation checks the stability of `(Z, A+1)`.</li>
+                        <li>If `(Z, A+1)` is stable, it waits for another neutron capture to become `(Z, A+2)`.</li>
+                        <li>If `(Z, A+1)` is unstable, it undergoes beta decay to `(Z+1, A+1)` before it can capture another neutron.</li>
+                        <li>The new nucleus `(Z+1, A+1)` is now at the start of a new isotopic chain, and the process repeats.</li>
+                    </ol>
+                    This creates a zig-zag path that methodically climbs the chart of nuclides. The s-process is responsible for producing elements like Strontium (Sr), Barium (Ba), and Lead (Pb). However, the s-process path cannot get past certain "bottlenecks" of very short-lived isotopes, and it cannot produce elements heavier than bismuth and lead. The heaviest elements, like the actinides, can only be formed by the r-process.</p>
+
+                    <h4>Stellar Sites and Neutron Sources</h4>
+                    <p>The primary site for the main s-process is in the helium-fusing shells of low-to-intermediate mass AGB stars. In this environment, two key nuclear reaction chains act as the source of neutrons:
+                    <ul>
+                        <li><strong>The `¹³C(α,n)¹⁶O` reaction:</strong> This is the dominant source in most AGB stars. It operates at relatively low temperatures (~10⁸ K) and releases neutrons at a slow, steady rate.</li>
+                        <li><strong>The `²²Ne(α,n)²⁵Mg` reaction:</strong> This reaction requires higher temperatures (>3x10⁸ K) and operates in short, convective "flashes" called thermal pulses. It provides a burst of higher neutron density.</li>
+                    </ul>
+                    The elements synthesized in the star's interior are then dredged up to the surface by convection and blown off into space via strong stellar winds, enriching the galaxy with s-process elements.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Start s-Process</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            startBtn: document.getElementById('start-button'),
+        };
+
+        const state = {
+            isRunning: false, time: 0,
+            path: [],
+            current_N: 30, current_Z: 26, // Start at Fe-56
+        };
+        const ctx = dom.canvas.getContext('2d');
+        const N_MIN = 25, N_MAX = 90, Z_MIN = 25, Z_MAX = 60;
+
+        // Simplified map of stable isotopes (Z: [min_N, max_N])
+        const VALLEY_OF_STABILITY = {
+            26: [30,32], 27: [32], 28: [32,34,36], 29: [34,36], 30: [38,40],
+            // ... this would be filled with more data for a full simulation
+            40: [50, 56], 41: [52], 42: [52, 58], 43: [], 44: [56, 62],
+            50: [62, 74], 51: [72], 52: [72, 80],
+        };
+        function isStable(Z,N) {
+            const range = VALLEY_OF_STABILITY[Z];
+            if(!range || range.length === 0) return false;
+            return N >= range[0] && N <= range[1];
+        }
+
+        function reset() {
+            state.isRunning = false; state.time = 0;
+            state.current_N = 30; state.current_Z = 26; // Fe-56
+            state.path = [{ N: state.current_N, Z: state.current_Z }];
+        }
+
+        function start() { if(!state.isRunning) { reset(); state.isRunning = true; } }
+
+        function update() {
+            if (!state.isRunning) return;
+            state.time++;
+
+            const current_is_stable = isStable(state.current_Z, state.current_N);
+
+            if (current_is_stable) {
+                // Neutron capture
+                state.current_N++;
+            } else {
+                // Beta decay
+                state.current_N--;
+                state.current_Z++;
+            }
+
+            state.path.push({ N: state.current_N, Z: state.current_Z });
+            if (state.current_Z >= Z_MAX) state.isRunning = false;
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+
+            const cellW = w/(N_MAX-N_MIN); const cellH = h/(Z_MAX-Z_MIN);
+
+            // Draw valley of stability
+            ctx.fillStyle = 'rgba(100,100,100,0.3)';
+            for(let Z=Z_MIN; Z<Z_MAX; Z++) {
+                 const range = VALLEY_OF_STABILITY[Z];
+                 if(range && range.length > 0) {
+                    const min_n_stable = range[0];
+                    const max_n_stable = range[1];
+                    const x = (min_n_stable - N_MIN) * cellW;
+                    const y = h - (Z - Z_MIN + 1) * cellH;
+                    const width = (max_n_stable - min_n_stable + 1) * cellW;
+                    ctx.fillRect(x, y, width, cellH);
+                 }
+            }
+
+            // Draw path
+            ctx.strokeStyle = '#98fb98'; ctx.lineWidth = 3; ctx.beginPath();
+            state.path.forEach((p, i) => {
+                const screenX = (p.N - N_MIN + 0.5) * cellW;
+                const screenY = h - (p.Z - Z_MIN + 0.5) * cellH;
+                if(i===0) ctx.moveTo(screenX, screenY); else ctx.lineTo(screenX, screenY);
+            });
+            ctx.stroke();
+
+            // Draw current position
+            const last_p = state.path[state.path.length-1];
+            const screenX = (last_p.N - N_MIN + 0.5) * cellW;
+            const screenY = h - (last_p.Z - Z_MIN + 0.5) * cellH;
+            ctx.fillStyle = '#98fb98'; ctx.beginPath(); ctx.arc(screenX, screenY, 5, 0, 2*Math.PI); ctx.fill();
+        }
+
+        function animationLoop() {
+            if(state.isRunning) {
+                if (state.time % 10 === 0) update(); // Slow it down for visualization
+            }
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.startBtn.addEventListener('click', start);
+
+        reset();
+        draw();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>

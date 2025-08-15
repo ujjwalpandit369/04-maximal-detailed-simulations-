@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: r-Process Nucleosynthesis in Neutron Star Mergers</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #ffd700; /* Gold */
+            --secondary-color: #afeeee; /* PaleTurquoise */
+            --accent-color: #da70d6; /* Orchid */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 50%; /* Wider Aspect Ratio for Chart of Nuclides */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: r-Process Nucleosynthesis in Neutron Star Mergers</h1>
+            <p class="subtitle">Forging Gold and Platinum in a Cosmic Cataclysm</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>All the gold in your jewelry, the platinum in a catalytic converter, and the uranium in a power plant were created in some of the most violent events in the universe. These heavy elements are forged through the "r-process," which stands for rapid neutron capture. This process requires an environment with an unimaginable density of neutrons, a condition found in the debris ejected when two neutron stars collide and merge. In this environment, an atomic nucleus (like iron) is bombarded with so many neutrons so quickly that it doesn't have time to radioactively decay. It just keeps absorbing neutrons, becoming incredibly heavy and unstable. When the neutron storm subsides, these bloated nuclei are far from stability and begin a cascade of beta-decays, transforming their excess neutrons into protons. This decay path "rains" them down onto the chart of nuclides, creating the stable heavy elements we know. This simulation visualizes that incredible journey: a rapid horizontal path of neutron captures, followed by a diagonal cascade of decays that forges the heaviest elements in the cosmos.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View (Chart of Nuclides):** The main window is a map of atomic nuclei, with protons on the vertical axis and neutrons on the horizontal. The gray band is the "valley of stability" where stable, everyday isotopes live.</li>
+                        <li><strong>Starting the Simulation:</strong> Press **"Start r-Process"**. The simulation begins with a seed nucleus (Iron-56, the end point of normal stellar fusion).</li>
+                        <li><strong>The Two Phases:</strong>
+                            <ol>
+                                <li><strong>Rapid Neutron Capture:** You will see a yellow dot representing the material shoot horizontally to the right. This is the nucleus rapidly absorbing dozens of neutrons in the intense neutron flux of the merger. It happens in a fraction of a second.</li>
+                                <li><strong>Beta-Decay Cascade:** Once the neutron capture phase ends, the yellow dot will begin to move diagonally up and to the left. This is the cascade of beta-decays, where the unstable nucleus transforms its neutrons into protons, climbing back towards the valley of stability.</li>
+                            </ol>
+                        </li>
+                        <li><strong>The Result:</strong> The path will end when it reaches a stable or very long-lived isotope. The final element created (like Gold, Au, or Platinum, Pt) will be highlighted. You have just witnessed the creation of a heavy element!</li>
+                        <li><strong>Controls:</strong>
+                            <ul>
+                                <li><strong>Neutron Density:** This controls how intense the neutron storm is. At very high densities, the capture path is pushed even further out to the right, creating even heavier, more exotic nuclei before the decay phase begins.</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h2>Core Theory of the r-Process</h2>
+                    <h4>The Origin of Heavy Elements</h4>
+                    <p>Nuclear fusion in stars can create elements up to iron and nickel. These elements lie at the peak of the nuclear binding energy curve, meaning energy is released when light elements fuse into them. However, to create elements heavier than iron (like silver, gold, lead, uranium), energy must be put *in*. This cannot happen via charged particle fusion in stars. Instead, these elements are built by capturing neutrons, which have no electric charge and can easily penetrate a heavy nucleus.</p>
+                    <p>This neutron capture can happen in two ways: the slow (s-process) and the rapid (r-process). The r-process is responsible for about half of the heavy elements, including all of the heaviest ones.</p>
+
+                    <h4>Conditions for the r-Process</h4>
+                    <p>The r-process requires an environment with an extremely high density of free neutrons (n<sub>n</sub> > 10<sup>20</sup> cm<sup>-3</sup>). In such an environment, the timescale for a nucleus to capture a neutron is much shorter than the timescale for it to undergo beta decay. This is the defining condition of the r-process: `τ<sub>nγ</sub> << τ<sub>β</sub>`.</p>
+                    <p>Such conditions are not found in normal stars. For decades, the site of the r-process was a mystery, with core-collapse supernovae being the leading candidate. However, modern simulations struggled to reproduce the required conditions. The breakthrough came with the direct observation of a binary neutron star merger (GW170817) by LIGO and Virgo. The electromagnetic "kilonova" that followed the gravitational wave signal had a spectrum that showed clear evidence for the fresh synthesis of r-process elements, confirming that these mergers are a primary site for their creation.</p>
+
+                    <h4>The r-Process Path</h4>
+                    <p>The nucleosynthesis proceeds in two main phases, as shown in the simulation:
+                    <ol>
+                        <li><strong>(n,γ) ↔ (γ,n) Equilibrium:</strong> During the intense neutron burst, a seed nucleus (e.g., ⁵⁶Fe) rapidly captures neutrons. The path doesn't proceed indefinitely to the right, however. The temperature is also high, so high-energy photons can knock neutrons off `(γ,n)`. An equilibrium is established for each isotopic chain (fixed Z). The process "waits" at a certain neutron number until a beta decay happens, allowing it to jump to the next Z chain and continue capturing neutrons. The path therefore follows a line of constant neutron separation energy, far to the right of the valley of stability. This continues until it reaches the neutron drip line or the neutron burst ends.</li>
+                        <li><strong>Beta-Decay Cascade:</strong> Once the neutron density drops, the material finds itself composed of highly radioactive, neutron-rich nuclei. These nuclei are far from the valley of stability and undergo a rapid series of beta decays (`n → p + e⁻ + ν`). Each beta decay increases the proton number by one and decreases the neutron number by one, moving the nucleus diagonally up and to the left on the chart. This cascade continues until the nucleus reaches a stable or very long-lived isotope in the valley of stability.</li>
+                    </ol>
+                    The final abundance pattern of r-process elements, with its characteristic peaks, is determined by the "waiting points" at nuclei with magic neutron numbers (N=50, 82, 126) during the capture phase, and the beta-decay properties of the nuclei along the decay path.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Start r-Process</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Neutron Density (log n/cm³) <span class="value-display" id="ndens-value">24</span></label>
+                        <input type="range" id="ndens-slider" min="20" max="30" step="1" value="24">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            startBtn: document.getElementById('start-button'),
+            ndensSlider: document.getElementById('ndens-slider'), ndensValue: document.getElementById('ndens-value'),
+        };
+
+        const state = {
+            isRunning: false, time: 0,
+            path: [],
+            current_N: 26, current_Z: 26, // Start at Fe-52 for simplicity
+            phase: 'capture', // capture or decay
+            config: {},
+        };
+        const ctx = dom.canvas.getContext('2d');
+        const N_MIN = 25, N_MAX = 130, Z_MIN = 25, Z_MAX = 85;
+
+        function updateConfig() {
+            state.config.log_n_n = parseFloat(dom.ndensSlider.value);
+            dom.ndensValue.textContent = state.config.log_n_n.toFixed(0);
+        }
+
+        function reset() {
+            updateConfig();
+            state.isRunning = false; state.time = 0; state.phase = 'capture';
+            state.current_N = 30; state.current_Z = 26; // Start at Fe-56
+            state.path = [{ N: state.current_N, Z: state.current_Z }];
+        }
+
+        function start() { if(!state.isRunning) { reset(); state.isRunning = true; } }
+
+        function update() {
+            if (!state.isRunning) return;
+            state.time++;
+
+            if (state.phase === 'capture') {
+                const capture_prob = Math.min(1.0, (state.config.log_n_n - 19) / 5);
+                if (Math.random() < capture_prob) {
+                    state.current_N++;
+                }
+                if (state.time > 50) { // End of neutron burst
+                    state.phase = 'decay';
+                }
+            } else if (state.phase === 'decay') {
+                // Beta decay
+                state.current_N--;
+                state.current_Z++;
+            }
+
+            state.path.push({ N: state.current_N, Z: state.current_Z });
+            if (state.current_Z > 83 || state.current_N < state.current_Z * 1.1) {
+                state.isRunning = false; // Reached stability
+            }
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+
+            const cellW = w/(N_MAX-N_MIN); const cellH = h/(Z_MAX-Z_MIN);
+
+            // Draw valley of stability
+            ctx.fillStyle = 'rgba(100,100,100,0.3)';
+            for(let Z=Z_MIN; Z<Z_MAX; Z++) {
+                const N_stable = Math.floor(Z * 1.3); // Approximation
+                const screenX = (N_stable - N_MIN) * cellW;
+                const screenY = h - (Z - Z_MIN) * cellH;
+                ctx.fillRect(screenX, screenY - cellH, cellW * 5, cellH);
+            }
+
+            // Draw path
+            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3; ctx.beginPath();
+            state.path.forEach((p, i) => {
+                const screenX = (p.N - N_MIN) * cellW;
+                const screenY = h - (p.Z - Z_MIN) * cellH;
+                if(i===0) ctx.moveTo(screenX, screenY); else ctx.lineTo(screenX, screenY);
+            });
+            ctx.stroke();
+
+            // Draw current position
+            const last_p = state.path[state.path.length-1];
+            const screenX = (last_p.N - N_MIN) * cellW;
+            const screenY = h - (last_p.Z - Z_MIN) * cellH;
+            ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(screenX, screenY, 5, 0, 2*Math.PI); ctx.fill();
+        }
+
+        function animationLoop() {
+            if(state.isRunning) update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.startBtn.addEventListener('click', start);
+        dom.ndensSlider.addEventListener('input', updateConfig);
+
+        updateConfig();
+        reset();
+        draw();
+    })();
+    </script>
+</body>
+</html>
