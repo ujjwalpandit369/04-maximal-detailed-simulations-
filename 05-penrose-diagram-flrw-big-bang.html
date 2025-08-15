@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation: The FLRW (Big Bang) Penrose Diagram</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #cddc39; /* Lime green for cosmology/FLRW */
+            --secondary-color: #ff5722; /* Deep orange for singularities */
+            --accent-color: #607d8b; /* Blue-grey for observers/horizons */
+            --border-color: #444;
+            --panel-bg-color: #2a2a2a;
+            --control-bg-color: #333;
+            --font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-family); line-height: 1.6; margin: 0; padding: 0; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); }
+        h1 { color: var(--header-color); font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-bottom: 15px; }
+        main { display: grid; grid-template-columns: 1fr 400px; gap: 20px; margin-top: 20px; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { background-color: var(--panel-bg-color); padding: 15px; border-radius: 8px; height: fit-content; }
+        .panel { background-color: var(--panel-bg-color); padding: 20px; border-radius: 8px; }
+        .panel h2, .controls-column h2 { color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+        canvas { width: 100%; height: auto; background-color: #000; border-radius: 8px; aspect-ratio: 1; cursor: pointer; }
+        .control-group { margin-bottom: 20px; }
+        .control-group h3 { color: var(--accent-color); font-size: 1.1em; margin-bottom: 10px; }
+        .control { margin-bottom: 15px; }
+        .control label { display: block; font-size: 0.9em; margin-bottom: 5px; }
+        .control select { width: 100%; padding: 5px; background: var(--control-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; }
+        .exposition { grid-column: 1 / -1; }
+        .exposition h3 { color: var(--primary-color); }
+        .exposition h4 { color: var(--accent-color); }
+        .qa-item { margin-bottom: 20px; border-left: 3px solid var(--border-color); padding-left: 15px; }
+        .qa-item strong { color: var(--primary-color); }
+        button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>The FLRW (Big Bang) Penrose Diagram</h1>
+            <p class="subtitle">Visualizing the causal structure of our expanding universe.</p>
+        </header>
+
+        <main>
+            <div class="simulation-column">
+                <div class="panel">
+                    <h2 id="canvas-title" style="text-align: center;">Flat, Matter-Dominated Universe</h2>
+                    <canvas id="main-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="controls-column">
+                <h2>Controls</h2>
+                <div class="control-group">
+                    <h3>Cosmological Parameters</h3>
+                    <div class="control">
+                        <label for="universe-content">Dominant Content</label>
+                        <select id="universe-content">
+                            <option value="matter">Matter</option>
+                            <option value="radiation">Radiation</option>
+                        </select>
+                    </div>
+                    <div class="control">
+                        <label for="spatial-curvature">Spatial Curvature (k)</label>
+                        <select id="spatial-curvature">
+                            <option value="0">Flat (k=0)</option>
+                            <option value="1">Closed (k=+1)</option>
+                            <option value="-1">Open (k=-1)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Visualization</h3>
+                    <p style="font-size:0.8em; color:#ccc;">Click on the diagram to place an observer and see their particle horizon.</p>
+                    <button id="clear-observers">Clear Observers</button>
+                </div>
+            </div>
+
+            <div class="exposition container">
+                <div class="panel">
+                    <h2>The Penrose Diagram of Our Universe</h2>
+                    <p>We finally arrive at the Penrose diagram for the universe described by the standard model of cosmology: the Friedmann-Lemaître-Robertson-Walker (FLRW) model. This model describes a homogeneous and isotropic universe that is expanding or contracting, and it's our best description of the cosmos on large scales. Unlike the static spacetimes we've seen before, the FLRW universe is dynamic, with a scale factor a(t) that changes over time. This makes the construction of its Penrose diagram more subtle, requiring a new time coordinate called "conformal time." The resulting diagram powerfully illustrates the key features of our universe: a beginning at the Big Bang, a limited observable region defined by the particle horizon, and a fate determined by its contents and curvature.</p>
+                </div>
+                <div class="panel">
+                    <h3>The Spacelike Singularity and Conformal Time</h3>
+                    <p>The most important feature of the FLRW diagram is the **Big Bang singularity** at the bottom. Unlike the timelike singularity in a charged or rotating black hole (which is a place in space), the Big Bang is a **spacelike singularity**. It is a moment in time, t=0. In the Penrose diagram, it forms the entire bottom boundary. This means it is in the past of every single event in the universe. It's not something you can avoid; it is the beginning from which all worldlines emerge.</p>
+                    <p>To draw a Penrose diagram for a dynamic spacetime, we need to use a special time coordinate, **conformal time (η)**. It's defined such that in a diagram using conformal time and comoving spatial coordinates, light rays still travel at 45 degrees, just as they did in flat space. This preserves the causal structure and allows us to draw a meaningful diagram. The relationship between cosmic time t and conformal time η depends on the scale factor a(t). For a universe with a definite beginning, conformal time also has a definite starting point, which corresponds to the Big Bang.</p>
+                    <h3>The Particle Horizon</h3>
+                    <p>Because the universe has a finite age and light travels at a finite speed, there is a limit to how far we can see. The boundary between the observable and unobservable universe for an observer at a specific time is called the **particle horizon**. In the Penrose diagram, this is easily visualized. When you place an observer, their past light cone can be drawn. The portion of the Big Bang singularity that this light cone intersects represents all the points in the early universe that have had time to send a signal that reaches the observer. The size of this region is the particle horizon. As the observer's worldline moves forward in time, their past light cone encompasses more of the initial singularity, showing that the observable universe grows over time.</p>
+                </div>
+                <!-- ... Q&A and other sections ... -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+    (function() {
+        let state = {
+            content: 'matter',
+            curvature: '0',
+            observers: [],
+        };
+        let canvas, ctx;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            canvas = document.getElementById('main-canvas');
+            ctx = canvas.getContext('2d');
+            canvas.width = 500;
+            canvas.height = 500;
+            setupControls();
+            requestAnimationFrame(draw);
+        });
+
+        function setupControls() {
+            document.getElementById('universe-content').addEventListener('change', (e) => { state.content = e.target.value; });
+            document.getElementById('spatial-curvature').addEventListener('change', (e) => { state.curvature = e.target.value; });
+            document.getElementById('clear-observers').addEventListener('click', () => { state.observers = []; });
+            canvas.addEventListener('click', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                state.observers.push({ x, y });
+            });
+        }
+
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawDiagramBoundary();
+            drawObservers();
+
+            requestAnimationFrame(draw);
+        }
+
+        function drawDiagramBoundary() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const k = state.curvature;
+
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+
+            // Big Bang Singularity
+            ctx.strokeStyle = 'red';
+            ctx.beginPath();
+            ctx.moveTo(0, h);
+            ctx.lineTo(w, h);
+            ctx.stroke();
+
+            ctx.strokeStyle = 'white';
+            // Future infinity and side boundaries depend on parameters
+            if (k === '0' || k === '-1') { // Flat and Open universes expand forever
+                // Left and right null infinities
+                ctx.beginPath();
+                ctx.moveTo(0, h);
+                ctx.lineTo(w/2, h/2);
+                ctx.lineTo(0, 0);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(w, h);
+                ctx.lineTo(w/2, h/2);
+                ctx.lineTo(w, 0);
+                ctx.stroke();
+
+                // Top is future timelike infinity
+                ctx.fillStyle = 'white';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText("i⁺ (Future Timelike Infinity)", w/2, 15);
+            } else { // Closed universe re-collapses
+                ctx.beginPath();
+                ctx.moveTo(0, h);
+                ctx.lineTo(w/2, 0);
+                ctx.lineTo(w, h);
+                ctx.stroke();
+
+                // Big Crunch Singularity
+                ctx.strokeStyle = 'red';
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(w, 0);
+                ctx.stroke();
+            }
+        }
+
+        function drawObservers() {
+            for (const obs of state.observers) {
+                // Draw observer point
+                ctx.fillStyle = 'cyan';
+                ctx.beginPath();
+                ctx.arc(obs.x, obs.y, 5, 0, 2*Math.PI);
+                ctx.fill();
+
+                // Draw past light cone (particle horizon)
+                ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(obs.x, obs.y);
+                ctx.lineTo(obs.x - (canvas.height - obs.y), canvas.height);
+                ctx.moveTo(obs.x, obs.y);
+                ctx.lineTo(obs.x + (canvas.height - obs.y), canvas.height);
+                ctx.stroke();
+            }
+        }
+
+    })();
+    </script>
+</body>
+</html>
