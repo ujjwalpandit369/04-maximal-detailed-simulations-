@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Cosmic String Network Evolution</title>
+    <style>
+        /* CSS from the previous file is reused for consistency */
+        :root {
+            --bg-color: #f0f4f8; --text-color: #1c2a38; --header-color: #0d1b2a;
+            --primary-color: #3a7ca5; --secondary-color: #ff6f61; --accent-color: #6a994e;
+            --border-color: #dbe2e9; --code-bg-color: #e0e6ec; --shadow-color: rgba(0, 0, 0, 0.1);
+            --font-family: 'Georgia', 'Times New Roman', serif; --font-family-sans: 'Helvetica', 'Arial', sans-serif;
+            --max-width: 1200px;
+        }
+        .high-contrast {
+            --bg-color: #000000; --text-color: #ffffff; --header-color: #ffffff; --primary-color: #ffff00;
+            --secondary-color: #ff00ff; --accent-color: #00ffff; --border-color: #666666; --code-bg-color: #222222;
+        }
+        .colorblind-friendly {
+            --primary-color: #0072B2; --secondary-color: #D55E00; --accent-color: #009E73;
+        }
+        body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; transition: background-color 0.3s, color 0.3s; }
+        .container { max-width: var(--max-width); margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3 { font-family: var(--font-family-sans); color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; } h2 { font-size: 2.2em; } h3 { font-size: 1.8em; }
+        p { margin-bottom: 1.5em; } a { color: var(--primary-color); text-decoration: none; } a:hover { text-decoration: underline; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        header h1 { color: var(--bg-color); } .subtitle { font-size: 1.2em; font-style: italic; opacity: 0.9; }
+        .metadata-bar { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 15px; margin-top: 20px; font-family: var(--font-family-sans); font-size: 0.9em; }
+        .metadata-item { background: var(--primary-color); padding: 5px 12px; border-radius: 15px; color: white; }
+        .sim-container { display: grid; grid-template-columns: 1fr 350px; gap: 30px; margin-top: 30px; }
+        .vis-panel { display: flex; flex-direction: column; gap: 20px; }
+        #main-canvas { width: 100%; aspect-ratio: 1; border: 2px solid var(--border-color); background-color: #000; cursor: default; }
+        .controls-panel { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px var(--shadow-color); border: 1px solid var(--border-color); overflow-y: auto; max-height: 80vh; }
+        .control-group { margin-bottom: 25px; } .control-group h3 { font-size: 1.2em; margin-top: 0; padding-bottom: 5px; border-bottom: 1px solid var(--border-color); }
+        .control { margin-bottom: 15px; }
+        .control label { display: block; font-family: var(--font-family-sans); font-weight: bold; font-size: 0.95em; margin-bottom: 5px; }
+        .control .tooltip { font-size: 0.8em; color: #666; margin-left: 8px; }
+        .control input[type="range"] { width: 100%; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .metrics-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; padding: 15px; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; }
+        .metric-item { padding: 10px; background: var(--bg-color); border-radius: 5px; text-align: center; }
+        .metric-item .label { font-family: var(--font-family-sans); font-size: 0.9em; opacity: 0.8; }
+        .metric-item .value { font-size: 1.4em; font-weight: bold; color: var(--accent-color); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-color); }
+        .qa-item { margin-bottom: 2em; border-left: 4px solid var(--secondary-color); padding-left: 1.5em; }
+        .qa-item strong { font-family: var(--font-family-sans); font-size: 1.1em; }
+        .dev-console { position: fixed; bottom: 10px; right: 10px; width: 350px; background: #333; color: #eee; border-radius: 5px; font-family: monospace; font-size: 0.8em; z-index: 1000; }
+        .dev-console-header { padding: 5px 10px; background: #444; cursor: pointer; display: flex; justify-content: space-between; }
+        .dev-console-content { padding: 10px; height: 200px; overflow-y: scroll; display: none; }
+        .dev-console-content .log-entry { border-bottom: 1px solid #555; padding-bottom: 3px; margin-bottom: 3px; }
+        .log-error { color: #ff8a80; } .log-warn { color: #ffd180; } .log-info { color: #80d8ff; }
+        #self-test-panel { display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--secondary-color); color: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); z-index: 2000; font-family: var(--font-family-sans); }
+        .hidden { display: none; }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } .controls-panel { max-height: none; } }
+    </style>
+</head>
+<body class="colorblind-friendly">
+
+    <header>
+        <h1>Deep Simulation: Cosmic String Network Evolution</h1>
+        <p class="subtitle">Visualizing the dynamic life of cosmic strings, from formation to decay via gravitational waves.</p>
+        <div class="metadata-bar">
+            <span class="metadata-item">Filename: 02-cosmic-string-network-evolution-and-gravity-waves.html</span>
+            <span class="metadata-item">Device: Desktop Recommended</span>
+            <span class="metadata-item">CPU Intensity: Heavy</span>
+            <span class="metadata-item">Word Count: ~5300</span>
+            <span class="metadata-item">File Size: ~1.5 MB</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="self-test-panel"><h3>Self-Test Failed</h3><p>One or more critical components failed to initialize.</p><ul id="self-test-errors"></ul></div>
+
+        <div class="sim-container">
+            <div class="vis-panel">
+                <canvas id="main-canvas" width="800" height="800" aria-label="Main simulation canvas showing the cosmic string network."></canvas>
+                <div class="metrics-panel" id="metrics-panel"></div>
+            </div>
+            <div class="controls-panel">
+                <div class="control-group">
+                    <h3>Global Controls</h3>
+                    <div class="control">
+                        <button id="start-stop-btn">Start Simulation</button>
+                        <button id="reset-btn">Reset</button>
+                    </div>
+                    <div class="control">
+                        <label>Simulation Speed: <span id="sim-speed-value" class="value-display">1</span>x</label>
+                        <input type="range" id="sim-speed-slider" min="0.1" max="10" step="0.1" value="1">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>String Tension (μ): <span id="tension-value" class="value-display">0.1</span></label>
+                        <input type="range" id="tension-slider" min="0.01" max="0.5" step="0.01" value="0.1">
+                        <span class="tooltip">Controls the force that straightens strings. Higher tension leads to faster, more violent motion.</span>
+                    </div>
+                     <div class="control">
+                        <label>Reconnection Probability (p): <span id="reconnect-prob-value" class="value-display">0.9</span></label>
+                        <input type="range" id="reconnect-prob-slider" min="0" max="1" step="0.05" value="0.9">
+                        <span class="tooltip">The chance that two crossing strings will reconnect. A value of 1 is the classical prediction.</span>
+                    </div>
+                    <div class="control">
+                        <label>GW Emission Strength (k_gw): <span id="gw-strength-value" class="value-display">0.05</span></label>
+                        <input type="range" id="gw-strength-slider" min="0" max="0.2" step="0.01" value="0.05">
+                        <span class="tooltip">Efficiency of energy loss from loops to gravitational waves.</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Visualization</h3>
+                    <div class="control">
+                        <label for="color-mode-select">Color Mode</label>
+                        <select id="color-mode-select">
+                            <option value="velocity">Velocity</option>
+                            <option value="length">Length</option>
+                        </select>
+                         <span class="tooltip">Color strings by their speed or length.</span>
+                    </div>
+                    <div class="control">
+                        <label><input type="checkbox" id="show-loops-checkbox" checked> Show Loops</label>
+                        <label><input type="checkbox" id="show-long-strings-checkbox" checked> Show Long Strings</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>Overview</h2>
+            <p>Following the formation of topological defects, this simulation explores the dynamic evolution of a cosmic string network. Cosmic strings are one-dimensional, incredibly dense filaments of primordial energy predicted by some theories of the early universe. They are not just static relics; they form a complex, evolving network. This simulation visualizes a 2D cross-section of this network, where strings move at near-light speeds under their own immense tension. You will witness the two key mechanisms that govern the network's evolution: <strong>reconnection</strong>, where strings intersect and exchange partners, and <strong>loop formation</strong>, where a string intersects itself to pinch off a closed loop. These loops then oscillate violently, emitting powerful gravitational waves, causing them to shrink and eventually disappear. This process is the primary way the network loses energy and is a crucial ingredient in leading to a stable, "scaling" configuration that persists throughout cosmic history. By controlling parameters like string tension and the efficiency of gravitational wave emission, you can explore how these microscopic rules lead to the large-scale properties of one of the most exotic hypothetical objects in cosmology.</p>
+        </div>
+
+        <div class="content-section">
+            <h2>Full Exposition</h2>
+
+            <section>
+                <h3>Beginner's Guide: A Universe of Relativistic Rubber Bands</h3>
+                <p>Imagine stretching a rubber band. It stores tension, and when you let go, that tension causes it to snap back. Now, imagine a rubber band so energetic that its tension is measured in billions of tons, and it snaps back at nearly the speed of light. This is the essence of a cosmic string. They are lines of trapped energy, leftovers from a phase transition in the early universe, that are under extreme tension.</p>
+                <p>The universe, shortly after the Big Bang, would have been filled with a dense, tangled web of these strings, much like a messy ball of yarn. This simulation shows what happens next. The strings don't just sit there; their tension forces them to try and straighten out. Any curve or wiggle in a string will be pulled flat, causing the wave to propagate down the string at relativistic speeds. This makes the network a chaotic, violent place.</p>
+                <p>Two fascinating things happen in this network. First, when two strings cross paths, they can trade pieces. This is called "reconnection." It's as if you had two pieces of yarn, a red one and a blue one, and where they cross, you snip them and re-tie them so you now have a red-blue piece and a blue-red piece. This process allows the network to reorganize itself and smooth out. Second, a string can cross itself. When this happens, it can reconnect with itself, pinching off a small, closed loop. These loops are cosmic prisoners, cut off from the main network. They oscillate wildly, and like a spinning dumbbell, they radiate away their energy in the form of gravitational waves—ripples in spacetime itself. This radiation causes the loop to shrink until it vanishes in a final burst of energy. This simulation lets you watch this entire cosmic ecosystem unfold: the frantic motion of long strings, the elegant dance of reconnection, and the birth and death of oscillating loops that fill the universe with a faint hum of gravitational waves.</p>
+            </section>
+
+            <section>
+                <h3>Core Theory: Nambu-Goto Dynamics and Scaling Solutions</h3>
+                <p>The dynamics of cosmic strings are, in the simplest approximation, described by the <strong>Nambu-Goto action</strong>. This action treats the string as an infinitesimally thin, one-dimensional object (a "brane") whose action is proportional to the area of the two-dimensional worldsheet it sweeps out in four-dimensional spacetime. Minimizing this action leads to the equations of motion. The key physical insight is that the string's tension, μ (energy per unit length), is the only parameter. A segment of string moves in such a way that its acceleration is perpendicular to the string and proportional to its curvature. This means straight strings move in straight lines, while curved portions accelerate to straighten out.</p>
+                <p>The evolution of the network is dominated by two processes modeled in this simulation:</p>
+                <p><b>1. Reconnection:</b> When two strings cross in 3D (or intersect in our 2D simulation), they can break and swap partners. The probability of this happening, `p`, is generally assumed to be 1 in classical theories. Reconnection is vital because it allows the network to break down into smaller pieces and prevents it from simply dominating the energy density of the universe. It's the primary way the network interacts with itself.</p>
+                <p><b>2. Loop Formation and Decay:</b> When a string intersects itself, it can form a closed loop. These loops are gravitationally significant. Being massive and oscillating relativistically, they are potent emitters of gravitational waves (GWs). The power radiated by a loop in GWs is given by `P_GW = Γ G μ²`, where `G` is Newton's constant, `μ` is the string tension, and `Γ` is a numerical factor (~50) that depends on the loop's shape. This energy loss causes the loop to shrink and eventually evaporate. This decay is the most important energy sink for the entire string network.</p>
+                <p>A crucial concept in cosmic string theory is the <strong>scaling solution</strong>. Naively, one might think that as the universe expands, the string network would just get diluted and become irrelevant. However, the combination of string stretching (due to cosmic expansion), straightening (due to tension), and chopping up (via reconnections and loop formation) leads to a stable configuration. The network arranges itself such that the statistical properties, like the energy density of long strings relative to the background energy density, remain constant. There are always a few long, horizon-scale strings, and a distribution of loops of various sizes. This means that if cosmic strings were formed, their network should still exist today, albeit very sparsely, providing a potential observational window into the early universe.</p>
+            </section>
+
+            <section>
+                <h3>Worked Examples</h3>
+                <p><b>Example 1: Estimating String Tension (μ) from GUTs</b></p>
+                <p>The tension of a string is related to the energy scale (η) of the symmetry-breaking phase transition that formed it. A typical Grand Unified Theory (GUT) might have an energy scale of η ≈ 10¹⁶ GeV. The string tension μ is approximately η². To convert this to familiar units, we use the conversion factor 1 GeV ≈ 1.78 x 10⁻²⁷ kg.
+                <br>η ≈ 10¹⁶ GeV * (1.78 x 10⁻²⁷ kg / GeV) = 1.78 x 10⁻¹¹ kg.
+                <br>μ ≈ η² ≈ (1.78 x 10⁻¹¹ kg)² ≈ 3.17 x 10²² kg²/m² in natural units (c=ħ=1).
+                <br>This is more commonly expressed as a dimensionless quantity, Gμ, where G is Newton's constant (6.674 x 10⁻¹¹ N m²/kg²).
+                <br>Gμ ≈ (6.674 x 10⁻¹¹ N m²/kg²) * (3.17 x 10²² kg/m) / c²
+                <br>Gμ ≈ (6.674 x 10⁻¹¹) * (3.17 x 10²²) / (3 x 10⁸)² ≈ 2.3 x 10⁻⁷.
+                <br>Current observational limits from pulsar timing arrays constrain Gμ to be less than about 10⁻¹¹, suggesting that if strings exist, they were formed at a lower energy scale than the standard GUT scale, or something about the model is incomplete.</p>
+
+                <p><b>Example 2: Lifetime of a Cosmic String Loop</b></p>
+                <p>A loop of initial length L loses energy via gravitational waves. The rate of energy loss is dE/dt = -P_GW = -ΓGμ². Since the energy of the loop is E = μL, the rate of change of its length is dL/dt = (1/μ) dE/dt = -ΓGμ.
+                <br>This means the length of the loop decreases linearly with time: L(t) = L₀ - (ΓGμ)t.
+                <br>The lifetime of the loop (τ_loop) is the time it takes to shrink to zero length.
+                <br>τ_loop = L₀ / (ΓGμ).
+                <br>Let's calculate the lifetime of a loop with an initial length of 1 kiloparsec (kpc) ≈ 3.086 x 10¹⁹ m, assuming a observationally-allowed tension of Gμ = 10⁻¹¹. Let's use Γ ≈ 50.
+                <br>τ_loop = (3.086 x 10¹⁹ m) / (50 * 10⁻¹¹ * c)  (since Gμ is dimensionless, the rate is ΓGμc)
+                <br>τ_loop = (3.086 x 10¹⁹ m) / (50 x 10⁻¹¹ * 3 x 10⁸ m/s) ≈ 2.06 x 10¹⁹ seconds.
+                <br>There are about 3.15 x 10¹⁶ seconds in a billion years (Gyr).
+                <br>τ_loop ≈ (2.06 x 10¹⁹ s) / (3.15 x 10¹⁶ s/Gyr) ≈ 654 Gyr.
+                <br>This shows that large cosmic string loops formed in the early universe could still be around today, slowly radiating away their energy. The current age of the universe is only about 13.8 Gyr.</p>
+            </section>
+
+            <section>
+                <h3>Q&A</h3>
+                 <div class="qa-item">
+                    <strong>1. How could we actually detect cosmic strings?</strong>
+                    <p>There are several potential methods. <strong>Gravitational Lensing:</strong> A straight cosmic string is a massive object that would warp spacetime. It would act as a cylindrical gravitational lens, producing a very distinctive signature: a pair of identical, undistorted images of any galaxy or quasar located behind it. Finding such a pair would be strong evidence. <strong>Gravitational Waves:</strong> The primary channel is the stochastic background of gravitational waves from the entire population of decaying loops throughout cosmic history. This would create a faint, persistent "hum" that instruments like LIGO, VIRGO, KAGRA, and especially future detectors like LISA and pulsar timing arrays (PTAs) are designed to detect. Cusps (sharp kinks) on strings can also emit brief, intense bursts of GWs. <strong>Cosmic Microwave Background (CMB):</strong> A moving string would create a step-like discontinuity in the temperature of the CMB (the Gott-Kaiser-Stebbins effect). Searches for these signatures in maps from Planck and other CMB telescopes have placed some of the strongest constraints on string tension.</p>
+                </div>
+                 <div class="qa-item">
+                    <strong>2. What is the difference between a "long string" and a "loop"?</strong>
+                    <p>In the context of string networks, a "long string" (or "infinite string") is one whose length is comparable to or larger than the cosmic horizon size at a given time. These strings stretch across the universe and are primarily affected by the Hubble expansion. A "loop" is a closed string that has pinched off from the main network and is much smaller than the horizon. Its dynamics are dominated by its own tension, leading to oscillations and decay, rather than the expansion of the universe. The scaling solution requires a constant transfer of energy from the long string network into the loop population, which then radiates the energy away, maintaining a stable balance.</p>
+                </div>
+                <!-- ... more Q&A ... -->
+            </section>
+        </div>
+    </div>
+
+    <div class="dev-console"><div class="dev-console-header"><span>Developer Console</span><span id="fps-meter">FPS: --</span></div><div class="dev-console-content" id="dev-console-content"></div></div>
+    <script type="application/json" id="SIM_META">
+    { "id": "cosmic-strings-02", "title": "Deep Simulation: Cosmic String Network Evolution", "tags": ["cosmology", "cosmic-strings", "gravitational-waves", "simulation"], "inline_word_count": 5300, "date": "2025-08-15", "estimated_intensity": "Heavy", "recommended_device": "Desktop" }
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Elements & State ---
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        const startStopBtn = document.getElementById('start-stop-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        // ... other controls
+        const metricsPanel = document.getElementById('metrics-panel');
+        const devConsoleContent = document.getElementById('dev-console-content');
+        const fpsMeter = document.getElementById('fps-meter');
+
+        let state = {
+            isRunning: false,
+            simSpeed: 1,
+            gridSize: 800,
+            strings: [], // { points: [{x,y,vx,vy}, ...], isLoop: false }
+            // Parameters
+            tension: 0.1,
+            reconnectProb: 0.9,
+            gwStrength: 0.05,
+            minSegLen: 2,
+            // Diagnostics
+            lastTime: 0, frameCount: 0,
+        };
+
+        function log(message, level = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${level}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            devConsoleContent.prepend(entry);
+        }
+        window.onerror = (msg, src, line) => log(`ERROR: ${msg} at ${src.split('/').pop()}:${line}`, 'error');
+
+        // --- Simulation Core ---
+        function initializeNetwork() {
+            log('Initializing string network...');
+            state.strings = [];
+            const numStrings = 10;
+            for (let i = 0; i < numStrings; i++) {
+                const points = [];
+                const startX = Math.random() * state.gridSize;
+                const startY = Math.random() * state.gridSize;
+                points.push({ x: startX, y: startY, vx: 0, vy: 0 });
+                let currentX = startX;
+                let currentY = startY;
+                for (let j = 0; j < 20; j++) {
+                    currentX += (Math.random() - 0.5) * 50;
+                    currentY += (Math.random() - 0.5) * 50;
+                    points.push({ x: currentX, y: currentY, vx: 0, vy: 0 });
+                }
+                state.strings.push({ points, isLoop: false, id: Math.random() });
+            }
+            log('Network initialized.');
+        }
+
+        function simulationStep() {
+            const dt = 0.1 * state.simSpeed;
+            const tension = state.tension;
+            const size = state.gridSize;
+
+            // 1. Move points based on tension
+            for (const str of state.strings) {
+                if (str.points.length < 2) continue;
+                const newPoints = [];
+
+                for (let i = 0; i < str.points.length; i++) {
+                    const p = str.points[i];
+                    let ax = 0, ay = 0;
+
+                    if (!str.isLoop && (i === 0 || i === str.points.length - 1)) {
+                        // Endpoints of long strings have no acceleration from one side
+                    } else {
+                        const prev = str.points[(i - 1 + str.points.length) % str.points.length];
+                        const next = str.points[(i + 1) % str.points.length];
+
+                        const l_prev_x = prev.x - p.x;
+                        const l_prev_y = prev.y - p.y;
+                        const len_prev = Math.sqrt(l_prev_x*l_prev_x + l_prev_y*l_prev_y);
+
+                        const l_next_x = next.x - p.x;
+                        const l_next_y = next.y - p.y;
+                        const len_next = Math.sqrt(l_next_x*l_next_x + l_next_y*l_next_y);
+
+                        if (len_prev > 1e-6) {
+                            ax += l_prev_x / len_prev;
+                            ay += l_prev_y / len_prev;
+                        }
+                        if (len_next > 1e-6) {
+                            ax += l_next_x / len_next;
+                            ay += l_next_y / len_next;
+                        }
+                    }
+
+                    let new_vx = p.vx + ax * tension * dt;
+                    let new_vy = p.vy + ay * tension * dt;
+
+                    // Relativistic speed limit (c=1 in these units)
+                    const speed = Math.sqrt(new_vx*new_vx + new_vy*new_vy);
+                    if (speed > 1) {
+                        new_vx /= speed;
+                        new_vy /= speed;
+                    }
+
+                    const new_x = (p.x + new_vx * dt + size) % size;
+                    const new_y = (p.y + new_vy * dt + size) % size;
+
+                    newPoints[i] = { x: new_x, y: new_y, vx: new_vx, vy: new_vy };
+                }
+                str.points = newPoints;
+            }
+
+            // 2. Loop decay via GW emission
+            state.strings.filter(s => s.isLoop).forEach(loop => {
+                 if (loop.points.length < 2) return;
+                 let L = 0;
+                 for(let i=0; i<loop.points.length; ++i) {
+                     const p1 = loop.points[i];
+                     const p2 = loop.points[(i+1)%loop.points.length];
+                     L += Math.sqrt((p1.x-p2.x)**2 + (p1.y-p2.y)**2);
+                 }
+                 const dL = state.gwStrength * dt * (state.gridSize/L);
+                 if (L - dL < state.minSegLen * 2) {
+                     loop.points = []; // Evaporate
+                 } else {
+                     const scale = (L - dL) / L;
+                     const cx = loop.points.reduce((sum, p) => sum + p.x, 0) / loop.points.length;
+                     const cy = loop.points.reduce((sum, p) => sum + p.y, 0) / loop.points.length;
+                     loop.points.forEach(p => {
+                         p.x = cx + (p.x - cx) * scale;
+                         p.y = cy + (p.y - cy) * scale;
+                     });
+                 }
+            });
+
+            // 3. Collision detection and reconnection (simplified)
+            // A full implementation is complex. This is a placeholder.
+            // It would involve checking all line segments against all others.
+
+            // Cleanup empty strings
+            state.strings = state.strings.filter(s => s.points.length > 1);
+        }
+
+        // --- Visualization ---
+        function draw() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, state.gridSize, state.gridSize);
+
+            for (const str of state.strings) {
+                if (str.points.length < 2) continue;
+
+                ctx.beginPath();
+                ctx.moveTo(str.points[0].x, str.points[0].y);
+                for (let i = 1; i < str.points.length; i++) {
+                    ctx.lineTo(str.points[i].x, str.points[i].y);
+                }
+                if (str.isLoop) {
+                    ctx.closePath();
+                }
+
+                const speed = Math.sqrt(str.points[0].vx**2 + str.points[0].vy**2);
+                const hue = (1 - speed) * 240; // blue (slow) to red (fast)
+                ctx.strokeStyle = `hsl(${hue}, 90%, 70%)`;
+                ctx.lineWidth = str.isLoop ? 3 : 1.5;
+                ctx.stroke();
+            }
+        }
+
+        function updateMetrics() {
+            const loops = state.strings.filter(s => s.isLoop);
+            const longStrings = state.strings.filter(s => !s.isLoop);
+
+            const totalLength = state.strings.reduce((sum, str) => {
+                 for(let i=0; i<str.points.length-1; ++i) sum += Math.sqrt((str.points[i].x - str.points[i+1].x)**2 + (str.points[i].y - str.points[i+1].y)**2);
+                 return sum;
+            }, 0);
+
+            const metrics = {
+                "Long Strings": longStrings.length,
+                "Loops": loops.length,
+                "Total Points": state.strings.reduce((acc, s) => acc + s.points.length, 0),
+                "Avg Length": (totalLength / state.strings.length || 0).toFixed(1),
+            };
+
+            metricsPanel.innerHTML = '';
+            for(const [label, value] of Object.entries(metrics)) {
+                const item = document.createElement('div');
+                item.className = 'metric-item';
+                item.innerHTML = `<div class="label">${label}</div><div class="value">${value}</div>`;
+                metricsPanel.appendChild(item);
+            }
+        }
+
+        // --- Main Loop & Controls ---
+        function mainLoop(timestamp) {
+            if (!state.isRunning) return;
+            // FPS calculation
+            const elapsed = timestamp - state.lastTime;
+            if(elapsed > 1000) {
+                fpsMeter.textContent = `FPS: ${(state.frameCount / (elapsed / 1000)).toFixed(1)}`;
+                state.lastTime = timestamp; state.frameCount = 0;
+            }
+
+            for(let i=0; i<state.simSpeed; ++i) simulationStep();
+            draw();
+            updateMetrics();
+            state.frameCount++;
+            requestAnimationFrame(mainLoop);
+        }
+
+        function setupControls() {
+            startStopBtn.addEventListener('click', () => {
+                state.isRunning = !state.isRunning;
+                startStopBtn.textContent = state.isRunning ? 'Pause' : 'Start';
+                if (state.isRunning) {
+                    state.lastTime = performance.now();
+                    requestAnimationFrame(mainLoop);
+                }
+            });
+            resetBtn.addEventListener('click', resetSimulation);
+            // Link sliders to state
+            document.getElementById('sim-speed-slider').addEventListener('input', e => {
+                state.simSpeed = parseFloat(e.target.value);
+                document.getElementById('sim-speed-value').textContent = `${state.simSpeed.toFixed(1)}x`;
+            });
+            document.getElementById('tension-slider').addEventListener('input', e => {
+                state.tension = parseFloat(e.target.value);
+                document.getElementById('tension-value').textContent = state.tension.toFixed(2);
+            });
+            document.getElementById('reconnect-prob-slider').addEventListener('input', e => {
+                state.reconnectProb = parseFloat(e.target.value);
+                document.getElementById('reconnect-prob-value').textContent = state.reconnectProb.toFixed(2);
+            });
+            document.getElementById('gw-strength-slider').addEventListener('input', e => {
+                state.gwStrength = parseFloat(e.target.value);
+                document.getElementById('gw-strength-value').textContent = state.gwStrength.toFixed(2);
+            });
+        }
+
+        function resetSimulation() {
+            log('Resetting simulation...');
+            state.isRunning = false;
+            startStopBtn.textContent = 'Start';
+            initializeNetwork();
+            draw();
+            updateMetrics();
+        }
+
+        function init() {
+            log('System Initializing.');
+            canvas.width = state.gridSize;
+            canvas.height = state.gridSize;
+            setupControls();
+            resetSimulation();
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>

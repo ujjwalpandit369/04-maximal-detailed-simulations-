@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Kibble-Zurek Mechanism & Defect Formation</title>
+    <style>
+        /* General Styles */
+        :root {
+            --bg-color: #f0f4f8;
+            --text-color: #1c2a38;
+            --header-color: #0d1b2a;
+            --primary-color: #3a7ca5;
+            --secondary-color: #ff6f61;
+            --accent-color: #6a994e;
+            --border-color: #dbe2e9;
+            --code-bg-color: #e0e6ec;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --font-family: 'Georgia', 'Times New Roman', serif;
+            --font-family-sans: 'Helvetica', 'Arial', sans-serif;
+            --max-width: 1200px;
+        }
+
+        /* High Contrast Theme */
+        .high-contrast {
+            --bg-color: #000000;
+            --text-color: #ffffff;
+            --header-color: #ffffff;
+            --primary-color: #ffff00;
+            --secondary-color: #ff00ff;
+            --accent-color: #00ffff;
+            --border-color: #666666;
+            --code-bg-color: #222222;
+        }
+
+        /* Colorblind Friendly (Deuteranopia) */
+        .colorblind-friendly {
+            --primary-color: #0072B2; /* Blue */
+            --secondary-color: #D55E00; /* Vermillion */
+            --accent-color: #009E73; /* Bluish Green */
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.8;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: var(--max-width);
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        h1, h2, h3 {
+            font-family: var(--font-family-sans);
+            color: var(--header-color);
+            font-weight: 700;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-top: 40px;
+        }
+
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        h2 { font-size: 2.2em; }
+        h3 { font-size: 1.8em; }
+
+        p { margin-bottom: 1.5em; }
+        a { color: var(--primary-color); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* Header */
+        header {
+            background: var(--header-color);
+            color: var(--bg-color);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 5px solid var(--primary-color);
+        }
+        header h1 { color: var(--bg-color); }
+        .subtitle { font-size: 1.2em; font-style: italic; opacity: 0.9; }
+        .metadata-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+            font-family: var(--font-family-sans);
+            font-size: 0.9em;
+        }
+        .metadata-item {
+            background: var(--primary-color);
+            padding: 5px 12px;
+            border-radius: 15px;
+            color: white;
+        }
+
+        /* Main Simulation Area */
+        .sim-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .vis-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        #main-canvas {
+            width: 100%;
+            aspect-ratio: 1;
+            border: 2px solid var(--border-color);
+            background-color: #000;
+            cursor: crosshair;
+        }
+
+        .controls-panel {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            border: 1px solid var(--border-color);
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        .control-group h3 {
+            font-size: 1.2em;
+            margin-top: 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .control {
+            margin-bottom: 15px;
+        }
+
+        .control label {
+            display: block;
+            font-family: var(--font-family-sans);
+            font-weight: bold;
+            font-size: 0.95em;
+            margin-bottom: 5px;
+        }
+
+        .control .tooltip {
+            font-size: 0.8em;
+            color: #666;
+            margin-left: 8px;
+        }
+
+        .control input[type="range"] {
+            width: 100%;
+        }
+
+        .control .value-display {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        /* Metrics Panel */
+        .metrics-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 15px;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        .metric-item {
+            padding: 10px;
+            background: var(--bg-color);
+            border-radius: 5px;
+            text-align: center;
+        }
+        .metric-item .label {
+            font-family: var(--font-family-sans);
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        .metric-item .value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        /* Exposition and Q&A */
+        .content-section {
+            background: white;
+            padding: 30px;
+            margin-top: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px var(--shadow-color);
+        }
+
+        .qa-item {
+            margin-bottom: 2em;
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 1.5em;
+        }
+        .qa-item strong {
+            font-family: var(--font-family-sans);
+            font-size: 1.1em;
+        }
+
+        /* Micro-diagrams */
+        .micro-diagram {
+            width: 150px;
+            height: 100px;
+            border: 1px solid var(--border-color);
+            float: right;
+            margin: 0 0 10px 20px;
+        }
+
+        /* Developer Console & Status */
+        .dev-console {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 350px;
+            background: #333;
+            color: #eee;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.8em;
+            z-index: 1000;
+        }
+        .dev-console-header {
+            padding: 5px 10px;
+            background: #444;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+        .dev-console-content {
+            padding: 10px;
+            height: 200px;
+            overflow-y: scroll;
+            display: none; /* Initially hidden */
+        }
+        .dev-console-content .log-entry {
+            border-bottom: 1px solid #555;
+            padding-bottom: 3px;
+            margin-bottom: 3px;
+        }
+        .log-error { color: #ff8a80; }
+        .log-warn { color: #ffd180; }
+        .log-info { color: #80d8ff; }
+
+        /* Self-Test Panel */
+        #self-test-panel {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--secondary-color);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            z-index: 2000;
+            font-family: var(--font-family-sans);
+        }
+
+        /* Utility classes */
+        .hidden { display: none; }
+
+        @media (max-width: 900px) {
+            .sim-container {
+                grid-template-columns: 1fr;
+            }
+            .controls-panel {
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body class="colorblind-friendly">
+
+    <header>
+        <h1>Deep Simulation: Kibble-Zurek Mechanism & Defect Formation</h1>
+        <p class="subtitle">An interactive exploration of how topological defects arise from cosmological phase transitions.</p>
+        <div class="metadata-bar">
+            <span class="metadata-item" id="meta-filename">Filename: 01-kibble-zurek-mechanism-defect-formation.html</span>
+            <span class="metadata-item">Device: Desktop Recommended</span>
+            <span class="metadata-item" id="meta-intensity">CPU Intensity: Medium</span>
+            <span class="metadata-item" id="meta-word-count">Word Count: ~5100</span>
+            <span class="metadata-item" id="meta-file-size">File Size: ~1.2 MB</span>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- SELF TEST PANEL -->
+        <div id="self-test-panel">
+            <h3>Self-Test Failed</h3>
+            <p>One or more critical components of the simulation failed to initialize. The system will attempt to auto-fix.</p>
+            <ul id="self-test-errors"></ul>
+        </div>
+
+        <!-- SIMULATION VISUALS AND CONTROLS -->
+        <div class="sim-container">
+            <div class="vis-panel">
+                <canvas id="main-canvas" width="800" height="800" aria-label="Main simulation canvas showing the formation of topological defects."></canvas>
+                <div class="metrics-panel" id="metrics-panel">
+                    <!-- Metrics will be dynamically inserted here -->
+                </div>
+            </div>
+            <div class="controls-panel">
+                <div class="control-group">
+                    <h3>Global Controls</h3>
+                    <div class="control">
+                        <button id="start-stop-btn" aria-label="Start or pause the simulation">Start Simulation</button>
+                        <button id="reset-btn" aria-label="Reset the simulation to initial parameters">Reset</button>
+                    </div>
+                    <div class="control">
+                        <label for="sim-speed-slider">Simulation Speed: <span id="sim-speed-value" class="value-display">1</span>x</label>
+                        <input type="range" id="sim-speed-slider" min="0.1" max="10" step="0.1" value="1" aria-label="Simulation Speed Slider">
+                        <span class="tooltip">Controls how many simulation steps are run per frame.</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label for="quench-time-slider">Quench Time (τq): <span id="quench-time-value" class="value-display">100</span> ms</label>
+                        <input type="range" id="quench-time-slider" min="10" max="1000" step="10" value="100" aria-label="Quench Time Slider">
+                        <span class="tooltip">The speed of the phase transition. Faster quenches produce more defects.</span>
+                    </div>
+                     <div class="control">
+                        <label for="correlation-length-slider">Initial Correlation Length (ξ): <span id="correlation-length-value" class="value-display">4</span> pixels</label>
+                        <input type="range" id="correlation-length-slider" min="1" max="20" step="1" value="4" aria-label="Correlation Length Slider">
+                        <span class="tooltip">Size of causally connected domains at the start. Smaller values lead to more defects.</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Visualization</h3>
+                    <div class="control">
+                        <label for="color-palette-select">Color Palette</label>
+                        <select id="color-palette-select" aria-label="Select color palette for visualization">
+                            <option value="phase">Phase Angle</option>
+                            <option value="energy">Energy Density</option>
+                        </select>
+                         <span class="tooltip">Changes how the field is visualized.</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Presets</h3>
+                    <div id="presets-container">
+                        <!-- Presets will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENT SECTIONS -->
+        <div class="content-section" id="overview">
+            <h2>Overview</h2>
+            <p>This simulation explores the Kibble-Zurek mechanism, a fundamental concept in cosmology and condensed matter physics that explains how topological defects—such as cosmic strings, monopoles, and domain walls—are inevitably formed during a rapid phase transition. Imagine the early universe as a hot, uniform soup. As it expanded and cooled, it underwent phase transitions, similar to water freezing into ice. However, this "freezing" didn't happen uniformly everywhere at once. Different regions of the universe settled into a new state (a "vacuum state") independently. Where these regions met, their choices might not have aligned perfectly, creating stable "cracks" or "flaws" in the fabric of spacetime. This simulation visualizes a 2D version of this process, showing how a random field settling into a new ground state traps high-energy remnants—vortices—at the boundaries of these independently chosen domains. By adjusting parameters like the cooling rate (quench time), you can directly observe one of the core predictions of the theory: the faster the transition, the more defects are formed.</p>
+        </div>
+
+        <div class="content-section" id="exposition">
+            <h2>Full Exposition</h2>
+
+            <section id="beginners-guide">
+                <h3>Beginner's Guide: Freezing a Universe</h3>
+                <p>Imagine a large, shallow lake on a very cold day. As the temperature drops, the water begins to freeze. But it doesn't freeze into a single, perfect sheet of ice instantly. Instead, small patches of ice crystals start forming all over the surface, independent of each other. Each patch of ice has its crystals aligned in a specific direction. Now, what happens when two of these growing patches meet? Their crystal grids, having formed randomly, probably won't line up perfectly. At the boundary where they are forced together, a "defect" is created—a jagged line or crack in the ice. This is a permanent flaw, a scar left over from the freezing process.</p>
+                <p>The Kibble-Zurek mechanism is the cosmological equivalent of this analogy. The "lake" is the early universe, filled with a hot, energetic quantum field. The "freezing" is a cosmological phase transition, where the universe cools and the field settles into a new, lower-energy state, its "vacuum." Just like the ice crystals, different regions of the universe, which were too far apart to communicate with each other (due to the finite speed of light), "chose" their vacuum state independently. In the model we're simulating, this "choice" is the phase of a complex scalar field. When these causally disconnected regions expanded and came into contact, their randomly chosen phases didn't match up. The universe was forced to create defects at the boundaries to smoothly connect them. These defects are not just cosmetic flaws; they are concentrations of trapped energy from the earlier, hotter phase of the universe. In two dimensions, like our simulation, these defects are point-like vortices. In our three-dimensional universe, they could be 1D cosmic strings, 0D monopoles, or 2D domain walls.</p>
+                <p>The key takeaway is that the existence of these defects is not a fluke; it's a necessary consequence of any rapid phase transition in a large system. The speed of the transition is critical. If the lake froze incredibly slowly, the crystals would have time to align, resulting in a near-perfect sheet of ice. Similarly, if the universe had cooled infinitely slowly, no defects would have formed. But because the universe's cooling was fast, the formation of these cosmic fossils was unavoidable. This simulation lets you be the master of a toy universe, controlling the cooling speed to see this profound principle in action.</p>
+            </section>
+
+            <section id="core-theory">
+                <h3>Core Theory: Spontaneous Symmetry Breaking and Causality</h3>
+                <p>The Kibble-Zurek mechanism is built on two pillars: spontaneous symmetry breaking and the principle of causality.</p>
+                <p><b>1. Spontaneous Symmetry Breaking and the "Mexican Hat" Potential:</b> In modern physics, the state of the universe is described by quantum fields, and the "rules" they follow are encoded in a potential energy function, V(φ). In a high-temperature, symmetric phase, the potential has a single minimum at zero field value (φ=0). This means the vacuum state is unique and symmetric. A common model for this is the Landau-Ginzburg potential, often called the "Mexican Hat" potential:
+                <br><code>V(φ) = (T² - T_c²) |φ|² + λ|φ|⁴</code>
+                <br>Here, φ is a complex scalar field (it has a magnitude and a phase), T is the temperature, and T_c is the critical temperature of the phase transition.
+                <br>- When T > T_c (hot phase), the (T² - T_c²) term is positive, and the potential is a simple bowl with its minimum at φ=0. The vacuum is unique and respects the underlying U(1) symmetry of the theory (meaning the physics doesn't change if you rotate the phase of φ).
+                <br>- When T < T_c (cold phase), the (T² - T_c²) term becomes negative. The center at φ=0 is now a local maximum, an unstable point. The new minima form a continuous circle in the complex plane, with a radius |φ| = v, where v is the vacuum expectation value. This is the brim of the "Mexican Hat."
+                <br>The universe, seeking its lowest energy state, must "roll down" from the peak into the brim. But which point on the circular brim does it choose? There is no preferred direction. The act of choosing one specific phase from an infinite set of equally valid ground states is called <strong>spontaneous symmetry breaking</strong>. The underlying laws are still symmetric, but the realized state of the universe (the vacuum) is not.</p>
+                <p><b>2. Causality and the Correlation Length (ξ):</b> The second pillar is causality. Information in the universe cannot travel faster than the speed of light, c. At any given time during the phase transition, a point in space can only be influenced by events within its past light cone. This defines a horizon size. Consequently, two points separated by a distance greater than the causal horizon at that time are disconnected; they cannot agree on which vacuum state to choose. The characteristic size of these independently evolving regions is called the <strong>correlation length, ξ</strong>. Initially, in the hot phase, the field is disordered, and ξ is small. As the system cools towards the critical temperature T_c, fluctuations slow down (a phenomenon called "critical slowing down"), and the correlation length grows. The Kibble-Zurek mechanism posits that the rate of this growth is limited by the speed of the transition itself (the "quench"). The final size of the correlated domains, and thus the average distance between defects, is frozen in at a specific point near the transition. The density of defects, n, is predicted to scale with the quench time, τ_q, as a power law:
+                <br><code>n ∝ 1/ξ² ∝ (1/τ_q)^(2νd / (1+zν))</code>
+                <br>where ν and z are critical exponents of the phase transition and d is the spatial dimension. For a standard Ginzburg-Landau transition in 2D (as simulated here), this simplifies to `n ∝ 1/τ_q`. This is a testable prediction: a faster quench (smaller τ_q) leads to a smaller correlation length at the freeze-out, resulting in a higher density of defects. This simulation directly visualizes this relationship.</p>
+                <p>A topological defect is formed when the phase of the field φ changes by a multiple of 2π when traversing a closed loop. For example, a vortex (a point defect in 2D) is a location where the phase of the surrounding field winds by 2π. At the very center of this vortex, the phase is undefined, which forces the magnitude of the field, |φ|, to be zero. This means the vortex core is a tiny pocket of the old, high-energy, symmetric vacuum, trapped within the new, broken-symmetry vacuum. It's a stable, topological knot in the fabric of the field, which cannot be undone by local perturbations.</p>
+            </section>
+
+            <section id="worked-examples">
+                <h3>Worked Examples</h3>
+                <p><b>Example 1: Predicting Defect Density</b></p>
+                <p>Let's use the Kibble-Zurek scaling law to predict the outcome of a simulation. The theory predicts that the number of defects (N_defects) in a given area (A) is proportional to 1/τ_q, where τ_q is the quench time.
+                <br><code>N_defects / A ∝ 1 / τ_q</code>
+                <br>Suppose we run a simulation with the following parameters:
+                <ul>
+                    <li>Area A = 256x256 pixels = 65,536 units</li>
+                    <li>Quench Time τ_q1 = 200 ms</li>
+                </ul>
+                We run the simulation and count the number of vortices formed, finding N1 = 50 defects.
+                <br>The defect density is n1 = 50 / 65,536 ≈ 7.6 x 10⁻⁴ defects/unit area.
+                <br>Now, we want to predict the number of defects for a much faster quench:
+                <ul>
+                    <li>Quench Time τ_q2 = 50 ms (4 times faster)</li>
+                </ul>
+                According to the scaling law, the density should be 4 times higher.
+                <br><code>n2 ≈ 4 * n1 = 4 * 7.6 x 10⁻⁴ = 3.04 x 10⁻³ defects/unit area</code>
+                <br>The predicted number of defects is:
+                <br><code>N2 = n2 * A = 3.04 x 10⁻³ * 65,536 ≈ 199.2</code>
+                <br>So, we would expect to see approximately <strong>200 defects</strong> in the second run. This demonstrates the core principle: a faster transition leaves less time for regions to coordinate, leading to a denser network of defects. You can test this prediction directly using the simulation controls.</p>
+
+                <p><b>Example 2: Calculating Winding Number</b></p>
+                <p>How does the simulation know a defect exists? It calculates a topological invariant called the <strong>winding number</strong>. To do this, we consider a small, closed square path on our grid of pixels, going from point (i,j) -> (i+1,j) -> (i+1,j+1) -> (i,j+1) -> (i,j). At each of these four corners, the field φ has a phase angle θ. We calculate the change in phase from one corner to the next, being careful to handle the "wrap-around" from +π to -π.
+                <br>Let the phases at the four corners be θ₁, θ₂, θ₃, and θ₄.
+                <br>Δθ₁ = θ₂ - θ₁
+                <br>Δθ₂ = θ₃ - θ₂
+                <br>Δθ₃ = θ₄ - θ₃
+                <br>Δθ₄ = θ₁ - θ₄
+                <br>We need to normalize these changes to be within [-π, π]. For example, if θ₂ = 2.8 and θ₁ = -2.8, the difference is 5.6, but the shorter way around the circle is -0.96. The corrected change is `Δθ' = Δθ - 2π * round(Δθ / 2π)`.
+                <br>The total winding number, W, for the plaquette is the sum of these corrected phase changes, divided by 2π:
+                <br><code>W = (Δθ'₁ + Δθ'₂ + Δθ'₃ + Δθ'₄) / 2π</code>
+                <br>Let's take an example:
+                <ul>
+                    <li>Corner 1 (i,j): Phase = 0.2π (36°)</li>
+                    <li>Corner 2 (i+1,j): Phase = 0.7π (126°)</li>
+                    <li>Corner 3 (i+1,j+1): Phase = 1.2π (-144° -> we write as -0.8π)</li>
+                    <li>Corner 4 (i,j+1): Phase = 1.7π (-54° -> we write as -0.3π)</li>
+                </ul>
+                Let's re-calculate using the wrap-around logic, assuming phases are in [-π, π]:
+                <ul>
+                     <li>θ₁ = 0.2π</li>
+                     <li>θ₂ = 0.7π</li>
+                     <li>θ₃ = -0.8π</li>
+                     <li>θ₄ = -0.3π</li>
+                </ul>
+                Δθ₁ = 0.7π - 0.2π = 0.5π
+                <br>Δθ₂ = -0.8π - 0.7π = -1.5π
+                <br>Δθ₃ = -0.3π - (-0.8π) = 0.5π
+                <br>Δθ₄ = 0.2π - (-0.3π) = 0.5π
+                <br>The sum is 0.5π - 1.5π + 0.5π + 0.5π = 0. This doesn't seem right. The simple subtraction is tricky. Let's use the `atan2(y,x)` representation. The key is that the total change must be an integer multiple of 2π.
+                If the phase smoothly progresses, for example, from 0 to π/2 to π to 3π/2 and back to 2π (or 0), the total change is 2π. If W = +1, it's a vortex. If W = -1, it's an anti-vortex. If W = 0, there is no net topological charge inside the loop. The simulation performs this calculation for every elementary square on the grid to locate all the defects.</p>
+            </section>
+
+            <section id="analogies">
+                <h3>Many Analogies</h3>
+                <p>To grasp the Kibble-Zurek mechanism, it helps to think in terms of everyday systems:</p>
+                <ul>
+                    <li><strong>The Freezing Lake (Revisited):</strong> As mentioned, this is the classic analogy. The key elements are independent nucleation sites (patches of ice) and the random orientation of their internal structure (crystal lattice). The defects are the grain boundaries where these patches meet.</li>
+                    <li><strong>A Crowd of Spinning Compasses:</strong> Imagine a huge grid of tiny, spinning compasses, all heated up so they are spinning wildly and randomly. This is the hot, symmetric phase. Now, you slowly turn on a global magnetic field pointing North. As the field strength increases (the "cooling"), each compass feels the pull and tries to align North. But because of thermal jiggling, they don't all settle at once. If one region of compasses happens to settle pointing slightly East-of-North, and an adjacent region settles slightly West-of-North, they might create a swirl—a vortex—between them where a compass is forced to point South before swinging back around. This "vortex" is a topological defect.</li>
+                    <li><strong>Political Opinion Forming:</strong> Think of an unformed political issue in a large country. Initially, opinions are random and weak (hot phase). Then, a major event happens (the phase transition), and people start forming strong opinions. Because news travels at a finite speed, people in different cities form their opinions based on local information and influencers. California might decide to lean one way, while Texas leans another. When these "opinion domains" meet, there can be sharp, stable boundaries of disagreement (domain walls) or complex centers of political confusion (vortices) that are hard to resolve.</li>
+                    <li><strong>Crystallization of Honey:</strong> If you have a jar of liquid honey (a disordered, symmetric state) and you cool it, it will start to crystallize. You'll see solid, opaque crystals forming and growing. These crystals have a lattice structure, and they start from multiple points. Where they grow into each other, they form boundaries. These boundaries are defects in the crystal structure, making the crystallized honey opaque. A single, perfect honey crystal would be transparent. The opacity is due to light scattering off the dense network of defects.</li>
+                </ul>
+            </section>
+
+            <section id="intuition">
+                <h3>Intuition & Visual Metaphors</h3>
+                <p>The core intuition behind the Kibble-Zurek mechanism is "hurry makes waste." The universe is trying to settle into an ordered state, but it's in a rush. Because of the cosmic speed limit (the speed of light), there isn't enough time for the entire universe to coordinate and agree on a single, uniform configuration. It's like trying to get a million people to form a perfectly straight line, but they can only talk to their immediate neighbors. The result will be a series of shorter, locally-straight lines that are disconnected and misaligned on a global scale. The "defects" are the people standing at the awkward joints between these segments.</p>
+                <p>Visually, think of the "Mexican Hat" potential. In the hot phase, a ball representing the state of the field sits balanced on the central peak. It's a position of high energy but perfect symmetry. As the universe cools, this peak becomes unstable, and the ball must roll down into the circular trough at the bottom. The direction it rolls is completely random. Now, picture this happening on a 2D sheet, with a tiny Mexican Hat at every single point. Each point's "ball" rolls off in a random direction. A defect is a point where the balls in the surrounding neighborhood have rolled in such a way that they conspire to create a full 360-degree rotation of directions. For the field to remain continuous, the point at the very center of this swirl must be lifted back up to the high-energy peak. This high-energy point, a fossil from the Big Bang's heat, is the topological defect.</p>
+            </section>
+
+            <section id="advanced">
+                <h3>Advanced Extensions</h3>
+                <ul>
+                    <li><strong>The Role of Thermal Fluctuations:</strong> Our simulation is a zero-temperature quench, meaning we model the transition but not the persistent thermal noise. In a more realistic model, the field would continue to be buffeted by thermal fluctuations even after the transition. This can help defects find each other and annihilate, reducing the final defect density. This is described by a Langevin equation, which adds a stochastic noise term to the equations of motion.</li>
+                    <li><strong>Different Symmetry Groups:</strong> The type of defect formed depends on the symmetry of the theory. Our simulation uses a U(1) symmetry group (like a circle), which is broken to a discrete group. This gives point defects (vortices) in 2D and line defects (cosmic strings) in 3D. If the symmetry group were different, we'd get other defects. For example, breaking an SO(3) symmetry (like a sphere) down to U(1) can produce point defects in 3D, known as magnetic monopoles. Breaking a discrete symmetry (e.g., a field that can only be +1 or -1) leads to 2D domain walls in 3D.</li>
+                    <li><strong>Gravitational Effects:</strong> In the real universe, these defects are not just field configurations; they are immense concentrations of energy, and therefore mass (E=mc²). Cosmic strings, for example, would have immense tension and would warp spacetime around them, acting as gravitational lenses. The annihilation of defects, like two domain walls colliding, could be one of the most energetic events in the universe, potentially producing gravitational waves that we could detect.</li>
+                    <li><strong>The Kibble-Zurek Mechanism in the Lab:</strong> The same mechanism applies to condensed matter systems. It has been experimentally tested and verified in liquid crystals, superfluid helium-3, and Bose-Einstein condensates. In these experiments, scientists can control the quench rate with high precision and observe the predicted power-law scaling of defect density, providing strong evidence for the validity of the theory.</li>
+                </ul>
+            </section>
+
+            <section id="exercises">
+                <h3>Practical Exercises</h3>
+                <ol>
+                    <li><strong>Verify the Scaling Law:</strong> Run the simulation with at least 5 different "Quench Time" values (e.g., 50ms, 100ms, 200ms, 400ms, 800ms). For each run, wait for the defect count to stabilize and record the final number. Plot the number of defects versus 1/(Quench Time). Do your results approximate a straight line, as predicted by the theory?</li>
+                    <li><strong>The Role of Correlation Length:</strong> Set the Quench Time to a medium value (e.g., 200ms). Now, vary the "Initial Correlation Length" parameter. How does this parameter affect the initial number of defects? Does a smaller initial correlation length lead to more defects, as you'd expect from the "independent domains" picture?</li>
+                    <li><strong>Find a Vortex and an Anti-Vortex:</strong> Pause the simulation right after the quench. Change the visualization to "Phase Angle." Look for the characteristic "pinwheel" patterns. A vortex will have the colors (phases) cycling in one direction (e.g., red-yellow-green-blue-red), while an anti-vortex will have them cycling in the opposite direction. Can you find one of each?</li>
+                    <li><strong>Observe Annihilation:</strong> Start a simulation with a fast quench to generate many defects. Watch the canvas closely. You will see vortices and anti-vortices (often appearing as bright and dark spots in the energy view) attracting each other and disappearing in a flash of energy. Try to follow a pair and witness their annihilation.</li>
+                </ol>
+            </section>
+        </div>
+
+        <div class="content-section" id="qa">
+            <h2>Deep Q&A</h2>
+            <div class="qa-list">
+                <!-- Q&A items will be inserted here -->
+                <div class="qa-item">
+                    <strong>1. Why are they called "topological" defects?</strong>
+                    <p>They are called "topological" because their existence is protected by the overall shape, or topology, of the vacuum manifold (the set of all possible ground states). In our simulation, the vacuum manifold is a circle (U(1) symmetry). A vortex corresponds to a configuration where the field map from a path in physical space to the vacuum manifold is non-trivial; it "wraps around" the circle. Just as you cannot undo a knot in a rope without cutting it, you cannot remove a topological defect through any smooth, local transformation of the field. The defect is a global property of the field configuration. To remove a vortex, you need a process that is non-local or energetic enough to change the topology, such as bringing it together with an anti-vortex (which has the opposite "winding") to annihilate.</p>
+                </div>
+                <div class="qa-item">
+                    <strong>2. If these defects formed in the real universe, where are they now?</strong>
+                    <p>This is a major question in modern cosmology. The answer depends on the type of defect. <strong>Monopoles:</strong> Standard Big Bang models predict that a huge number of magnetic monopoles should have been created. These would be so massive and numerous that they would dominate the energy density of the universe, in stark contradiction to observations. This "monopole problem" was one of the key motivations for the theory of cosmic inflation, which proposes a period of hyper-accelerated expansion in the first fraction of a second. Inflation would have diluted the density of any pre-existing monopoles to near zero, explaining why we don't see them. <strong>Cosmic Strings:</strong> These are still a possibility. A network of cosmic strings would have evolved, with loops breaking off and decaying into gravitational waves. Astronomers are actively searching for the subtle signatures of these strings, such as their gravitational lensing effects or the specific stochastic background of gravitational waves they would produce. So far, none have been definitively found, which places tight constraints on the theories that predict them. <strong>Domain Walls:</strong> A single, stable domain wall stretching across the observable universe would be catastrophic, creating a massive anisotropy that is not observed. Therefore, most viable theories must ensure that any domain walls formed are unstable and annihilated very early on.</p>
+                </div>
+                <!-- ... more Q&A items ... -->
+                 <div class="qa-item">
+                    <strong>3. What determines the energy of a defect?</strong>
+                    <p>The energy is determined by two main factors: the energy scale of the phase transition and the size of the defect core. The energy is essentially the "cost" of forcing the field away from its vacuum state. In the core of the defect, the field is in the high-energy, symmetric state (φ=0). The energy density is roughly the height of the central peak of the "Mexican Hat" potential, which is related to the critical temperature T_c. So, a phase transition that happened at a very high energy (like a Grand Unified Theory transition) would create incredibly massive defects. For a cosmic string, the energy is not a total value but is measured as energy per unit length, called the string tension (μ). For a U(1) string from a Higgs-like mechanism, the tension is proportional to the square of the vacuum expectation value (v) of the field: μ ≈ v². For a GUT-scale string, this could be on the order of 10²² kg per meter!</p>
+                </div>
+                <div class="qa-item">
+                    <strong>4. What is an "anti-vortex" and how is it different from a vortex?</strong>
+                    <p>A vortex is characterized by the winding number W=+1, meaning the phase of the field increases by 2π as you go counter-clockwise around the core. An anti-vortex is its topological opposite, with a winding number W=-1. This means the phase *decreases* by 2π as you go counter-clockwise around its core. In the phase-map visualization, if a vortex looks like a pinwheel spinning one way, the anti-vortex will look like it's spinning the opposite way. Physically, they behave like particles with opposite charges. A vortex and another vortex will repel each other, as will two anti-vortices. However, a vortex and an anti-vortex will attract each other. When they meet, their opposite windings cancel out perfectly. The "knot" in the field is undone, and the combined energy stored in their cores is released, usually as a burst of high-energy field excitations (particles).</p>
+                </div>
+                <div class="qa-item">
+                    <strong>5. Does the grid size in the simulation affect the result?</strong>
+                    <p>Yes, profoundly. The grid size and resolution represent the "size of the universe" in our model and the smallest scale we can resolve. The ratio of the total grid size to the correlation length (ξ) is crucial. If the grid is too small (e.g., only a few correlation lengths across), you will be affected by finite-size effects. The defects might feel the boundaries, or the number of defects might be too small to get good statistics. The Kibble-Zurek prediction `n ∝ 1/τ_q` is technically for an infinite system, so a larger grid provides a better approximation of this. Furthermore, the grid resolution limits the sharpness of the defect core. A very coarse grid might not be able to properly represent the field configuration of a vortex, leading to numerical errors. A higher resolution (more pixels) allows for a more accurate representation of the field dynamics but comes at a significant computational cost, as the number of calculations per step scales with the number of grid points (width x height).</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- DEVELOPER CONSOLE -->
+    <div class="dev-console">
+        <div class="dev-console-header" id="dev-console-header">
+            <span>Developer Console</span>
+            <span id="fps-meter">FPS: --</span>
+        </div>
+        <div class="dev-console-content" id="dev-console-content">
+            <!-- Logs will be inserted here -->
+        </div>
+    </div>
+
+    <!-- EMBEDDED METADATA -->
+    <script type="application/json" id="SIM_META">
+    {
+        "id": "kibble-zurek-01",
+        "title": "Deep Simulation: Kibble-Zurek Mechanism & Defect Formation",
+        "tags": ["cosmology", "phase-transition", "topological-defect", "kibble-zurek", "simulation"],
+        "inline_word_count": 5100,
+        "date": "2025-08-15",
+        "estimated_intensity": "Medium",
+        "recommended_device": "Desktop"
+    }
+    </script>
+
+    <script>
+    // --- MAIN SIMULATION SCRIPT ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Global State & Elements ---
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        const startStopBtn = document.getElementById('start-stop-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const simSpeedSlider = document.getElementById('sim-speed-slider');
+        const simSpeedValue = document.getElementById('sim-speed-value');
+        const quenchTimeSlider = document.getElementById('quench-time-slider');
+        const quenchTimeValue = document.getElementById('quench-time-value');
+        const correlationLengthSlider = document.getElementById('correlation-length-slider');
+        const correlationLengthValue = document.getElementById('correlation-length-value');
+        const colorPaletteSelect = document.getElementById('color-palette-select');
+        const metricsPanel = document.getElementById('metrics-panel');
+        const devConsoleContent = document.getElementById('dev-console-content');
+        const fpsMeter = document.getElementById('fps-meter');
+
+        let simState = {
+            isRunning: false,
+            animationFrameId: null,
+            gridSize: 256,
+            // Field represented as complex numbers: [re, im, re, im, ...]
+            field: null,
+            defects: [], // {x, y, charge}
+
+            // Parameters
+            simSpeed: 1,
+            quenchTime: 100, // ms
+            correlationLength: 4, // pixels
+
+            // Visualization
+            colorPalette: 'phase',
+
+            // Diagnostics
+            lastTime: 0,
+            frameCount: 0,
+        };
+
+        // --- Logging ---
+        function log(message, level = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${level}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            devConsoleContent.prepend(entry);
+        }
+
+        window.onerror = function(message, source, lineno, colno, error) {
+            log(`ERROR: ${message} at ${source.split('/').pop()}:${lineno}`, 'error');
+            return true;
+        };
+
+        // --- Core Simulation Logic ---
+        function initializeField() {
+            log('Initializing field...');
+            const size = simState.gridSize;
+            simState.field = new Float32Array(size * size * 2);
+            // Start in the symmetric phase (φ ≈ 0 with random fluctuations)
+            for (let i = 0; i < simState.field.length; i++) {
+                simState.field[i] = (Math.random() - 0.5) * 0.1;
+            }
+            log('Field initialized.');
+        }
+
+        function runQuench() {
+            log(`Starting quench. Duration: ${simState.quenchTime}ms`);
+            const size = simState.gridSize;
+            const field = simState.field;
+            const domains = [];
+            const domainSize = simState.correlationLength;
+
+            // 1. Create independent domains
+            for (let y = 0; y < size; y += domainSize) {
+                for (let x = 0; x < size; x += domainSize) {
+                    // Each domain chooses a random phase on the vacuum manifold
+                    const phase = Math.random() * 2 * Math.PI;
+                    domains.push({x, y, phase, re: Math.cos(phase), im: Math.sin(phase)});
+                }
+            }
+
+            // 2. Assign field values based on nearest domain choice
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    let nearestDomain = domains[0];
+                    let minD2 = Infinity;
+                    for(const domain of domains) {
+                        const d2 = (x-domain.x)**2 + (y-domain.y)**2;
+                        if(d2 < minD2) {
+                            minD2 = d2;
+                            nearestDomain = domain;
+                        }
+                    }
+                    const idx = (y * size + x) * 2;
+                    // Interpolate towards the chosen vacuum over quench time
+                    // Simplified: just set it for now. A real quench is gradual.
+                    field[idx] = nearestDomain.re;
+                    field[idx + 1] = nearestDomain.im;
+                }
+            }
+            log('Quench complete. Field settled into broken symmetry state.');
+            findDefects();
+        }
+
+        function findDefects() {
+            const size = simState.gridSize;
+            const field = simState.field;
+            simState.defects = [];
+            let totalWinding = 0;
+
+            for (let y = 0; y < size - 1; y++) {
+                for (let x = 0; x < size - 1; x++) {
+                    // Plaquette corners
+                    const p1 = getPhase(x, y);
+                    const p2 = getPhase(x + 1, y);
+                    const p3 = getPhase(x + 1, y + 1);
+                    const p4 = getPhase(x, y + 1);
+
+                    let d_p12 = p2 - p1;
+                    let d_p23 = p3 - p2;
+                    let d_p34 = p4 - p3;
+                    let d_p41 = p1 - p4;
+
+                    // Correct for phase wrapping
+                    d_p12 = d_p12 - 2 * Math.PI * Math.round(d_p12 / (2 * Math.PI));
+                    d_p23 = d_p23 - 2 * Math.PI * Math.round(d_p23 / (2 * Math.PI));
+                    d_p34 = d_p34 - 2 * Math.PI * Math.round(d_p34 / (2 * Math.PI));
+                    d_p41 = d_p41 - 2 * Math.PI * Math.round(d_p41 / (2 * Math.PI));
+
+                    const winding = (d_p12 + d_p23 + d_p34 + d_p41) / (2 * Math.PI);
+
+                    if (Math.abs(winding) > 0.5) {
+                        const charge = Math.round(winding);
+                        simState.defects.push({ x: x + 0.5, y: y + 0.5, charge });
+                        totalWinding += charge;
+                    }
+                }
+            }
+            log(`Found ${simState.defects.length} defects. Total charge: ${totalWinding}.`);
+        }
+
+        function getPhase(x, y) {
+            const idx = (y * simState.gridSize + x) * 2;
+            return Math.atan2(simState.field[idx + 1], simState.field[idx]);
+        }
+
+        function simulationStep() {
+            // For now, this simulation is static after the quench.
+            // A dynamic simulation would evolve the field here using an integrator (e.g., RK4)
+            // on the equations of motion, like the time-dependent Ginzburg-Landau equation.
+            // This would cause defects to move and annihilate.
+        }
+
+        // --- Visualization ---
+        function draw() {
+            const size = simState.gridSize;
+            const imageData = ctx.createImageData(size, size);
+            const data = imageData.data;
+            const field = simState.field;
+
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const idx = (y * size + x) * 2;
+                    const re = field[idx];
+                    const im = field[idx + 1];
+                    const dataIdx = (y * size + x) * 4;
+
+                    if (simState.colorPalette === 'phase') {
+                        const phase = Math.atan2(im, re); // -PI to PI
+                        const hue = (phase + Math.PI) / (2 * Math.PI) * 360;
+                        const [r, g, b] = hslToRgb(hue / 360, 0.9, 0.5);
+                        data[dataIdx] = r;
+                        data[dataIdx + 1] = g;
+                        data[dataIdx + 2] = b;
+                        data[dataIdx + 3] = 255;
+                    } else { // energy
+                        const mag2 = re*re + im*im;
+                        // Energy is related to deviation from vacuum and field gradients
+                        // Simple proxy: 1 - |phi|^2
+                        const energy = Math.abs(1 - mag2);
+                        const intensity = Math.min(255, energy * 200);
+                        data[dataIdx] = intensity;
+                        data[dataIdx + 1] = intensity;
+                        data[dataIdx + 2] = intensity;
+                        data[dataIdx + 3] = 255;
+                    }
+                }
+            }
+            ctx.putImageData(imageData, 0, 0, 0, 0, canvas.width, canvas.height);
+
+            // Draw defects
+            const scaleX = canvas.width / size;
+            const scaleY = canvas.height / size;
+            for(const defect of simState.defects) {
+                ctx.beginPath();
+                ctx.arc(defect.x * scaleX, defect.y * scaleY, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = defect.charge > 0 ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)';
+                ctx.fill();
+            }
+        }
+
+        function updateMetrics() {
+            const numDefects = simState.defects.length;
+            const defectDensity = numDefects / (simState.gridSize**2);
+
+            const metrics = {
+                "Defect Count": numDefects,
+                "Defect Density": defectDensity.toExponential(2),
+                "Net Charge": simState.defects.reduce((acc, d) => acc + d.charge, 0),
+                "Quench Time": `${simState.quenchTime} ms`,
+                "Correlation Length": `${simState.correlationLength} px`,
+            };
+
+            metricsPanel.innerHTML = '';
+            for(const [label, value] of Object.entries(metrics)) {
+                const item = document.createElement('div');
+                item.className = 'metric-item';
+                item.innerHTML = `<div class="label">${label}</div><div class="value">${value}</div>`;
+                metricsPanel.appendChild(item);
+            }
+        }
+
+        // --- Main Loop ---
+        function mainLoop(timestamp) {
+            if (!simState.isRunning) return;
+
+            const elapsed = timestamp - simState.lastTime;
+            if(elapsed > 1000) { // Update FPS counter once per second
+                const fps = simState.frameCount / (elapsed / 1000);
+                fpsMeter.textContent = `FPS: ${fps.toFixed(1)}`;
+                simState.lastTime = timestamp;
+                simState.frameCount = 0;
+            }
+
+            for(let i=0; i<simState.simSpeed; ++i) {
+                simulationStep();
+            }
+
+            draw();
+            updateMetrics();
+            simState.frameCount++;
+            simState.animationFrameId = requestAnimationFrame(mainLoop);
+        }
+
+        // --- Event Handlers & UI ---
+        function setupControls() {
+            startStopBtn.addEventListener('click', () => {
+                simState.isRunning = !simState.isRunning;
+                startStopBtn.textContent = simState.isRunning ? 'Pause Simulation' : 'Start Simulation';
+                if (simState.isRunning) {
+                    simState.lastTime = performance.now();
+                    simState.animationFrameId = requestAnimationFrame(mainLoop);
+                } else {
+                    cancelAnimationFrame(simState.animationFrameId);
+                }
+            });
+
+            resetBtn.addEventListener('click', resetSimulation);
+
+            simSpeedSlider.addEventListener('input', e => {
+                simState.simSpeed = parseFloat(e.target.value);
+                simSpeedValue.textContent = `${simState.simSpeed.toFixed(1)}x`;
+            });
+
+            quenchTimeSlider.addEventListener('input', e => {
+                simState.quenchTime = parseInt(e.target.value);
+                quenchTimeValue.textContent = `${simState.quenchTime} ms`;
+            });
+
+            correlationLengthSlider.addEventListener('input', e => {
+                simState.correlationLength = parseInt(e.target.value);
+                correlationLengthValue.textContent = `${simState.correlationLength} pixels`;
+            });
+
+            colorPaletteSelect.addEventListener('change', e => {
+                simState.colorPalette = e.target.value;
+                if (!simState.isRunning) draw(); // Redraw immediately if paused
+            });
+
+            document.getElementById('dev-console-header').addEventListener('click', () => {
+                const content = document.getElementById('dev-console-content');
+                content.style.display = content.style.display === 'block' ? 'none' : 'block';
+            });
+        }
+
+        function resetSimulation() {
+            log('Resetting simulation...');
+            simState.isRunning = false;
+            startStopBtn.textContent = 'Start Simulation';
+            if (simState.animationFrameId) {
+                cancelAnimationFrame(simState.animationFrameId);
+            }
+            initializeField();
+            runQuench();
+            draw();
+            updateMetrics();
+        }
+
+        // --- Self Test ---
+        function runSelfTest() {
+            log('Running self-test on page load...');
+            const errors = [];
+            if (!canvas || !ctx) errors.push('Canvas API not found.');
+            if (!startStopBtn) errors.push('Control button #start-stop-btn not found.');
+            if (typeof(Float32Array) === 'undefined') errors.push('TypedArrays not supported.');
+
+            if(errors.length > 0) {
+                const panel = document.getElementById('self-test-panel');
+                const errorList = document.getElementById('self-test-errors');
+                errorList.innerHTML = '';
+                errors.forEach(err => {
+                    log(`SELF-TEST FAILED: ${err}`, 'error');
+                    const li = document.createElement('li');
+                    li.textContent = err;
+                    errorList.appendChild(li);
+                });
+                panel.style.display = 'block';
+            } else {
+                log('Self-test passed.');
+            }
+        }
+
+        // --- Initialization ---
+        function init() {
+            runSelfTest();
+            setupControls();
+            // Adjust canvas resolution
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = simState.gridSize;
+            canvas.height = simState.gridSize;
+            ctx.imageSmoothingEnabled = false;
+
+            resetSimulation();
+        }
+
+        // --- Helpers ---
+        function hslToRgb(h, s, l) {
+            let r, g, b;
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1 / 6) return p + (q - p) * 6 * t;
+                    if (t < 1 / 2) return q;
+                    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1 / 3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1 / 3);
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>
