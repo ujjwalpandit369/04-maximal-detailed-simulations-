@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Pebble Accretion & Planetesimal Formation</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #deb887; /* BurlyWood */
+            --secondary-color: #5f9ea0; /* CadetBlue */
+            --accent-color: #9acd32; /* YellowGreen */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .chart-container { width: 100%; height: 300px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Pebble Accretion & Planetesimal Formation</h1>
+            <p class="subtitle">How to Rapidly Build a Planet from Drifting Dust and Pebbles</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <div class="chart-container" id="mass-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Building a planet is hard. For a long time, scientists thought planets grew only by slowly colliding with and sticking to other large, kilometer-sized "planetesimals." This process is very slow, especially for growing the giant cores of planets like Jupiter. "Pebble accretion" is a new and powerful theory that solves this problem. It proposes that the key to rapid growth is not colliding with large objects, but sweeping up vast numbers of small, centimeter-to-meter-sized "pebbles." In a young solar system, the gas disk orbits the star slightly slower than solid objects do. This creates a gentle headwind that causes pebbles to lose energy and drift inwards towards the star. A growing planet core, or planetesimal, can then very efficiently capture these drifting pebbles with its gravity. Instead of waiting for a rare collision with another large body, the planetesimal is fed by a constant stream of incoming pebbles. This simulation shows this process in action: you can see pebbles drifting inwards and being rapidly swept up by a growing planetesimal, allowing it to become massive in a surprisingly short amount of time.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The main window is a top-down view of a section of a protoplanetary disk. The star is off-screen to the left.
+                            <ul>
+                                <li>The large green circle is the **Planetesimal**, the growing core of a planet.</li>
+                                <li>The small white dots are the **Pebbles**.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The Process:</strong> Press **"Run Simulation"**.
+                            <ul>
+                                <li>You will see the pebbles begin to drift from right to left, inwards towards the star. This is due to gas drag.</li>
+                                <li>As the pebbles drift past the planetesimal, its gravity will pull on them. Many will be captured.</li>
+                                <li>As the planetesimal accretes pebbles, you will see it grow larger, and the "Mass" value in the chart will increase.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Controls:</strong>
+                            <ul>
+                                <li><strong>Pebble Size:** This is a key control. It determines how strongly the pebbles feel the gas drag. There's a sweet spot: very small pebbles are stuck to the gas and don't drift much, while very large objects (boulders) are barely affected. Mid-sized pebbles (cm-to-m) drift the fastest. Try different values to see how it affects the drift speed and accretion rate.</li>
+                                <li><strong>Planetesimal Mass:** A more massive planetesimal has a stronger gravitational pull and can capture pebbles from further away, increasing its growth rate.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The Mass Chart:</strong> The chart below the simulation plots the mass of the planetesimal over time. With the right settings, you will see a period of extremely rapid, almost exponential growth, which is the hallmark of efficient pebble accretion.</li>
+                    </ol>
+
+                    <h2>Core Theory of Pebble Accretion</h2>
+                    <h4>The Problem with Planetesimal Accretion</h4>
+                    <p>The classical model of planet formation involved the hierarchical growth of planetesimals. Dust grains would stick together to form kilometer-sized planetesimals. These planetesimals would then collide and merge over millions of years to form planetary cores. However, this model faces several challenges. The growth rate is very slow, particularly at large distances from the star, making it difficult to form the cores of gas giants like Jupiter before the gas disk dissipates. Furthermore, objects around a meter in size face a "radial drift barrier": gas drag is so effective on them that they are predicted to drift into the star in just a few hundred years, before they have time to grow larger.</p>
+
+                    <h4>Gas Drag and Radial Drift</h4>
+                    <p>Pebble accretion turns the problem of radial drift into a solution. The gas in a protoplanetary disk is partially supported by its own pressure gradient, causing it to orbit at a slightly sub-Keplerian velocity. Solid objects like pebbles do not feel this pressure support and try to orbit at the full Keplerian speed. This velocity difference creates a headwind, or gas drag, on the pebbles.</p>
+                    <p>This gas drag removes angular momentum from the pebbles, causing them to spiral inwards towards the star. The rate of this drift depends on the pebble's "stopping time" (how quickly it couples to the gas), which is a function of its size and the gas density. For a given disk, there is a sweet spot for pebble sizes (typically cm to m) that drift most rapidly.</p>
+
+                    <h4>Efficient Accretion of Drifting Pebbles</h4>
+                    <p>A planetesimal orbiting in the disk is also subject to gas drag, but because it is much more massive, it drifts very slowly. It therefore sees a continuous stream of pebbles drifting past it from the outer disk. The key insight of pebble accretion is that the planetesimal can accrete these pebbles with extreme efficiency.</p>
+                    <p>The process depends on the size of the pebbles, characterized by the dimensionless **Stokes number (St)**, which is the ratio of the pebble's stopping time to its orbital period.
+                    <ul>
+                        <li><strong>Drift-Limited Accretion (St > 1):** For large pebbles (or boulders), gas drag is weak. They drift slowly, and the planetesimal accretes them based on its gravitational cross-section, similar to classical accretion.</li>
+                        <li><strong>Hill-Limited Accretion (St < 1):** For smaller, more strongly coupled pebbles, the accretion is remarkably efficient. As a pebble drifts towards the planetesimal, gas drag slows it down, causing it to spiral inwards towards the planetesimal. If it loses enough energy during this encounter, it becomes gravitationally bound and is accreted. The accretion radius in this regime is not the physical size of the planetesimal, but its much larger **Hill radius** (the region where its gravity dominates). This allows the planetesimal to capture pebbles from a huge area.</li>
+                    </ul>
+                    This high efficiency leads to a phase of runaway growth. As the core grows, its capture radius increases, allowing it to accrete pebbles even faster. This feedback loop allows planetary cores to grow to 10-20 Earth masses—large enough to trigger runaway gas accretion and form a gas giant—in just a few million years, solving the timescale problem of the classical model.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Run Simulation</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Pebble Size (St) <span class="value-display" id="pebble-size-value">0.1</span></label>
+                        <input type="range" id="pebble-size-slider" min="-2" max="0" step="0.1" value="-1">
+                    </div>
+                    <div class="control">
+                        <label>Initial Core Mass (M<sub>⊕</sub>) <span class="value-display" id="mass-value">0.1</span></label>
+                        <input type="range" id="mass-slider" min="0.01" max="1.0" step="0.01" value="0.1">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            chartCanvas: document.getElementById('mass-chart'),
+            startBtn: document.getElementById('start-button'),
+            pebbleSizeSlider: document.getElementById('pebble-size-slider'), pebbleSizeValue: document.getElementById('pebble-size-value'),
+            massSlider: document.getElementById('mass-slider'), massValue: document.getElementById('mass-value'),
+        };
+
+        const state = {
+            planetesimal: null, pebbles: [],
+            isRunning: false, time: 0,
+            config: {},
+            history: { time: [], mass: [] }
+        };
+        const ctx = dom.canvas.getContext('2d');
+        let chart;
+
+        function updateConfig() {
+            state.config.stokes = 10**parseFloat(dom.pebbleSizeSlider.value);
+            state.config.initial_mass = parseFloat(dom.massSlider.value);
+            dom.pebbleSizeValue.textContent = state.config.stokes.toFixed(3);
+            dom.massValue.textContent = state.config.initial_mass.toFixed(2);
+        }
+
+        function reset() {
+            updateConfig();
+            state.isRunning = false; state.time = 0;
+            state.planetesimal = {
+                x: dom.canvas.width/2, y: dom.canvas.height/2,
+                mass: state.config.initial_mass
+            };
+            state.pebbles = [];
+            for(let i=0; i<200; i++) {
+                state.pebbles.push({
+                    x: Math.random() * dom.canvas.width,
+                    y: Math.random() * dom.canvas.height,
+                    vx: 0, vy: 0,
+                });
+            }
+            state.history = { time: [], mass: [] };
+            if(chart) chart.reset();
+        }
+
+        function start() { if(!state.isRunning) { reset(); state.isRunning = true; } }
+
+        function update() {
+            if (!state.isRunning) return;
+            state.time++;
+
+            const G = 1e3;
+            const M_star = 1.0;
+            const r_p = state.planetesimal.x; // Simplified 1D orbital radius
+            const v_kep = Math.sqrt(G*M_star / r_p);
+            const v_gas = v_kep * 0.99; // Sub-Keplerian gas
+            const accretion_radius = 5 + Math.pow(state.planetesimal.mass, 1/3) * 10;
+
+            state.pebbles.forEach((p, i) => {
+                // Keplerian velocity + gas drag
+                const v_pebble_y = v_kep;
+                const drag_force = -state.config.stokes * (v_pebble_y - v_gas);
+                p.vx = drag_force; // Radial drift
+                p.vy = 0; // In co-rotating frame
+
+                p.x += p.vx * 0.1;
+                p.y += p.vy * 0.1;
+
+                // Accretion
+                const dx = p.x - state.planetesimal.x;
+                const dy = p.y - state.planetesimal.y;
+                if (dx*dx + dy*dy < accretion_radius**2) {
+                    state.planetesimal.mass += 0.001; // Accrete mass
+                    p.x = dom.canvas.width + 20; // Respawn pebble
+                    p.y = Math.random() * dom.canvas.height;
+                }
+
+                if (p.x < 0) { // Respawn pebble
+                    p.x = dom.canvas.width + 20;
+                    p.y = Math.random() * dom.canvas.height;
+                }
+            });
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0,0,w,h);
+
+            // Draw pebbles
+            ctx.fillStyle = 'white';
+            state.pebbles.forEach(p => {
+                ctx.fillRect(p.x, p.y, 2, 2);
+            });
+
+            // Draw planetesimal
+            const planet_radius = 5 + Math.pow(state.planetesimal.mass, 1/3) * 10;
+            ctx.fillStyle = '#9acd32';
+            ctx.beginPath(); ctx.arc(state.planetesimal.x, state.planetesimal.y, planet_radius, 0, 2*Math.PI); ctx.fill();
+
+            if(state.isRunning) updateChart();
+        }
+
+        function updateChart() {
+            state.history.time.push(state.time);
+            state.history.mass.push(state.planetesimal.mass);
+            if(state.history.time.length > 500) {
+                state.history.time.shift(); state.history.mass.shift();
+            }
+            if(chart) chart.update(state.history.time, state.history.mass);
+        }
+
+        function createChart(canvas) {
+            const chartCtx = canvas.getContext('2d');
+            let x_data=[], y_data=[];
+            function draw() {
+                const w = canvas.width; const h = canvas.height;
+                chartCtx.clearRect(0,0,w,h); chartCtx.fillStyle = '#111'; chartCtx.fillRect(0,0,w,h);
+                if (x_data.length < 2) return;
+                const max_y = Math.max(...y_data, 1);
+                chartCtx.strokeStyle = '#deb887'; chartCtx.lineWidth = 2; chartCtx.beginPath();
+                for(let i=0; i<x_data.length; i++) {
+                    const x = (x_data[i] - x_data[0]) / (x_data[x_data.length-1] - x_data[0] || 1) * w;
+                    const y = h - (y_data[i] / max_y) * (h-10);
+                    if (i === 0) chartCtx.moveTo(x,y); else chartCtx.lineTo(x,y);
+                }
+                chartCtx.stroke();
+            }
+            return {
+                update: (newX, newY) => { x_data=newX; y_data=newY; draw(); },
+                reset: () => { x_data=[]; y_data=[]; draw(); }
+            }
+        }
+
+        function animationLoop() {
+            if(state.isRunning) update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.startBtn.addEventListener('click', start);
+        [dom.pebbleSizeSlider, dom.massSlider].forEach(s => s.addEventListener('input', reset));
+
+        chart = createChart(dom.chartCanvas);
+        reset();
+        draw();
+    })();
+    </script>
+</body>
+</html>

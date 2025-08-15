@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Planetary Atmosphere Escape Processes</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #6a5acd; /* SlateBlue */
+            --secondary-color: #f0e68c; /* Khaki */
+            --accent-color: #20b2aa; /* LightSeaGreen */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: linear-gradient(to top, #000010, #000000);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            height: 400px;
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .chart-container { width: 100%; height: 300px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control select { width: 100%; padding: 8px; background-color: #333; border: 1px solid #555; border-radius: 4px; color: var(--text-color); }
+        .control button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); text-align: center; }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 1.8em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+        .metric-card .unit { font-size: 0.5em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Planetary Atmosphere Escape</h1>
+            <p class="subtitle">The Slow Evaporation of Worlds: Visualizing Jeans Escape</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <div class="chart-container" id="velocity-distribution-chart"></div>
+
+                <h2>Escape Metrics</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>A planet's atmosphere isn't permanent. Over billions of years, it can slowly leak away into space. One of the primary ways this happens is called "Jeans Escape." The particles in an atmosphere (like atoms and molecules) are constantly moving and colliding, with a range of speeds described by the Maxwell-Boltzmann distribution. While the average particle isn't moving fast enough to escape the planet's gravity, a small number of particles in the "high-speed tail" of this distribution are. In the thin upper atmosphere (the exosphere), where collisions are rare, these zippy particles can be launched on a one-way trip into space. This process is like a pot of water slowly evaporating, even though the water isn't boiling. This simulation visualizes this process. You can see a collection of gas particles, and the histogram shows their speed distribution. The red line shows the planet's escape velocity. Any particle that happens to be moving faster than this speed is lost forever, slowly eroding the atmosphere over time.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Two Views:</strong>
+                            <ul>
+                                <li><strong>Top View (Atmosphere):</strong> This shows a simplified view of particles in the upper atmosphere. They are moving around under the influence of the planet's gravity (pulling them down). When a particle escapes, it flies off the top.</li>
+                                <li><strong>Bottom View (Velocity Distribution):** This is the key chart. It's a histogram showing how many particles there are at each speed. The blue bars are the current distribution of speeds in the simulation, while the faint yellow line is the theoretical "Maxwell-Boltzmann" distribution for that temperature. The vertical red line is the **Escape Velocity**.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Watching Jeans Escape:</strong>
+                            <ul>
+                                <li>Press **"Run Simulation"**. Watch the particles in the top panel. Most will move up and fall back down, but occasionally, a particularly fast one will escape.</li>
+                                <li>Now look at the chart. You'll see that the blue bars in the "high-velocity tail"—those to the right of the red escape velocity line—are constantly being emptied out. This is Jeans Escape in action: the fastest particles are being permanently removed.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Key Controls:</strong>
+                            <ul>
+                                <li><strong>Planet Mass:** Increase the mass of the planet. This will shift the red escape velocity line to the right, making it much harder for particles to escape. This is why giant planets like Jupiter keep their atmospheres.</li>
+                                <li><strong>Atmosphere Temperature:** Increase the temperature. This will shift the entire blue histogram to the right, meaning more particles will be in the high-velocity tail. The escape rate will increase dramatically. This is why a planet's temperature is critical for its ability to hold an atmosphere.</li>
+                                <li><strong>Gas Particle Mass:** Switch from a heavy gas like Nitrogen to a very light gas like Hydrogen. The histogram will shift far to the right, because at the same temperature, lighter particles move much faster. You'll see that almost all the hydrogen escapes immediately. This is why Earth has lost almost all of its primordial hydrogen.</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h2>Core Theory of Jeans Escape</h2>
+                    <h4>The Maxwell-Boltzmann Distribution</h4>
+                    <p>In a gas in thermal equilibrium, the speeds of the individual particles are not all the same. They follow a statistical distribution known as the **Maxwell-Boltzmann distribution**. The probability of a particle having a speed `v` is given by:</p>
+                    <p><strong><code>f(v) = 4π (m / 2πkT)<sup>3/2</sup> v² exp(-mv² / 2kT)</code></strong></p>
+                    <p>Where `m` is the mass of the particle, `k` is the Boltzmann constant, and `T` is the temperature. This distribution has a peak at the most probable speed, but crucially, it has a long "tail" that extends to very high speeds. While the number of particles at these high speeds is small, it is not zero.</p>
+
+                    <h4>Escape Velocity</h4>
+                    <p>For a particle to escape a planet's gravitational pull, its kinetic energy must exceed its gravitational potential energy. This defines the **escape velocity (v<sub>esc</sub>)**:</p>
+                    <p><strong><code>½mv² ≥ GMm/r  =>  v ≥ sqrt(2GM/r)</code></strong></p>
+                    <p>Where `G` is the gravitational constant, `M` is the planet's mass, and `r` is the radial distance from the planet's center. Atmospheric escape happens from the "exobase," the upper boundary of the atmosphere where collisions become so infrequent that a particle moving upwards is unlikely to be knocked back down. We can approximate `r` as the planet's radius.</p>
+
+                    <h4>The Jeans Escape Mechanism</h4>
+                    <p>Jeans Escape is the process of atmospheric loss caused by particles in the high-velocity tail of the Maxwell-Boltzmann distribution exceeding the escape velocity. By integrating the distribution `f(v)` from `v_esc` to infinity, one can calculate the fraction of particles that have sufficient velocity to escape. This, combined with the particle flux at the exobase, gives the **Jeans escape flux**, which quantifies the rate of atmospheric loss.</p>
+                    <p>The escape rate is extremely sensitive to the ratio of the escape energy to the thermal energy, which is controlled by the **Jeans parameter, λ = v<sub>esc</sub>² / v<sub>th</sub>²**, where `v_th` is the thermal velocity `sqrt(2kT/m)`. The escape flux is proportional to `(1+λ)exp(-λ)`. Because of the exponential dependence, small changes in temperature or escape velocity can change the atmospheric loss rate by many orders of magnitude.
+                    <ul>
+                        <li><strong>Dependence on Temperature (T):** Higher T increases the thermal velocity, lowering λ and dramatically increasing escape.</li>
+                        <li><strong>Dependence on Planet Mass (M):** Higher M increases v<sub>esc</sub>, increasing λ and dramatically decreasing escape.</li>
+                        <li><strong>Dependence on Particle Mass (m):** Lighter particles have a much higher thermal velocity at the same temperature. This lowers λ and allows them to escape easily, while heavier particles are retained. This is why terrestrial planets have lost their primordial hydrogen and helium, but retain heavier gases like nitrogen, oxygen, and carbon dioxide.</li>
+                    </ul>
+                    </p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Run Simulation</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Planet Mass (M<sub>⊕</sub>) <span class="value-display" id="mass-value">1.0</span></label>
+                        <input type="range" id="mass-slider" min="0.1" max="10.0" step="0.1" value="1.0">
+                    </div>
+                    <div class="control">
+                        <label>Exosphere Temp (K) <span class="value-display" id="temp-value">1000</span></label>
+                        <input type="range" id="temp-slider" min="200" max="2000" step="20" value="1000">
+                    </div>
+                    <div class="control">
+                        <label>Gas Particle</label>
+                        <select id="gas-select">
+                            <option value="1">Hydrogen (H)</option>
+                            <option value="4" selected>Helium (He)</option>
+                            <option value="16">Oxygen (O)</option>
+                            <option value="28">Nitrogen (N₂)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            chartCanvas: document.getElementById('velocity-distribution-chart'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            startBtn: document.getElementById('start-button'),
+            massSlider: document.getElementById('mass-slider'), massValue: document.getElementById('mass-value'),
+            tempSlider: document.getElementById('temp-slider'), tempValue: document.getElementById('temp-value'),
+            gasSelect: document.getElementById('gas-select'),
+        };
+
+        const state = {
+            particles: [], isRunning: false,
+            config: {}, escaped_count: 0
+        };
+        const ctx = dom.canvas.getContext('2d');
+        const chartCtx = dom.chartCanvas.getContext('2d');
+
+        function updateConfig() {
+            state.config.planet_mass = parseFloat(dom.massSlider.value) * 5.972e24; // kg
+            state.config.temp = parseFloat(dom.tempSlider.value); // K
+            state.config.particle_mass = parseFloat(dom.gasSelect.value) * 1.67e-27; // kg
+
+            dom.massValue.textContent = dom.massSlider.value;
+            dom.tempValue.textContent = dom.tempSlider.value;
+        }
+
+        function reset() {
+            updateConfig();
+            state.isRunning = false; state.escaped_count = 0;
+            state.particles = [];
+
+            const k = 1.38e-23; // Boltzmann
+            const v_th = Math.sqrt(2 * k * state.config.temp / state.config.particle_mass);
+
+            for(let i=0; i<300; i++) {
+                // Maxwell-Boltzmann speed distribution using Box-Muller transform for velocity components
+                const v = v_th * Math.sqrt(-2 * Math.log(1-Math.random()));
+                const angle = Math.random() * 2 * Math.PI;
+                state.particles.push({
+                    x: Math.random() * dom.canvas.width,
+                    y: Math.random() * dom.canvas.height * 0.8,
+                    vx: v * Math.cos(angle),
+                    vy: v * Math.sin(angle) * 0.1, // Anisotropic for visual
+                });
+            }
+        }
+
+        function start() { if(!state.isRunning) { reset(); state.isRunning = true; } }
+
+        function update() {
+            if (!state.isRunning) return;
+
+            const G = 6.674e-11;
+            const R_planet = 6.371e6; // Earth radius
+            const escape_vel = Math.sqrt(2 * G * state.config.planet_mass / R_planet);
+            const gravity = -G * state.config.planet_mass / R_planet**2;
+
+            for (let i = state.particles.length - 1; i >= 0; i--) {
+                const p = state.particles[i];
+                p.vy += gravity * 1e-5; // Scaled dt
+                p.x += p.vx * 1e-5;
+                p.y += p.vy * 1e-2;
+
+                const speed = Math.sqrt(p.vx**2 + p.vy**2);
+                if (p.y < 0 && speed > escape_vel) {
+                    state.particles.splice(i, 1);
+                    state.escaped_count++;
+                }
+
+                if (p.y > dom.canvas.height) p.vy *= -0.8; // Bounce off bottom
+                if (p.x < 0 || p.x > dom.canvas.width) p.vx *= -1;
+            }
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            ctx.fillStyle = '#000010'; ctx.fillRect(0,0,w,h);
+
+            state.particles.forEach(p => {
+                const speed = Math.sqrt(p.vx**2 + p.vy**2);
+                const hue = 240 - Math.min(speed/10000, 1) * 240;
+                ctx.fillStyle = `hsl(${hue}, 100%, 70%)`;
+                ctx.fillRect(p.x, p.y, 3, 3);
+            });
+            drawChart();
+            updateMetrics();
+        }
+
+        function drawChart() {
+            const w = dom.chartCanvas.width; const h = dom.chartCanvas.height;
+            chartCtx.fillStyle = '#111'; chartCtx.fillRect(0,0,w,h);
+
+            const G = 6.674e-11;
+            const R_planet = 6.371e6;
+            const escape_vel = Math.sqrt(2 * G * state.config.planet_mass / R_planet);
+
+            const speeds = state.particles.map(p => Math.sqrt(p.vx**2 + p.vy**2));
+            const max_speed = escape_vel * 1.5;
+            const num_bins = 50;
+            const bins = new Array(num_bins).fill(0);
+            speeds.forEach(s => {
+                const bin = Math.floor(s / max_speed * num_bins);
+                if(bin < num_bins) bins[bin]++;
+            });
+
+            const max_count = Math.max(...bins, 1);
+            chartCtx.fillStyle = '#6a5acd';
+            bins.forEach((count, i) => {
+                const barHeight = (count / max_count) * (h-10);
+                chartCtx.fillRect(i*(w/num_bins), h - barHeight, (w/num_bins)-1, barHeight);
+            });
+
+            // Draw escape velocity line
+            const esc_x = escape_vel / max_speed * w;
+            chartCtx.strokeStyle = 'red'; chartCtx.lineWidth = 2; chartCtx.beginPath();
+            chartCtx.moveTo(esc_x, 0); chartCtx.lineTo(esc_x, h); chartCtx.stroke();
+        }
+
+        function updateMetrics() {
+             const G = 6.674e-11; const R_planet = 6.371e6;
+             const escape_vel = Math.sqrt(2 * G * state.config.planet_mass / R_planet);
+             const k = 1.38e-23;
+             const v_th = Math.sqrt(2*k*state.config.temp / state.config.particle_mass);
+             dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>Escape Velocity</h4><p>${(escape_vel/1000).toFixed(1)}<span class="unit"> km/s</span></p></div>
+                <div class="metric-card"><h4>Thermal Velocity (v<sub>th</sub>)</h4><p>${(v_th/1000).toFixed(1)}<span class="unit"> km/s</span></p></div>
+                <div class="metric-card"><h4>Particles Remaining</h4><p>${state.particles.length}</p></div>
+                <div class="metric-card"><h4>Particles Escaped</h4><p>${state.escaped_count}</p></div>
+            `;
+        }
+
+        function animationLoop() {
+            if(state.isRunning) update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.startBtn.addEventListener('click', start);
+        [dom.massSlider, dom.tempSlider, dom.gasSelect].forEach(s => s.addEventListener('input', reset));
+
+        reset();
+        draw();
+        updateMetrics();
+    })();
+    </script>
+</body>
+</html>

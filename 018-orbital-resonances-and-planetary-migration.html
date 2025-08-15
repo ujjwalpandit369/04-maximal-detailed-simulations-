@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Orbital Resonances and Planetary Migration</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #87ceeb; /* SkyBlue */
+            --secondary-color: #da70d6; /* Orchid */
+            --accent-color: #fafad2; /* LightGoldenRodYellow */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .chart-container { width: 100%; height: 200px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button, .preset-button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover, .preset-button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Orbital Resonances and Planetary Migration</h1>
+            <p class="subtitle">The Gravitational Dance that Sculpts Planetary Systems</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <div class="chart-container" id="resonance-chart"></div>
+                <div class="chart-container" id="migration-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Planets in a solar system don't orbit in isolation; they subtly tug on each other with their gravity. Usually, these tugs are random and average out. But if the orbital periods of two planets form a simple integer ratio (like 2:1, where an inner planet orbits exactly twice for every one orbit of an outer planet), they are in a "mean-motion resonance." In this state, their gravitational tugs happen at the same points in their orbits, over and over again. This regular, repeating interaction allows them to systematically exchange energy and momentum, profoundly shaping the architecture of their solar system. Resonances can lock planets into incredibly stable configurations that last for billions of years (like Neptune and Pluto), or they can drive "planetary migration," causing planets to move inwards or outwards from their star. This simulation lets you set up a two-planet system in a resonance and see this gravitational dance unfold, revealing the hidden forces that build solar systems.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The main window shows a top-down view of a star (yellow, center) and two orbiting planets (blue and pink). Their recent paths are traced out.</li>
+                        <li><strong>Setting up a Resonance:</strong> On the right, use the **"Resonance"** dropdown to select a common orbital resonance, like "2:1" or "3:2". This will automatically place the planets in the correct orbits. Press **"Reset & Run"** to start the simulation.</li>
+                        <li><strong>Watching the Dance:</strong> Observe the planets' motion. In a 2:1 resonance, you'll see the inner planet completes two full orbits for every one orbit of the outer planet. They will repeatedly align in a specific configuration.</li>
+                        <li><strong>The Charts:</strong>
+                            <ul>
+                                <li><strong>Resonant Angle Chart:</strong> This is the key diagnostic. If the planets are truly locked in resonance, this angle will oscillate back and forth around a fixed value. This is called "libration." If they are not in resonance, the line will just go up and up (or down and down).</li>
+                                <li><strong>Orbital Radii Chart:</strong> This plots the distance of each planet from the star over time. Initially, this should be stable.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Planetary Migration:</strong> Now, turn up the **"Disk Drag"** slider. This simulates the effect of the planets being embedded in a gas disk, which causes them to lose energy. In many resonant configurations, this will cause the planets to move, or "migrate," together, maintaining their resonant lock as they travel. Watch the Orbital Radii chart to see them move inwards or outwards in perfect sync.</li>
+                    </ol>
+
+                    <h2>Core Theory of Orbital Resonances</h2>
+                    <h4>Mean-Motion Resonance (MMR)</h4>
+                    <p>A mean-motion resonance occurs when the orbital periods, P₁ and P₂, of two bodies orbiting a central object satisfy the relation `P₂/P₁ ≈ j / (j-k)`, where `j` and `k` are small integers. This is equivalent to their mean motions (`n = 2π/P`) having a simple ratio. For example, a 2:1 resonance means `P₂/P₁ = 2`, so the inner planet completes two orbits in the time the outer planet completes one. A 3:2 resonance (like Neptune and Pluto) means the inner body completes three orbits for every two of the outer body.</p>
+                    <p>When in resonance, the gravitational perturbations between the two bodies are not random but periodic. The conjunctions (points of closest approach) occur at or near the same locations in their orbits. This allows for a small but sustained transfer of angular momentum between the bodies, which can stabilize or destabilize the system over long timescales.</p>
+
+                    <h4>The Resonant Angle</h4>
+                    <p>The state of a resonance is characterized by one or more **resonant angles**, `φ`. For a first-order resonance like `j : j-1`, the simplest resonant angle is:
+                    <p><strong><code>φ = jλ₂ - (j-1)λ₁ - ϖ₁</code></strong></p>
+                    <p>where `λ₁` and `λ₂` are the mean longitudes (the average orbital angle) of the inner and outer planets, and `ϖ₁` is the longitude of periapsis (the angle of the point of closest approach) of one of the planets.
+                    <ul>
+                        <li>If the planets are deeply in resonance, `φ` does not circulate from 0 to 360 degrees, but rather **librates** (oscillates) around a stable equilibrium point (e.g., 180 degrees). This indicates a stable lock. The planets' eccentricities and semi-major axes adjust to maintain this configuration.</li>
+                        <li>If the planets are not in resonance, their periods are not perfectly commensurate, and `φ` will continuously circulate.</li>
+                    </ul>
+                    The "Resonant Angle Chart" in the simulation plots this value, providing a clear signature of a resonant lock.</p>
+
+                    <h4>Resonant Capture and Planetary Migration</h4>
+                    <p>Resonances are thought to be a key driver of **planetary migration**. In the early solar system, planets were embedded in a protoplanetary disk of gas and dust. The gravitational interaction between a planet and this disk leads to torques that cause the planet's orbit to shrink or expand. If two migrating planets get close enough that their period ratio approaches a simple integer value, they can become "captured" into a mean-motion resonance.</p>
+                    <p>Once captured, they are strongly coupled. They will then tend to migrate together, maintaining their resonant configuration. This process of "convergent migration" followed by resonant locking is thought to be a primary mechanism for shaping the architecture of planetary systems, explaining the orbits of Jupiter's moons, the Kuiper belt objects, and many of the tightly-packed systems of exoplanets that have been discovered.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="reset-button">Reset & Run</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Resonance Setup</h3>
+                    <div class="control">
+                        <label>Resonance</label>
+                        <select id="resonance-select">
+                            <option value="2:1">2:1 (e.g., Jupiter's Moons)</option>
+                            <option value="3:2">3:2 (e.g., Neptune-Pluto)</option>
+                            <option value="4:3">4:3</option>
+                        </select>
+                    </div>
+                    <div class="control">
+                        <label>Planet 1 Mass (M<sub>Jup</sub>) <span class="value-display" id="m1-value">1.0</span></label>
+                        <input type="range" id="m1-slider" min="0.1" max="5.0" step="0.1" value="1.0">
+                    </div>
+                    <div class="control">
+                        <label>Planet 2 Mass (M<sub>Jup</sub>) <span class="value-display" id="m2-value">0.5</span></label>
+                        <input type="range" id="m2-slider" min="0.1" max="5.0" step="0.1" value="0.5">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Migration</h3>
+                    <div class="control">
+                        <label>Disk Drag <span class="value-display" id="drag-value">0.0</span></label>
+                        <input type="range" id="drag-slider" min="0" max="0.01" step="0.0001" value="0">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            resChartCanvas: document.getElementById('resonance-chart'),
+            migChartCanvas: document.getElementById('migration-chart'),
+            resetBtn: document.getElementById('reset-button'),
+            resSelect: document.getElementById('resonance-select'),
+            m1Slider: document.getElementById('m1-slider'), m1Value: document.getElementById('m1-value'),
+            m2Slider: document.getElementById('m2-slider'), m2Value: document.getElementById('m2-value'),
+            dragSlider: document.getElementById('drag-slider'), dragValue: document.getElementById('drag-value'),
+        };
+
+        const state = {
+            particles: [], time: 0,
+            history: { time: [], res_angle: [], a1: [], a2: [] },
+            config: {}
+        };
+        const ctx = dom.canvas.getContext('2d');
+        let resChart, migChart;
+
+        function updateConfig() {
+            const [j, k] = dom.resSelect.value.split(':').map(Number);
+            state.config.resonance = [j,k];
+            state.config.m1 = parseFloat(dom.m1Slider.value) * 0.001; // Jupiter mass in solar masses
+            state.config.m2 = parseFloat(dom.m2Slider.value) * 0.001;
+            state.config.drag = parseFloat(dom.dragSlider.value);
+
+            dom.m1Value.textContent = dom.m1Slider.value;
+            dom.m2Value.textContent = dom.m2Slider.value;
+            dom.dragValue.textContent = state.config.drag.toExponential(1);
+        }
+
+        function reset() {
+            updateConfig();
+            state.time = 0;
+            state.history = { time: [], res_angle: [], a1: [], a2: [] };
+            if(resChart) resChart.reset();
+            if(migChart) migChart.reset();
+
+            const [j,k] = state.config.resonance;
+            const a1 = 1.0;
+            const a2 = a1 * Math.pow(j/k, 2/3);
+
+            state.particles = [
+                { m: 1.0, x: 0, y: 0, vx: 0, vy: 0 }, // Star
+                { m: state.config.m1, x: a1, y: 0, vx: 0, vy: Math.sqrt(1.0/a1), trace:[] },
+                { m: state.config.m2, x: a2, y: 0, vx: 0, vy: Math.sqrt(1.0/a2), trace:[] },
+            ];
+        }
+
+        function update() {
+            const dt = 0.01;
+            const G = 1.0;
+
+            for(let step=0; step<10; step++) {
+                state.time += dt;
+                // N-body gravity calculation
+                for(let i=1; i<state.particles.length; i++) {
+                    let fx=0, fy=0;
+                    for(let j=0; j<state.particles.length; j++) {
+                        if(i===j) continue;
+                        const p1 = state.particles[i];
+                        const p2 = state.particles[j];
+                        const dx = p2.x - p1.x;
+                        const dy = p2.y - p1.y;
+                        const distSq = dx*dx + dy*dy;
+                        const force = G * p1.m * p2.m / (distSq * Math.sqrt(distSq) + 1e-6);
+                        fx += force * dx;
+                        fy += force * dy;
+                    }
+                    const p = state.particles[i];
+                    // Add drag force
+                    fx -= state.config.drag * p.vx;
+                    fy -= state.config.drag * p.vy;
+
+                    p.vx += fx / p.m * dt;
+                    p.vy += fy / p.m * dt;
+                }
+
+                for(let i=1; i<state.particles.length; i++) {
+                    const p = state.particles[i];
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    if(p.trace.length > 200) p.trace.shift();
+                    p.trace.push({x:p.x, y:p.y});
+                }
+            }
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(0,0,w,h);
+            ctx.save();
+            ctx.translate(w/2, h/2);
+            const scale = w / 2 / (state.particles[2].x * 1.2);
+
+            // Star
+            ctx.fillStyle = '#ffff00'; ctx.beginPath(); ctx.arc(0,0,10,0,2*Math.PI); ctx.fill();
+
+            // Planets and traces
+            ['#87ceeb', '#da70d6'].forEach((color, i) => {
+                const p = state.particles[i+1];
+                ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath();
+                p.trace.forEach((pt,j) => {
+                    if(j===0) ctx.moveTo(pt.x*scale, pt.y*scale); else ctx.lineTo(pt.x*scale, pt.y*scale);
+                });
+                ctx.stroke();
+                ctx.fillStyle = color; ctx.beginPath(); ctx.arc(p.x*scale, p.y*scale, 5, 0, 2*Math.PI); ctx.fill();
+            });
+            ctx.restore();
+        }
+
+        function updateCharts() {
+            const p1 = state.particles[1], p2 = state.particles[2];
+            const [j,k] = state.config.resonance;
+            const lambda1 = Math.atan2(p1.y, p1.x);
+            const lambda2 = Math.atan2(p2.y, p2.x);
+            // Simplified resonant angle
+            const res_angle = (j*lambda2 - k*lambda1) % (2*Math.PI);
+
+            const r1 = Math.sqrt(p1.x**2+p1.y**2);
+            const r2 = Math.sqrt(p2.x**2+p2.y**2);
+
+            state.history.time.push(state.time);
+            state.history.res_angle.push(res_angle);
+            state.history.a1.push(r1);
+            state.history.a2.push(r2);
+
+            if(state.history.time.length > 500) {
+                state.history.time.shift();
+                state.history.res_angle.shift();
+                state.history.a1.shift();
+                state.history.a2.shift();
+            }
+            if(resChart) resChart.update(state.history.time, state.history.res_angle);
+            if(migChart) migChart.update(state.history.time, [state.history.a1, state.history.a2]);
+        }
+
+        function animationLoop() {
+            update();
+            draw();
+            if(state.time % 1 < 0.1) updateCharts();
+            requestAnimationFrame(animationLoop);
+        }
+
+        function createChart(canvas, label, colors) {
+            const chartCtx = canvas.getContext('2d');
+            let x_data = [], y_data = [];
+            function draw() {
+                const w = canvas.width; const h = canvas.height;
+                chartCtx.clearRect(0,0,w,h); chartCtx.fillStyle = '#111'; chartCtx.fillRect(0,0,w,h);
+                if (!x_data || x_data.length < 2) return;
+
+                const is_multi = Array.isArray(y_data[0]);
+                const max_y = Math.max(...(is_multi ? y_data.flat() : y_data), 1);
+                const min_y = Math.min(...(is_multi ? y_data.flat() : y_data), 0);
+
+                const datasets = is_multi ? y_data : [y_data];
+                datasets.forEach((data, i) => {
+                    chartCtx.strokeStyle = colors[i]; chartCtx.lineWidth = 2; chartCtx.beginPath();
+                    for(let j=0; j<data.length; j++) {
+                        const x = (x_data[j] - x_data[0]) / (x_data[x_data.length-1] - x_data[0] || 1) * w;
+                        const y = h - (data[j] - min_y) / (max_y - min_y || 1) * (h-10);
+                        if (j === 0) chartCtx.moveTo(x,y); else chartCtx.lineTo(x,y);
+                    }
+                    chartCtx.stroke();
+                });
+            }
+            return {
+                update: (newX, newY) => { x_data = newX; y_data = newY; draw(); },
+                reset: () => { x_data = []; y_data = []; draw(); }
+            }
+        }
+
+        dom.resetBtn.addEventListener('click', reset);
+        [dom.resSelect, dom.m1Slider, dom.m2Slider, dom.dragSlider].forEach(s => s.addEventListener('input', reset));
+
+        resChart = createChart(dom.resChartCanvas, 'Resonant Angle', [dom.secondaryColor]);
+        migChart = createChart(dom.migChartCanvas, 'Orbital Radii', ['#87ceeb', '#da70d6']);
+        reset();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>

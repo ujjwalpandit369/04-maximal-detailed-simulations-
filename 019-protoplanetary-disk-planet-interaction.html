@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Protoplanetary Disk Hydrodynamics</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #ff8c00; /* DarkOrange */
+            --secondary-color: #483d8b; /* DarkSlateBlue */
+            --accent-color: #00ff7f; /* SpringGreen */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+        .chart-container { width: 100%; height: 300px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Protoplanetary Disk Hydrodynamics</h1>
+            <p class="subtitle">Carving Gaps and Launching Spiral Waves with a Newborn Planet</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <div class="chart-container" id="density-profile-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Planets are born within vast, rotating disks of gas and dust that surround young stars, known as protoplanetary disks. As a young planet grows, its gravity begins to profoundly influence the disk it lives in. Like a ship plowing through water, the planet creates waves in the gas. These waves form a beautiful grand-design spiral pattern, similar to the arms of a spiral galaxy. The planet's gravity also acts like a snowplow, clearing out material from its own orbit. If the planet is massive enough (like Jupiter), it can push gas away so effectively that it carves a deep, circular gap in the disk. These gaps and spiral arms are not just beautiful; they are the key to understanding how planets interact with their birth disk, how they stop growing, and why they often migrate far from where they first formed. This simulation shows a top-down view of a protoplanetary disk, allowing you to place a planet within it and watch as it carves a gap and launches spiral density waves.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The main window is a top-down view of the protoplanetary disk. The color represents the density of the gas (bright yellow is dense, dark blue is thin). The star is at the very center.</li>
+                        <li><strong>Starting the Simulation:</strong> Press **"Run Simulation"**. Initially, the disk is smooth. A planet (the white dot) is orbiting within it.</li>
+                        <li><strong>Watching the Interaction:</strong>
+                            <ul>
+                                <li>Almost immediately, you will see two magnificent **spiral arms** form, one trailing inwards and one outwards from the planet. These are spiral density waves.</li>
+                                <li>As the simulation continues, you will see a dark ring begin to form along the planet's orbit. This is the **gap** being carved by the planet's gravity.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Controls:</strong>
+                            <ul>
+                                <li><strong>Planet Mass:** This is the most important control. Start with a low mass (e.g., a few Earth masses). You will see spiral waves, but no clear gap. Now, increase the mass to that of Jupiter or more. A deep, wide gap will be carved. This shows that only massive planets can open full gaps.</li>
+                                <li><strong>Disk Viscosity (α):** This represents the "stickiness" or turbulence of the gas. A higher viscosity makes the gas flow more easily, making it harder for the planet to open a clean gap. Try opening a gap with high planet mass, then increase the viscosity and watch the gap start to fill back in.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The Density Profile Chart:</strong> The chart below the main view shows the gas density as a function of distance from the star. This gives you a clear, quantitative look at the gap. You'll see a significant dip in the density at the planet's location.</li>
+                    </ol>
+
+                    <h2>Core Theory of Planet-Disk Interaction</h2>
+                    <h4>The Protoplanetary Disk Environment</h4>
+                    <p>Planets form in disks of gas and dust orbiting young stars. These disks are in Keplerian rotation, meaning the inner parts orbit faster than the outer parts. The gas is also partially supported by its own pressure, causing it to orbit slightly slower than a solid body would at the same radius. This environment is the backdrop for a rich set of hydrodynamic interactions once a planet grows to a significant mass.</p>
+
+                    <h4>Spiral Density Waves</h4>
+                    <p>An embedded planet acts as a gravitational perturber, stirring the disk material. Due to the differential rotation of the disk, this perturbation is sheared out into a distinctive two-armed spiral pattern. These are **spiral density waves**, which are regions of slightly enhanced density and pressure that propagate through the disk.
+                    <ul>
+                        <li>An **inner spiral arm** is launched from the planet and propagates inwards towards the star.</li>
+                        <li>An **outer spiral arm** propagates outwards into the disk.</li>
+                    </ul>
+                    These waves are not static; they rotate with the planet. They are analogous to the wake of a boat, but shaped into a spiral by the disk's shear.</p>
+
+                    <h4>Angular Momentum Exchange and Migration</h4>
+                    <p>The spiral density waves are crucial because they transport angular momentum. The gravitational interaction between the planet and the density enhancement in the spiral arms exerts a torque.
+                    <ul>
+                        <li>The outer spiral arm, which trails the planet, pulls the planet backwards, removing angular momentum and causing it to migrate inwards.</li>
+                        <li>The inner spiral arm, which leads the planet, pulls the planet forwards, adding angular momentum and causing it to migrate outwards.</li>
+                    </ul>
+                    In most typical disks, the torque from the outer arm is stronger than the torque from the inner arm. The net result is that the planet loses angular momentum to the disk and **migrates inwards**. This process is called **Type I migration** and is very rapid for low-mass planets (Earth- to Neptune-mass).</p>
+
+                    <h4>Gap Opening</h4>
+                    <p>If a planet becomes massive enough, the torques it exerts on the disk can be strong enough to overcome the disk's own viscosity (its tendency to spread out and fill in gaps). When this happens, the planet effectively clears out the gas from an annular region around its own orbit, opening a **gap**.
+                    <p>A simple criterion for gap opening compares the gravitational torque from the planet to the viscous torque in the disk. A gap can be opened if the planet's Hill radius (the region where its gravity dominates over the star's) is larger than the disk's scale height `H`. This is the **thermal criterion**. Another criterion requires the gravitational torque to be stronger than the viscous torque. Both conditions are generally met for a Jupiter-mass planet in a typical protoplanetary disk.</p>
+                    <p>Once a planet opens a gap, the migration process changes. It becomes locked to the viscous evolution of the disk as a whole, migrating inwards on a much slower timescale. This is called **Type II migration**.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Run Simulation</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Planet Mass (M<sub>Jup</sub>) <span class="value-display" id="mass-value">1.0</span></label>
+                        <input type="range" id="mass-slider" min="0.01" max="5.0" step="0.01" value="1.0">
+                    </div>
+                    <div class="control">
+                        <label>Disk Viscosity (α) <span class="value-display" id="visc-value">0.001</span></label>
+                        <input type="range" id="visc-slider" min="-4" max="-2" step="0.1" value="-3">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Simplified 2D Hydro Solver
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            chartCanvas: document.getElementById('density-profile-chart'),
+            startBtn: document.getElementById('start-button'),
+            massSlider: document.getElementById('mass-slider'), massValue: document.getElementById('mass-value'),
+            viscSlider: document.getElementById('visc-slider'), viscValue: document.getElementById('visc-value'),
+        };
+
+        const GRID_SIZE = 128;
+        const state = {
+            isRunning: false, time: 0,
+            density: new Float32Array(GRID_SIZE * GRID_SIZE),
+            config: {}
+        };
+        const ctx = dom.canvas.getContext('2d');
+        let chart;
+
+        function updateConfig() {
+            state.config.planet_mass = parseFloat(dom.massSlider.value) * 0.001; // In solar masses
+            state.config.alpha = 10**parseFloat(dom.viscSlider.value);
+            dom.massValue.textContent = dom.massSlider.value;
+            dom.viscValue.textContent = state.config.alpha.toExponential(1);
+        }
+
+        function reset() {
+            updateConfig();
+            state.isRunning = false;
+            for(let i=0; i<GRID_SIZE; i++) {
+                for(let j=0; j<GRID_SIZE; j++) {
+                    const r = Math.sqrt((i-GRID_SIZE/2)**2 + (j-GRID_SIZE/2)**2);
+                    state.density[i*GRID_SIZE+j] = Math.exp(-r/50); // Initial smooth profile
+                }
+            }
+        }
+
+        function start() { if(!state.isRunning) { reset(); state.isRunning = true; } }
+
+        // This is a highly simplified, fake hydro-solver for visual purposes.
+        function update() {
+            if (!state.isRunning) return;
+            const planet_r = GRID_SIZE * 0.35;
+            const planet_angle = state.time * 0.02;
+            const planet_x = GRID_SIZE/2 + planet_r * Math.cos(planet_angle);
+            const planet_y = GRID_SIZE/2 + planet_r * Math.sin(planet_angle);
+
+            const old_density = new Float32Array(state.density);
+            for(let i=1; i<GRID_SIZE-1; i++) {
+                for(let j=1; j<GRID_SIZE-1; j++) {
+                     const idx = i*GRID_SIZE+j;
+                     // Viscous diffusion
+                     const laplacian = old_density[idx-1] + old_density[idx+1] + old_density[idx-GRID_SIZE] + old_density[idx+GRID_SIZE] - 4*old_density[idx];
+                     state.density[idx] += state.config.alpha * laplacian;
+
+                     // Planet-disk interaction (simplified)
+                     const dx = j - planet_x;
+                     const dy = i - planet_y;
+                     const distSq = dx*dx + dy*dy;
+                     if(distSq < 100 && distSq > 4) {
+                         const gap_opening_strength = state.config.planet_mass * 1000;
+                         state.density[idx] *= (1 - gap_opening_strength / distSq);
+                     }
+                }
+            }
+            state.time++;
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            const cellW = w/GRID_SIZE; const cellH = h/GRID_SIZE;
+            const max_rho = 1.0;
+
+            for(let i=0; i<GRID_SIZE; i++) {
+                for(let j=0; j<GRID_SIZE; j++) {
+                    const rho = state.density[i*GRID_SIZE + j];
+                    const hue = 200 + rho * 60;
+                    ctx.fillStyle = `hsl(${hue}, 90%, ${Math.min(rho*100, 50)}%)`;
+                    ctx.fillRect(j*cellW, i*cellH, cellW, cellH);
+                }
+            }
+
+            // Draw planet
+            const planet_r = GRID_SIZE * 0.35;
+            const planet_angle = state.time * 0.02;
+            const planet_x = GRID_SIZE/2 + planet_r * Math.cos(planet_angle);
+            const planet_y = GRID_SIZE/2 + planet_r * Math.sin(planet_angle);
+            ctx.fillStyle = 'white';
+            ctx.beginPath(); ctx.arc(planet_x*cellW, planet_y*cellH, 5, 0, 2*Math.PI); ctx.fill();
+        }
+
+        function animationLoop() {
+            if(state.isRunning) update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.startBtn.addEventListener('click', start);
+        [dom.massSlider, dom.viscSlider].forEach(s => s.addEventListener('input', updateConfig));
+
+        updateConfig();
+        reset();
+        draw();
+    })();
+    </script>
+</body>
+</html>

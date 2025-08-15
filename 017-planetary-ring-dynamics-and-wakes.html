@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Planetary Ring Dynamics & Self-Gravity Wakes</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #c7a3d7; /* Light Lavender */
+            --secondary-color: #a3d7c7; /* Light Teal */
+            --accent-color: #d7c7a3; /* Light Gold */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Planetary Ring Dynamics & Self-Gravity Wakes</h1>
+            <p class="subtitle">The Ephemeral Dance of Gravity and Shear in Saturn's Rings</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Saturn's rings look solid from a distance, but they are actually composed of trillions of icy particles, from dust specks to house-sized boulders, all orbiting the planet together. This simulation shows a small, zoomed-in patch of such a ring. In this patch, two main forces are at play: the planet's gravity causes a "shear" (inner particles orbit faster than outer ones, trying to pull everything apart), while the particles' own weak gravity tries to pull them together. This simulation shows the beautiful outcome of this cosmic tug-of-war. When the particles' gravity is strong enough, they temporarily clump together into elongated, trailing structures called "self-gravity wakes." These structures are constantly being formed by gravity and then torn apart by the shear, existing in a state of perpetual creation and destruction. This process is fundamental to understanding the structure and evolution of not just planetary rings, but also spiral galaxies and planet-forming disks.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The main window shows a top-down view of a small, co-rotating patch of the ring. The particles are the white dots. The "shear flow" means that particles at the bottom of the box are moving left faster than particles at the top.</li>
+                        <li><strong>The Key Control:</strong> The most important slider is **"Gravitational Strength (1/Q)"**. This controls how strongly the particles attract each other. 'Q' is a scientific parameter; a low Q means strong gravity.
+                            <ul>
+                                <li>Start with a low "Gravitational Strength" (high Q). The particles will mostly move randomly, like a gas, and won't form any lasting structures. The shear flow will dominate.</li>
+                                <li>Now, gradually increase the "Gravitational Strength" (lower the Q value). When you cross a certain threshold (around Q=2), you will see the particles start to clump together into small, elongated, tilted structures. These are the **self-gravity wakes**.</li>
+                                <li>At high gravitational strength, these wakes will become very dense and prominent, forming a distinct, zebra-stripe-like pattern.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Other Controls:</strong> You can change the **Number of Particles** (more particles make clearer structures but are slower to simulate) and the **"Bounciness"** of collisions (less bouncy collisions help structures form more easily).</li>
+                        <li><strong>What to Watch:</strong> The wakes are not static. They are constantly forming, shearing out, and re-forming. Notice that they are all tilted in the same direction. This is because the shear flow is constantly stretching them as gravity tries to pull them together. This "pitch angle" is a key diagnostic for ring scientists.</li>
+                    </ol>
+
+                    <h2>Core Theory of Ring Dynamics</h2>
+                    <h4>The Shearing Sheet Model</h4>
+                    <p>To study the local dynamics of a disk (like a planetary ring or a galaxy), it is convenient to use a "shearing sheet" model. This involves analyzing the system in a small, co-rotating reference frame that moves with the disk's orbital velocity `Ω` at a specific radius `R₀`. In this frame, the global orbital motion is simplified to a linear background shear flow. The equations of motion for a particle at position `(x,y)` relative to the frame's origin (where `x` is the radial direction and `y` is the orbital direction) are the **Hill equations**:</p>
+                    <p><code>d²x/dt² - 2Ω(dy/dt) = 3Ω²x + F<sub>gx</sub></code></p>
+                    <p><code>d²y/dt² + 2Ω(dx/dt) = F<sub>gy</sub></code></p>
+                    <p>Here, `2Ω(dy/dt)` and `2Ω(dx/dt)` are the Coriolis forces, `3Ω²x` is the tidal force (the difference in the planet's gravity across the box), and `F<sub>g</sub>` is the force from the self-gravity of the other particles. This simulation solves these equations for hundreds of particles, including a model for inelastic collisions.</p>
+
+                    <h4>Toomre's Q Parameter: The Condition for Stability</h4>
+                    <p>The formation of structures in a disk is governed by a competition between stabilizing and destabilizing forces.
+                    <ul>
+                        <li>**Destabilizing Force:** Self-gravity, which tries to clump matter together.</li>
+                        <li>**Stabilizing Forces:**
+                            <ul>
+                                <li>**Shear/Tidal Forces:** The differential rotation tries to tear clumps apart. The strength of this is characterized by the orbital frequency, `Ω`.</li>
+                                <li>**Pressure/Velocity Dispersion:** The random motions of the particles act like a thermal pressure, resisting collapse. This is characterized by the velocity dispersion, `σ`.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    The balance between these forces is encapsulated in the **Toomre Q parameter**:
+                    <p><strong><code>Q = σΩ / (πGΣ)</code></strong></p>
+                    <p>Where `Σ` is the surface mass density of the disk. `Q` is a dimensionless number.
+                    <ul>
+                        <li>If **Q > 2**, the disk is stable. The pressure and shear are too strong for gravity to overcome, and the particles behave like a gas.</li>
+                        <li>If **Q < 2**, the disk is locally gravitationally unstable. Self-gravity is strong enough to overcome the stabilizing forces, leading to the formation of transient, non-axisymmetric structures.</li>
+                    </ul>
+                    In this simulation, the "Gravitational Strength" slider is inversely proportional to `Q`. As you increase the slider, you are decreasing `Q`, making the system more unstable and allowing wakes to form.</p>
+
+                    <h4>Self-Gravity Wakes</h4>
+                    <p>When the disk is in the unstable regime (Q < 2), the particles clump into "self-gravity wakes." These are not permanent objects but are constantly forming and shearing away. They are elongated and tilted with respect to the orbital direction, forming a trailing spiral pattern. The tilt, or **pitch angle**, is a result of the shear acting on the gravitational collapse. The wakes are sites of enhanced particle density and frequent collisions. These collisions dissipate orbital energy, converting it into heat, and provide an effective "viscosity" that causes the ring material to spread out over long timescales. This "viscous spreading" driven by self-gravity wakes is a key process in the evolution of dense planetary rings and protoplanetary disks.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="reset-button">Reset Simulation</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Gravitational Strength (1/Q) <span class="value-display" id="gravity-value">0.5</span></label>
+                        <input type="range" id="gravity-slider" min="0.1" max="1.0" step="0.05" value="0.5">
+                    </div>
+                    <div class="control">
+                        <label>Number of Particles <span class="value-display" id="n-particles-value">200</span></label>
+                        <input type="range" id="n-particles-slider" min="50" max="500" step="10" value="200">
+                    </div>
+                    <div class="control">
+                        <label>Collision Bounciness <span class="value-display" id="restitution-value">0.5</span></label>
+                        <input type="range" id="restitution-slider" min="0" max="1" step="0.1" value="0.5">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            resetBtn: document.getElementById('reset-button'),
+            gravitySlider: document.getElementById('gravity-slider'), gravityValue: document.getElementById('gravity-value'),
+            nParticlesSlider: document.getElementById('n-particles-slider'), nParticlesValue: document.getElementById('n-particles-value'),
+            restitutionSlider: document.getElementById('restitution-slider'), restitutionValue: document.getElementById('restitution-value'),
+        };
+
+        const state = {
+            particles: [],
+            config: { gravity: 0.5, n_particles: 200, restitution: 0.5 }
+        };
+        const ctx = dom.canvas.getContext('2d');
+        const BOX_SIZE = 500;
+        const OMEGA = 0.01; // Orbital frequency
+        const SHEAR = -1.5 * OMEGA;
+
+        function updateConfig() {
+            state.config.gravity = parseFloat(dom.gravitySlider.value) * 50; // Scaled for effect
+            state.config.n_particles = parseInt(dom.nParticlesSlider.value);
+            state.config.restitution = parseFloat(dom.restitutionSlider.value);
+            dom.gravityValue.textContent = (state.config.gravity/50).toFixed(2);
+            dom.nParticlesValue.textContent = state.config.n_particles;
+            dom.restitutionValue.textContent = state.config.restitution.toFixed(1);
+        }
+
+        function reset() {
+            updateConfig();
+            state.particles = [];
+            for(let i=0; i<state.config.n_particles; i++) {
+                state.particles.push({
+                    x: (Math.random() - 0.5) * BOX_SIZE,
+                    y: (Math.random() - 0.5) * BOX_SIZE,
+                    vx: (Math.random() - 0.5) * 0.1,
+                    vy: (Math.random() - 0.5) * 0.1,
+                    radius: 2,
+                });
+            }
+        }
+
+        function update() {
+            const dt = 1.0;
+
+            // Calculate forces
+            for(let i=0; i<state.particles.length; i++) {
+                const p = state.particles[i];
+                let fx = 0, fy = 0;
+                for(let j=0; j<state.particles.length; j++) {
+                    if (i===j) continue;
+                    const q = state.particles[j];
+                    const dx = q.x - p.x;
+                    const dy = q.y - p.y;
+                    const distSq = dx*dx + dy*dy;
+                    if (distSq > 1) {
+                        const force = state.config.gravity / distSq;
+                        fx += force * dx / Math.sqrt(distSq);
+                        fy += force * dy / Math.sqrt(distSq);
+                    }
+                }
+                // Hill's equations
+                p.vx += (2 * OMEGA * p.vy + 3 * OMEGA*OMEGA * p.x + fx) * dt;
+                p.vy += (-2 * OMEGA * p.vx + fy) * dt;
+            }
+
+            // Update positions & handle collisions
+            for(let i=0; i<state.particles.length; i++) {
+                const p = state.particles[i];
+                p.x += p.vx * dt;
+                p.y += (p.vy + SHEAR * p.x) * dt; // Add shear to motion
+
+                // Collisions
+                for(let j=i+1; j<state.particles.length; j++) {
+                    const q = state.particles[j];
+                    const dx = q.x-p.x, dy = q.y-p.y;
+                    const dist = Math.sqrt(dx*dx+dy*dy);
+                    if(dist < p.radius + q.radius) {
+                         // Simple inelastic collision
+                        const new_vx = (p.vx + q.vx)/2;
+                        const new_vy = (p.vy + q.vy)/2;
+                        p.vx = p.vx * (1-state.config.restitution)/2 + new_vx * (1+state.config.restitution)/2;
+                        q.vx = q.vx * (1-state.config.restitution)/2 + new_vx * (1+state.config.restitution)/2;
+                        p.vy = p.vy * (1-state.config.restitution)/2 + new_vy * (1+state.config.restitution)/2;
+                        q.vy = q.vy * (1-state.config.restitution)/2 + new_vy * (1+state.config.restitution)/2;
+                    }
+                }
+            }
+
+            // Shearing periodic boundary conditions
+            for(const p of state.particles) {
+                if (p.x > BOX_SIZE/2) { p.x -= BOX_SIZE; }
+                if (p.x < -BOX_SIZE/2) { p.x += BOX_SIZE; }
+                if (p.y > BOX_SIZE/2) { p.y -= BOX_SIZE; p.x += SHEAR * BOX_SIZE * dt; }
+                if (p.y < -BOX_SIZE/2) { p.y += BOX_SIZE; p.x -= SHEAR * BOX_SIZE * dt; }
+            }
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+            ctx.save();
+            ctx.translate(w/2, h/2);
+
+            ctx.fillStyle = '#fff';
+            const scale = w / BOX_SIZE;
+            state.particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x * scale, p.y * scale, p.radius, 0, 2*Math.PI);
+                ctx.fill();
+            });
+
+            ctx.restore();
+        }
+
+        function animationLoop() {
+            update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.resetBtn.addEventListener('click', () => { reset(); });
+        [dom.gravitySlider, dom.nParticlesSlider, dom.restitutionSlider].forEach(s => s.addEventListener('input', () => { updateConfig(); reset(); }));
+
+        reset();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>
