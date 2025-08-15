@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation: Solving the Hierarchy Problem with Warped Dimensions</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #009688;
+            --secondary-color: #ff5722;
+            --accent-color: #8bc34a;
+            --border-color: #444;
+            --panel-bg-color: #2a2a2a;
+            --control-bg-color: #333;
+            --font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-family); line-height: 1.6; margin: 0; padding: 0; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); }
+        h1 { color: var(--header-color); font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-bottom: 15px; }
+        main { display: grid; grid-template-columns: 1fr 400px; gap: 20px; margin-top: 20px; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { background-color: var(--panel-bg-color); padding: 15px; border-radius: 8px; height: fit-content; }
+        .panel { background-color: var(--panel-bg-color); padding: 20px; border-radius: 8px; }
+        .panel h2, .controls-column h2 { color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+        canvas { width: 100%; height: auto; background-color: #000; border-radius: 8px; aspect-ratio: 16/9; }
+        .control-group { margin-bottom: 20px; }
+        .control-group h3 { color: var(--accent-color); font-size: 1.1em; margin-bottom: 10px; }
+        .control { margin-bottom: 15px; }
+        .control label { display: block; font-size: 0.9em; margin-bottom: 5px; }
+        .control input { width: 100%; }
+        .control-readout { font-size: 0.9em; color: #ccc; }
+        .exposition { grid-column: 1 / -1; }
+        button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Solving the Hierarchy Problem</h1>
+            <p class="subtitle">A schematic showing how warped geometry creates large mass scales from small parameters.</p>
+        </header>
+
+        <main>
+            <div class="simulation-column">
+                <div class="panel">
+                    <canvas id="main-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="controls-column">
+                <h2>Controls</h2>
+                <div class="control-group">
+                    <h3>Hierarchy Control</h3>
+                    <div class="control">
+                        <label for="kl-factor">Warping Parameter (kL)</label>
+                        <input type="range" id="kl-factor" min="1" max="50" step="1" value="35">
+                        <span class="control-readout" id="kl-factor-readout">kL = 35</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Metrics</h3>
+                    <div class="control-readout">Fundamental Mass (M_pl): <span id="metric-planck"></span></div>
+                    <div class="control-readout">Warp Factor (e<sup>-kL</sup>): <span id="metric-warp"></span></div>
+                    <div class="control-readout">Observed Mass (m_obs): <span id="metric-observed"></span></div>
+                </div>
+            </div>
+
+            <div class="exposition container">
+                 <!-- Exposition -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+        // --- STATE & CONFIG ---
+        const M_PLANCK = 1.22e19; // Planck Mass in GeV
+        let state = {
+            kL: 35,
+        };
+
+        // --- DOM ELEMENTS ---
+        let canvas, ctx;
+        let controls = {};
+        let metrics = {};
+
+        // --- SIMULATION LOGIC ---
+        function calculateWarpedMass() {
+            const warpFactor = Math.exp(-state.kL);
+            const observedMass = M_PLANCK * warpFactor;
+            return { warpFactor, observedMass };
+        }
+
+        // --- RENDERING ---
+        function draw() {
+            requestAnimationFrame(draw);
+
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+
+            const { warpFactor, observedMass } = calculateWarpedMass();
+
+            // --- Draw Branes ---
+            const planckBraneY = h * 0.2;
+            const tevBraneY = h * 0.8;
+
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--secondary-color');
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, planckBraneY);
+            ctx.lineTo(w, planckBraneY);
+            ctx.stroke();
+
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent-color');
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, tevBraneY);
+            ctx.lineTo(w, tevBraneY);
+            ctx.stroke();
+
+            // --- Draw Labels ---
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Arial';
+            ctx.fillText('Planck Brane (Fundamental Scale)', 20, planckBraneY - 15);
+            ctx.fillText('TeV Brane (Our Universe)', 20, tevBraneY - 15);
+            ctx.fillText('5D "Bulk" Spacetime', 20, h/2);
+
+            // --- Draw Masses ---
+            const fundamentalRadius = 50;
+            const fundamentalX = w / 2;
+
+            // Planck Brane Mass
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(fundamentalX, planckBraneY, fundamentalRadius, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // TeV Brane Mass
+            // The radius is scaled by the warped mass relative to the Planck mass
+            const observedRadius = fundamentalRadius * (observedMass / M_PLANCK);
+            // Opacity also scales
+            const observedAlpha = Math.max(0.1, warpFactor * 1e15); // Scale for visibility
+
+            ctx.fillStyle = `rgba(139, 195, 74, ${observedAlpha})`;
+            ctx.beginPath();
+            ctx.arc(fundamentalX, tevBraneY, Math.max(1, observedRadius), 0, 2 * Math.PI);
+            ctx.fill();
+
+            updateMetricsUI(warpFactor, observedMass);
+        }
+
+        function updateMetricsUI(warpFactor, observedMass) {
+            metrics.planck.textContent = `${M_PLANCK.toExponential(2)} GeV`;
+            metrics.warp.textContent = warpFactor.toExponential(2);
+            metrics.observed.textContent = `${observedMass.toExponential(2)} GeV`;
+            document.getElementById('kl-factor-readout').textContent = `kL = ${state.kL}`;
+        }
+
+        // --- INITIALIZATION & EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            canvas = document.getElementById('main-canvas');
+            ctx = canvas.getContext('2d');
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+
+            controls.klFactor = document.getElementById('kl-factor');
+            metrics.planck = document.getElementById('metric-planck');
+            metrics.warp = document.getElementById('metric-warp');
+            metrics.observed = document.getElementById('metric-observed');
+
+            controls.klFactor.addEventListener('input', (e) => {
+                state.kL = parseFloat(e.target.value);
+            });
+
+            window.addEventListener('resize', () => {
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+            });
+
+            draw();
+        });
+    })();
+    </script>
+</body>
+</html>

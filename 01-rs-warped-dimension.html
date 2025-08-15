@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation: The Randall-Sundrum Warped Extra Dimension</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #009688; /* Teal for branes/bulk */
+            --secondary-color: #ff5722; /* Deep orange for Planck Brane */
+            --accent-color: #8bc34a; /* Light green for TeV Brane */
+            --border-color: #444;
+            --panel-bg-color: #2a2a2a;
+            --control-bg-color: #333;
+            --font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-family); line-height: 1.6; margin: 0; padding: 0; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); }
+        h1 { color: var(--header-color); font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-bottom: 15px; }
+        main { display: grid; grid-template-columns: 1fr 400px; gap: 20px; margin-top: 20px; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { background-color: var(--panel-bg-color); padding: 15px; border-radius: 8px; height: fit-content; }
+        .panel { background-color: var(--panel-bg-color); padding: 20px; border-radius: 8px; }
+        .panel h2, .controls-column h2 { color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+        canvas { width: 100%; height: auto; background-color: #000; border-radius: 8px; aspect-ratio: 16/9; cursor: ns-resize; }
+        .control-group { margin-bottom: 20px; }
+        .control-group h3 { color: var(--accent-color); font-size: 1.1em; margin-bottom: 10px; }
+        .control { margin-bottom: 15px; }
+        .control label { display: block; font-size: 0.9em; margin-bottom: 5px; }
+        .control input { width: 100%; }
+        .control-readout { font-size: 0.9em; color: #ccc; }
+        .exposition { grid-column: 1 / -1; }
+        button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>The Warped Extra Dimension</h1>
+            <p class="subtitle">A simulation of the Randall-Sundrum braneworld geometry.</p>
+        </header>
+
+        <main>
+            <div class="simulation-column">
+                <div class="panel">
+                    <canvas id="main-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="controls-column">
+                <h2>Controls</h2>
+                <div class="control-group">
+                    <h3>Warp Factor</h3>
+                    <div class="control">
+                        <label for="k-factor">Curvature/Warp Factor (k)</label>
+                        <input type="range" id="k-factor" min="0.1" max="2.0" step="0.1" value="1.0">
+                        <span class="control-readout" id="k-factor-readout">k = 1.0</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Instructions</h3>
+                    <p>Drag the test object (yellow ruler) up and down along the extra dimension to see how its physical size changes due to the warped geometry.</p>
+                </div>
+                <div class="control-group">
+                    <h3>Metrics</h3>
+                    <div class="control-readout">Ruler Y-Position: <span id="metric-y-pos">0.00</span></div>
+                    <div class="control-readout">Warp Factor at Ruler: <span id="metric-warp">1.00</span></div>
+                    <div class="control-readout">Apparent Ruler Size: <span id="metric-size">100%</span></div>
+                </div>
+            </div>
+
+            <div class="exposition container">
+                 <!-- Exposition -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+        // --- STATE & CONFIG ---
+        let state = {
+            k: 1.0,
+            rulerY: 0, // Position in the extra dimension, from -1 to 1 on canvas
+            isDragging: false,
+        };
+
+        // --- DOM ELEMENTS ---
+        let canvas, ctx;
+        let controls = {};
+        let metrics = {};
+
+        // --- SIMULATION LOGIC ---
+        function initialize() {
+            state.k = parseFloat(controls.kFactor.value);
+            state.rulerY = canvas.height / 2;
+        }
+
+        /**
+         * The core of the RS1 model visualization.
+         * Calculates the warp factor at a given y-coordinate.
+         * The y-coordinate is measured from the Planck brane at the center.
+         */
+        function getWarpFactor(y_pos) {
+            const h = canvas.height;
+            const k = state.k;
+            // The physical coordinate in the extra dimension.
+            // We map the canvas height to a finite range, e.g., -5 to 5.
+            const y_phys = (y_pos - h/2) / (h/2) * 5;
+
+            // The warp factor is exp(-k * |y_phys|)
+            return Math.exp(-k * Math.abs(y_phys));
+        }
+
+        // --- RENDERING ---
+        function draw() {
+            requestAnimationFrame(draw);
+
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+
+            drawWarpedGrid();
+            drawBranes();
+            drawRuler();
+            updateMetricsUI();
+        }
+
+        function drawWarpedGrid() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const numLines = 20;
+
+            ctx.strokeStyle = 'rgba(0, 150, 136, 0.3)'; // Primary color, transparent
+            ctx.lineWidth = 1;
+
+            // Draw horizontal lines (constant y)
+            for (let i = 0; i <= numLines; i++) {
+                const y = i * (h / numLines);
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+
+            // Draw vertical lines (constant x)
+            for (let i = 0; i <= numLines; i++) {
+                ctx.beginPath();
+                const x = i * (w / numLines);
+                // The vertical lines get squeezed by the warp factor
+                for (let y = 0; y <= h; y++) {
+                    const warp = getWarpFactor(y);
+                    const x_eff = w/2 + (x - w/2) * warp;
+                    if (y === 0) ctx.moveTo(x_eff, y);
+                    else ctx.lineTo(x_eff, y);
+                }
+                ctx.stroke();
+            }
+        }
+
+        function drawBranes() {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Planck Brane at y=0 (center)
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--secondary-color');
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, h/2);
+            ctx.lineTo(w, h/2);
+            ctx.stroke();
+            ctx.fillStyle = 'white';
+            ctx.font = '14px Arial';
+            ctx.fillText('Planck Brane (Our Gravity Lives Here)', 10, h/2 - 10);
+        }
+
+        function drawRuler() {
+            const w = canvas.width;
+            const y = state.rulerY;
+            const warp = getWarpFactor(y);
+
+            const rulerWidth = 200 * warp; // Apparent size shrinks
+            const rulerHeight = 20 * warp;
+            const x = w/2 - rulerWidth/2;
+
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent-color');
+            ctx.fillRect(x, y - rulerHeight/2, rulerWidth, rulerHeight);
+
+            // Draw ticks on the ruler
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 1 * warp;
+            for(let i=0; i<=10; i++) {
+                const tickX = x + i * (rulerWidth/10);
+                ctx.beginPath();
+                ctx.moveTo(tickX, y - rulerHeight/2);
+                ctx.lineTo(tickX, y + rulerHeight/2);
+                ctx.stroke();
+            }
+        }
+
+        function updateMetricsUI() {
+            const y_phys = (state.rulerY - canvas.height/2) / (canvas.height/2) * 5;
+            const warp = getWarpFactor(state.rulerY);
+            metrics.yPos.textContent = y_phys.toFixed(2);
+            metrics.warp.textContent = warp.toExponential(2);
+            metrics.size.textContent = `${(warp * 100).toFixed(1)}%`;
+            document.getElementById('k-factor-readout').textContent = `k = ${state.k.toFixed(1)}`;
+        }
+
+        // --- INITIALIZATION & EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            canvas = document.getElementById('main-canvas');
+            ctx = canvas.getContext('2d');
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+
+            controls.kFactor = document.getElementById('k-factor');
+            metrics.yPos = document.getElementById('metric-y-pos');
+            metrics.warp = document.getElementById('metric-warp');
+            metrics.size = document.getElementById('metric-size');
+
+            controls.kFactor.addEventListener('input', (e) => {
+                state.k = parseFloat(e.target.value);
+            });
+
+            canvas.addEventListener('mousedown', (e) => { state.isDragging = true; });
+            canvas.addEventListener('mouseup', (e) => { state.isDragging = false; });
+            canvas.addEventListener('mouseout', (e) => { state.isDragging = false; });
+            canvas.addEventListener('mousemove', (e) => {
+                if (state.isDragging) {
+                    const rect = canvas.getBoundingClientRect();
+                    state.rulerY = e.clientY - rect.top;
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+            });
+
+            initialize();
+            draw();
+        });
+    })();
+    </script>
+</body>
+</html>

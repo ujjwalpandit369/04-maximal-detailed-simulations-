@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation: Randall-Sundrum Kaluza-Klein Modes</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #ff9800; /* Orange for KK modes/particles */
+            --secondary-color: #009688;
+            --accent-color: #cddc39;
+            --border-color: #444;
+            --panel-bg-color: #2a2a2a;
+            --control-bg-color: #333;
+            --font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-family); line-height: 1.6; margin: 0; padding: 0; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); }
+        h1 { color: var(--header-color); font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-bottom: 15px; }
+        main { display: grid; grid-template-columns: 1fr 400px; gap: 20px; margin-top: 20px; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { background-color: var(--panel-bg-color); padding: 15px; border-radius: 8px; height: fit-content; }
+        .panel { background-color: var(--panel-bg-color); padding: 20px; border-radius: 8px; }
+        .panel h2, .controls-column h2 { color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+        canvas { width: 100%; height: auto; background-color: #000; border-radius: 8px; aspect-ratio: 4/9; }
+        .control-group { margin-bottom: 20px; }
+        .control-group h3 { color: var(--accent-color); font-size: 1.1em; margin-bottom: 10px; }
+        .control { margin-bottom: 15px; }
+        .control label { display: block; font-size: 0.9em; margin-bottom: 5px; }
+        .control input { width: 100%; }
+        .control-readout { font-size: 0.9em; color: #ccc; }
+        .exposition { grid-column: 1 / -1; }
+        button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Kaluza-Klein Excitations in the RS1 Model</h1>
+            <p class="subtitle">Visualizing the predicted mass spectrum of new particles from a warped extra dimension.</p>
+        </header>
+
+        <main>
+            <div class="simulation-column">
+                <div class="panel">
+                    <h2>KK Mass Spectrum</h2>
+                    <canvas id="main-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="controls-column">
+                <h2>Controls</h2>
+                <div class="control-group">
+                    <h3>RS Parameters</h3>
+                    <div class="control">
+                        <label for="k-factor">Curvature/Warp Factor (k) [TeV]</label>
+                        <input type="range" id="k-factor" min="0.1" max="2.0" step="0.1" value="1.0">
+                        <span class="control-readout" id="k-factor-readout">k = 1.0 TeV</span>
+                    </div>
+                    <div class="control">
+                        <label for="kl-factor">Hierarchy Parameter (kL)</label>
+                        <input type="range" id="kl-factor" min="10" max="50" step="1" value="35">
+                        <span class="control-readout" id="kl-factor-readout">kL = 35</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Metrics</h3>
+                    <div class="control-readout">Mass of 1st KK Mode: <span id="metric-kk1"></span></div>
+                    <div class="control-readout">Mass of 2nd KK Mode: <span id="metric-kk2"></span></div>
+                    <div class="control-readout">Mass of 3rd KK Mode: <span id="metric-kk3"></span></div>
+                </div>
+            </div>
+
+            <div class="exposition container">
+                 <!-- Exposition -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+        // --- STATE & CONFIG ---
+        let state = {
+            k: 1.0, // in TeV
+            kL: 35,
+        };
+        // The roots of the J1 Bessel function, x_n, determine the mass spectrum.
+        // Hardcoding these is a robust way to avoid complex root-finding.
+        const BESSEL_ROOTS = [3.8317, 7.0156, 10.1735, 13.3237, 16.4706];
+
+        // --- DOM ELEMENTS ---
+        let canvas, ctx;
+        let controls = {};
+        let metrics = {};
+
+        // --- SIMULATION LOGIC ---
+        /**
+         * Calculates the masses of the first few KK modes.
+         * The formula is m_n = k * x_n * exp(-kL), where x_n are Bessel roots.
+         */
+        function calculateKKMasses() {
+            const k = state.k;
+            const warpFactor = Math.exp(-state.kL);
+            const masses = BESSEL_ROOTS.map(root => k * root * warpFactor);
+            return masses;
+        }
+
+        // --- RENDERING ---
+        function draw() {
+            // No animation needed, just re-draw when controls change.
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+
+            const masses = calculateKKMasses();
+            drawAxes(masses);
+            drawEnergyLevels(masses);
+            updateMetricsUI(masses);
+        }
+
+        function drawAxes(masses) {
+            const w = canvas.width;
+            const h = canvas.height;
+            const margin = 50;
+            const maxMass = Math.max(...masses) * 1.2;
+
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 1;
+
+            // Y-axis (Mass)
+            ctx.beginPath();
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(margin, h - margin);
+            ctx.stroke();
+
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+
+            // Draw Y-axis ticks and labels
+            for (let i = 0; i <= 10; i++) {
+                const mass = (i / 10) * maxMass;
+                const y = h - margin - (mass / maxMass) * (h - 2 * margin);
+                ctx.beginPath();
+                ctx.moveTo(margin - 5, y);
+                ctx.lineTo(margin, y);
+                ctx.stroke();
+                ctx.fillText(`${mass.toFixed(1)} TeV`, margin - 10, y);
+            }
+        }
+
+        function drawEnergyLevels(masses) {
+            const w = canvas.width;
+            const h = canvas.height;
+            const margin = 50;
+            const maxMass = Math.max(...masses) * 1.2;
+
+            ctx.lineWidth = 3;
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'left';
+
+            masses.forEach((mass, index) => {
+                const y = h - margin - (mass / maxMass) * (h - 2 * margin);
+
+                const hue = (index / BESSEL_ROOTS.length) * 120; // Green to yellow
+                ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+
+                ctx.beginPath();
+                ctx.moveTo(margin, y);
+                ctx.lineTo(w - margin, y);
+                ctx.stroke();
+
+                ctx.fillStyle = `hsl(${hue}, 100%, 80%)`;
+                ctx.fillText(`n=${index + 1}`, w - margin + 5, y);
+            });
+        }
+
+        function updateMetricsUI(masses) {
+            metrics.kk1.textContent = `${masses[0].toFixed(2)} TeV`;
+            metrics.kk2.textContent = `${masses[1].toFixed(2)} TeV`;
+            metrics.kk3.textContent = `${masses[2].toFixed(2)} TeV`;
+            document.getElementById('k-factor-readout').textContent = `k = ${state.k.toFixed(1)} TeV`;
+            document.getElementById('kl-factor-readout').textContent = `kL = ${state.kL}`;
+        }
+
+        // --- INITIALIZATION & EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            canvas = document.getElementById('main-canvas');
+            ctx = canvas.getContext('2d');
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+
+            controls.kFactor = document.getElementById('k-factor');
+            controls.klFactor = document.getElementById('kl-factor');
+
+            metrics.kk1 = document.getElementById('metric-kk1');
+            metrics.kk2 = document.getElementById('metric-kk2');
+            metrics.kk3 = document.getElementById('metric-kk3');
+
+            controls.kFactor.addEventListener('input', (e) => {
+                state.k = parseFloat(e.target.value);
+                draw();
+            });
+            controls.klFactor.addEventListener('input', (e) => {
+                state.kL = parseFloat(e.target.value);
+                draw();
+            });
+
+            window.addEventListener('resize', () => {
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+                draw();
+            });
+
+            draw();
+        });
+    })();
+    </script>
+</body>
+</html>
