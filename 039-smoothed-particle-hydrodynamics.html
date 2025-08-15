@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Smoothed Particle Hydrodynamics</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #e74c3c; /* Red */
+            --secondary-color: #f39c12; /* Orange */
+            --accent-color: #ecf0f1; /* Light Gray */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: block; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); float: right; }
+        .control input[type="range"] { width: 100%; }
+        .control button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        .button-group { display: flex; gap: 10px; }
+        code { background-color: #333; color: var(--secondary-color); padding: 2px 5px; border-radius: 3px; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Smoothed Particle Hydrodynamics</h1>
+            <p class="subtitle">Modeling Astrophysical Fluids with Lagrangian Particles</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+                <div class="content-column">
+                    <h2>What is SPH?</h2>
+                    <p>The previous simulations (Cellular Automata, Lattice Boltzmann) were **Eulerian**, meaning they used a fixed grid. **Smoothed Particle Hydrodynamics (SPH)** is a completely different, **Lagrangian** approach. Instead of a grid, the fluid is represented by a collection of particles. Each particle has a mass, position, and velocity, and it carries fluid properties like density and pressure.</p>
+                    <p>The key idea is that these are not simple point-masses. Each particle is "smoothed" out in space by a **kernel function**. To find the density or pressure at any point, you sum up the contributions from all nearby "fuzzy" particles. This mesh-free approach is incredibly powerful for problems where a fixed grid would be useless, such as astrophysical phenomena like star formation, galaxy collisions, or supernova explosions, where the fluid is flying through empty space.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Collapsing Cloud:</strong> Click the **"Uniform Cloud"** button. You'll see a cloud of gas particles. Due to their mutual gravity (controlled by the **Gravity** slider), they will start to fall towards the center. Watch as the density (represented by color, from blue to yellow to white) increases dramatically in the center, forming high-density filaments and clumps. This is a simplified model of how stars begin to form in interstellar nebulae.</li>
+                        <li><strong>The Effect of Rotation:</strong> Now, click the **"Rotating Cloud"** button. The particles now have an initial "spin." As the cloud collapses, conservation of angular momentum forces it to spin faster and flatten into a disk. A dense bar or spiral arms might form in the center. This is the fundamental reason why galaxies and solar systems are disk-shaped!</li>
+                        <li><strong>Play with Physics:</strong> Try increasing the **Gas Pressure** (which resists collapse) or the **Gravity** (which drives collapse) to see how the final structure changes.</li>
+                    </ol>
+
+                    <h2>Core Theory: The SPH Formalism</h2>
+                    <p>In SPH, any continuous field `A(r)` is approximated by summing the values at discrete particle locations `r_j`, weighted by a smoothing kernel `W` with a characteristic smoothing length `h`:</p>
+                    <p><code>A(r) = Σ<sub>j</sub> m<sub>j</sub> * (A<sub>j</sub>/ρ<sub>j</sub>) * W(r - r<sub>j</sub>, h)</code></p>
+                    <p>where `m_j`, `A_j`, and `ρ_j` are the mass, field value, and density of particle `j`.</p>
+                    <h4>Density and Pressure</h4>
+                    <p>The density of each particle `i` is the most fundamental calculation, found by applying the above formula to the density field itself:</p>
+                    <p><code>ρ<sub>i</sub> = Σ<sub>j</sub> m<sub>j</sub> * W(r<sub>i</sub> - r<sub>j</sub>, h)</code></p>
+                    <p>Once the density is known, the pressure `P` is typically calculated using an **equation of state**. This simulation uses a simple isothermal law: `P = c<sub>s</sub>² * ρ`, where `c<sub>s</sub>` is the sound speed.</p>
+                    <h4>Forces</h4>
+                    <p>The acceleration of each particle is determined by the sum of forces. The SPH formulation cleverly converts gradients of continuous fields into particle-based sums. The acceleration on particle `i` is:</p>
+                    <p><code>dv<sub>i</sub>/dt = - Σ<sub>j</sub> m<sub>j</sub> * [ (P<sub>i</sub>/ρ<sub>i</sub>²) + (P<sub>j</sub>/ρ<sub>j</sub>²) + Π<sub>ij</sub> ] * ∇W(r<sub>i</sub> - r<sub>j</sub>, h) + F<sub>gravity</sub></code></p>
+                    <ul>
+                        <li>The `(P/ρ²)` term is a symmetrized form of the **pressure gradient**, ensuring momentum is conserved.</li>
+                        <li><code>Π<sub>ij</sub></code> is an **artificial viscosity** term, which is crucial for handling shocks (sudden, steep changes in density and pressure) correctly. It adds a repulsive force between particles that are rapidly approaching each other.</li>
+                        <li><code>F<sub>gravity</sub></code> is the standard Newtonian gravitational force between particles, often "softened" at very short distances to prevent numerical blow-ups.</li>
+                    </ul>
+                    <p>The particles' positions and velocities are then updated using a numerical integrator, like the Leapfrog method used here, which is well-suited for gravitational N-body problems.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls</h2>
+                <div class="control-group">
+                    <label>Initial Conditions:</label>
+                    <div class="button-group">
+                        <button id="uniform-button">Uniform Cloud</button>
+                        <button id="rotating-button">Rotating Cloud</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="control">
+                        <label>Particles <span class="value-display" id="particles-value">400</span></label>
+                        <input type="range" id="particles-slider" min="100" max="1000" step="50" value="400">
+                    </div>
+                    <div class="control">
+                        <label>Gravity <span class="value-display" id="gravity-value">1.0</span></label>
+                        <input type="range" id="gravity-slider" min="0" max="5" step="0.1" value="1.0">
+                    </div>
+                     <div class="control">
+                        <label>Gas Pressure (k) <span class="value-display" id="pressure-value">0.1</span></label>
+                        <input type="range" id="pressure-slider" min="0" max="1" step="0.01" value="0.1">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            uniformBtn: document.getElementById('uniform-button'),
+            rotatingBtn: document.getElementById('rotating-button'),
+            particlesSlider: document.getElementById('particles-slider'), particlesValue: document.getElementById('particles-value'),
+            gravitySlider: document.getElementById('gravity-slider'), gravityValue: document.getElementById('gravity-value'),
+            pressureSlider: document.getElementById('pressure-slider'), pressureValue: document.getElementById('pressure-value'),
+        };
+
+        const state = {
+            particles: [],
+            params: { num_particles: 400, G: 1.0, k: 0.1, h: 0.05, mass: 1.0 },
+            isRunning: true,
+        };
+        const ctx = dom.canvas.getContext('2d');
+        let width, height, scale;
+
+        // --- SPH Kernel Functions ---
+        let h, h2, h6, h9;
+        let poly6_factor, spiky_grad_factor;
+
+        function updateKernel() {
+            h = state.params.h;
+            h2 = h*h; h6 = h2*h2*h2; h9 = h6*h2*h;
+            poly6_factor = 315 / (64 * Math.PI * h9);
+            spiky_grad_factor = -45 / (Math.PI * h6);
+        }
+
+        function W_poly6(r2) {
+            if (r2 > h2) return 0;
+            const term = h2 - r2;
+            return poly6_factor * term * term * term;
+        }
+
+        function gradW_spiky(r_vec, r) {
+            if (r > h) return {x:0, y:0};
+            const factor = spiky_grad_factor * (h - r) * (h - r) / r;
+            return {x: r_vec.x * factor, y: r_vec.y * factor};
+        }
+
+        // --- Simulation Setup ---
+        function reset(isRotating) {
+            state.particles = [];
+            const N = state.params.num_particles;
+            for (let i = 0; i < N; i++) {
+                const r = Math.random() * 0.4;
+                const theta = Math.random() * 2 * Math.PI;
+                const x = r * Math.cos(theta);
+                const y = r * Math.sin(theta);
+
+                let vx = 0, vy = 0;
+                if(isRotating) {
+                    vx = -y * 0.5;
+                    vy = x * 0.5;
+                }
+
+                state.particles.push({
+                    x, y, vx, vy, vhx: 0, vhy: 0,
+                    rho: 0, p: 0, ax: 0, ay: 0
+                });
+            }
+        }
+
+        function updateParams() {
+            state.params.num_particles = parseInt(dom.particlesSlider.value);
+            state.params.G = parseFloat(dom.gravitySlider.value);
+            state.params.k = parseFloat(dom.pressureSlider.value);
+            dom.particlesValue.textContent = state.params.num_particles;
+            dom.gravityValue.textContent = state.params.G.toFixed(1);
+            dom.pressureValue.textContent = state.params.k.toFixed(2);
+        }
+
+        // --- SPH Main Loop ---
+        function step(dt) {
+            const N = state.particles.length;
+            const G = state.params.G;
+            const k = state.params.k;
+            const mass = state.params.mass;
+
+            // Density and Pressure
+            for (let i = 0; i < N; i++) {
+                let p_i = state.particles[i];
+                p_i.rho = 0;
+                for (let j = 0; j < N; j++) {
+                    const p_j = state.particles[j];
+                    const dx = p_i.x - p_j.x, dy = p_i.y - p_j.y;
+                    const r2 = dx * dx + dy * dy;
+                    p_i.rho += mass * W_poly6(r2);
+                }
+                p_i.p = k * p_i.rho;
+            }
+
+            // Forces
+            for (let i = 0; i < N; i++) {
+                let p_i = state.particles[i];
+                let F_press_x = 0, F_press_y = 0;
+                let F_grav_x = 0, F_grav_y = 0;
+                for (let j = 0; j < N; j++) {
+                    if (i === j) continue;
+                    const p_j = state.particles[j];
+                    const dx = p_i.x - p_j.x, dy = p_i.y - p_j.y;
+                    const r2 = dx * dx + dy * dy;
+                    const r = Math.sqrt(r2);
+                    if (r < h && r > 0) {
+                        // Symmetric pressure force calculation
+                        const pressure_term = mass * (p_i.p / (p_i.rho * p_i.rho) + p_j.p / (p_j.rho * p_j.rho));
+                        const gradW = gradW_spiky({x:dx, y:dy}, r);
+                        F_press_x -= pressure_term * gradW.x;
+                        F_press_y -= pressure_term * gradW.y;
+                    }
+                    // Gravity
+                    const F_grav = G * mass / (r2 + 0.001); // Softened gravity
+                    F_grav_x -= F_grav * dx / r;
+                    F_grav_y -= F_grav * dy / r;
+                }
+                p_i.ax = (F_press_x + F_grav_x);
+                p_i.ay = (F_press_y + F_grav_y);
+            }
+
+            // Leapfrog Integration
+            for (let p of state.particles) {
+                p.vhx = p.vhx + p.ax * dt;
+                p.vhy = p.vhy + p.ay * dt;
+                p.x = p.x + p.vhx * dt;
+                p.y = p.y + p.vhy * dt;
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0,0,width,height);
+            ctx.save();
+            ctx.translate(width/2, height/2);
+            ctx.scale(scale, scale);
+
+            const max_rho = Math.max(...state.particles.map(p => p.rho), 1);
+
+            for (let p of state.particles) {
+                const hue = 240 - (p.rho / max_rho) * 240; // blue to red
+                ctx.fillStyle = `hsl(${hue}, 90%, 60%)`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 0.005, 0, 2*Math.PI);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        function animationLoop() {
+            if (state.isRunning) {
+                step(0.005);
+                draw();
+            }
+            requestAnimationFrame(animationLoop);
+        }
+
+        // --- Event Listeners and Setup ---
+        dom.uniformBtn.addEventListener('click', () => reset(false));
+        dom.rotatingBtn.addEventListener('click', () => reset(true));
+        [dom.particlesSlider, dom.gravitySlider, dom.pressureSlider].forEach(s => s.addEventListener('input', updateParams));
+
+        const resizeObserver = new ResizeObserver(() => {
+            width = dom.canvas.clientWidth;
+            height = dom.canvas.clientHeight;
+            dom.canvas.width = width;
+            dom.canvas.height = height;
+            scale = Math.min(width, height);
+            if(state.particles.length > 0) draw();
+        });
+        resizeObserver.observe(dom.canvas);
+
+        updateParams();
+        updateKernel();
+        reset(false);
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>

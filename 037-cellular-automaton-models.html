@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Cellular Automaton Models</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #3498db; /* Blue */
+            --secondary-color: #2ecc71; /* Green */
+            --accent-color: #f1c40f; /* Yellow */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #111;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 75%; /* 4:3 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: block; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); float: right; }
+        .control input[type="range"] { width: 100%; }
+        .control select, .control button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        .button-group { display: flex; gap: 10px; }
+        .model-controls { border-top: 1px solid var(--border-color); margin-top: 15px; padding-top: 15px; }
+        .hidden { display: none; }
+        code { background-color: #333; color: var(--accent-color); padding: 2px 5px; border-radius: 3px; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Cellular Automaton Models</h1>
+            <p class="subtitle">Exploring Emergent Complexity from Simple Rules</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+                <div class="content-column">
+                    <h2>What is a Cellular Automaton?</h2>
+                    <p>A **Cellular Automaton (CA)** is a surprisingly simple yet powerful concept. Imagine a grid of "cells," like a checkerboard. Each cell can be in one of a few possible states (e.g., on/off, black/white, spin up/spin down). The entire system evolves in discrete time steps. At each step, the new state of a cell is determined by a simple set of rules based on the current state of its neighbors.</p>
+                    <p>From these local, simple rules, incredibly complex and unexpected global patterns can emerge. CAs are used to model a vast range of physical and biological systems, from fluid dynamics and crystal growth to the patterns on a seashell and the flocking of birds. They are a perfect example of **emergence**: the idea that complex systems and patterns can arise out of a multiplicity of simple interactions.</p>
+
+                    <h3>Model 1: Conway's Game of Life</h3>
+                    <p>This is the most famous cellular automaton. It's not a "game" in the traditional sense, but a system that evolves on its own. Each cell is either "alive" or "dead."</p>
+                    <ul>
+                        <li><b>Rules for a new generation:</b></li>
+                        <li>A dead cell with exactly three live neighbors becomes a live cell (reproduction).</li>
+                        <li>A live cell with two or three live neighbors stays alive (survival).</li>
+                        <li>In all other cases, a cell dies or remains dead (overpopulation or loneliness).</li>
+                    </ul>
+                    <p>Despite these simple rules, Life can produce an astonishing variety of patterns, including stable "still lifes," oscillating "oscillators," and moving "spaceships" like the famous glider. It has even been proven to be Turing complete, meaning it can theoretically compute anything a universal computer can.</p>
+
+                    <h3>Model 2: Forest Fire Model</h3>
+                    <p>This CA models the spread of a fire through a forest and demonstrates a concept called **self-organized criticality**. The system naturally evolves into a "critical" state where a small event (a single lightning strike) can trigger a chain reaction of any size.</p>
+                    <ul>
+                        <li><b>States:</b> Empty, Tree, or Burning.</li>
+                        <li><b>Rules:</b>
+                            <ol>
+                                <li>A burning tree turns into an empty space.</li>
+                                <li>A tree with at least one burning neighbor catches fire.</li>
+                                <li>An empty space grows a tree with a small probability <code>p_growth</code>.</li>
+                                <li>A tree can spontaneously catch fire (lightning) with a very small probability <code>p_fire</code>.</li>
+                            </ol>
+                        </li>
+                    </ul>
+                    <p>Watch how the forest density fluctuates and how fires clear patches, creating a dynamic equilibrium. This type of model is used to understand phenomena like earthquakes, avalanches, and market crashes.</p>
+
+                    <h3>Model 3: The Ising Model</h3>
+                    <p>The Ising Model is a cornerstone of statistical mechanics, originally created to model ferromagnetism. Each cell is a "spin" that can be either up (+1) or down (-1). Spins prefer to align with their neighbors.</p>
+                    <ul>
+                        <li><b>Rules (Metropolis Algorithm):</b>
+                            <ol>
+                                <li>Pick a random spin and calculate the energy change (<code>ΔE</code>) if it were flipped. The energy is lower if spins are aligned.</li>
+                                <li>If flipping lowers the energy (<code>ΔE < 0</code>), always do it.</li>
+                                <li>If flipping increases the energy (<code>ΔE > 0</code>), only do it with a probability of <code>exp(-ΔE / T)</code>, where <code>T</code> is the temperature.</li>
+                            </ol>
+                        </li>
+                    </ul>
+                    <p>At high temperatures, thermal energy dominates, and the spins are randomly oriented (a paramagnet). As you lower the temperature below a critical point, the spins' desire to align wins out, and large domains of aligned spins form, creating a net magnetization (a ferromagnet). This is a classic **phase transition**.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls</h2>
+                <div class="control-group">
+                    <label for="model-select">Select Model:</label>
+                    <select id="model-select">
+                        <option value="life">Game of Life</option>
+                        <option value="fire">Forest Fire</option>
+                        <option value="ising">Ising Model</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <div class="button-group">
+                        <button id="run-pause-button">Run</button>
+                        <button id="reset-button">Reset</button>
+                    </div>
+                </div>
+                 <div class="control">
+                    <label>Speed <span class="value-display" id="speed-value">5</span></label>
+                    <input type="range" id="speed-slider" min="1" max="30" step="1" value="5">
+                </div>
+                <div id="model-controls-container">
+                    <div id="fire-controls" class="model-controls hidden">
+                        <h4>Forest Fire Parameters</h4>
+                        <div class="control">
+                            <label>Growth Prob. (p) <span class="value-display" id="growth-value">0.01</span></label>
+                            <input type="range" id="growth-slider" min="0.001" max="0.1" step="0.001" value="0.01">
+                        </div>
+                        <div class="control">
+                            <label>Fire Prob. (f) <span class="value-display" id="fire-prob-value">0.0001</span></label>
+                            <input type="range" id="fire-prob-slider" min="0.00001" max="0.001" step="0.00001" value="0.0001">
+                        </div>
+                    </div>
+                    <div id="ising-controls" class="model-controls hidden">
+                        <h4>Ising Model Parameters</h4>
+                        <div class="control">
+                            <label>Temperature (T) <span class="value-display" id="temp-value">2.3</span></label>
+                            <input type="range" id="temp-slider" min="0.1" max="5.0" step="0.1" value="2.3">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            modelSelect: document.getElementById('model-select'),
+            runPauseBtn: document.getElementById('run-pause-button'),
+            resetBtn: document.getElementById('reset-button'),
+            speedSlider: document.getElementById('speed-slider'), speedValue: document.getElementById('speed-value'),
+            fireControls: document.getElementById('fire-controls'),
+            growthSlider: document.getElementById('growth-slider'), growthValue: document.getElementById('growth-value'),
+            fireProbSlider: document.getElementById('fire-prob-slider'), fireProbValue: document.getElementById('fire-prob-value'),
+            isingControls: document.getElementById('ising-controls'),
+            tempSlider: document.getElementById('temp-slider'), tempValue: document.getElementById('temp-value'),
+        };
+
+        const GRID_SIZE = 200;
+        const state = {
+            grid: [], nextGrid: [], isRunning: false, model: 'life',
+            params: { speed: 5, p_growth: 0.01, p_fire: 0.0001, temp: 2.3 },
+            updateFn: null, colors: {}
+        };
+        const ctx = dom.canvas.getContext('2d');
+
+        // --- Core Simulation Logic ---
+
+        function reset() {
+            state.isRunning = false;
+            dom.runPauseBtn.textContent = 'Run';
+            state.model = dom.modelSelect.value;
+
+            // Show/hide relevant controls
+            dom.fireControls.classList.toggle('hidden', state.model !== 'fire');
+            dom.isingControls.classList.toggle('hidden', state.model !== 'ising');
+
+            state.grid = new Uint8Array(GRID_SIZE * GRID_SIZE);
+            state.nextGrid = new Uint8Array(GRID_SIZE * GRID_SIZE);
+
+            switch(state.model) {
+                case 'life':
+                    state.updateFn = updateLife;
+                    state.colors = {0: '#111', 1: '#fff'};
+                    for(let i=0; i<state.grid.length; i++) state.grid[i] = Math.random() > 0.7 ? 1 : 0;
+                    break;
+                case 'fire':
+                    state.updateFn = updateFire;
+                    state.colors = {0: '#5c3d2e', 1: '#2ecc71', 2: '#e74c3c'}; // Empty, Tree, Burning
+                    for(let i=0; i<state.grid.length; i++) state.grid[i] = 1; // Start with full forest
+                    break;
+                case 'ising':
+                    state.updateFn = updateIsing;
+                    state.colors = {0: '#3498db', 1: '#f1c40f'}; // Spin Down, Spin Up
+                    for(let i=0; i<state.grid.length; i++) state.grid[i] = Math.random() > 0.5 ? 1 : 0;
+                    break;
+            }
+            draw();
+        }
+
+        function updateParams() {
+            state.params.speed = parseInt(dom.speedSlider.value);
+            state.params.p_growth = parseFloat(dom.growthSlider.value);
+            state.params.p_fire = parseFloat(dom.fireProbSlider.value);
+            state.params.temp = parseFloat(dom.tempSlider.value);
+
+            dom.speedValue.textContent = state.params.speed;
+            dom.growthValue.textContent = state.params.p_growth.toFixed(3);
+            dom.fireProbValue.textContent = state.params.p_fire.toExponential(1);
+            dom.tempValue.textContent = state.params.temp.toFixed(1);
+        }
+
+        function animationLoop() {
+            if (state.isRunning) {
+                for (let i = 0; i < state.params.speed; i++) {
+                    state.updateFn();
+                }
+                draw();
+            }
+            requestAnimationFrame(animationLoop);
+        }
+
+        function draw() {
+            const w = dom.canvas.width;
+            const h = dom.canvas.height;
+            const cellW = w / GRID_SIZE;
+            const cellH = h / GRID_SIZE;
+
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const idx = x + y * GRID_SIZE;
+                    const cellState = state.grid[idx];
+                    if (cellState !== 0 || state.model === 'fire') {
+                        ctx.fillStyle = state.colors[cellState];
+                        ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
+                    }
+                }
+            }
+        }
+
+        // --- Model-Specific Update Functions ---
+
+        function updateLife() {
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const idx = x + y * GRID_SIZE;
+                    let neighbors = 0;
+                    for (let i = -1; i <= 1; i++) {
+                        for (let j = -1; j <= 1; j++) {
+                            if (i === 0 && j === 0) continue;
+                            const nx = (x + i + GRID_SIZE) % GRID_SIZE;
+                            const ny = (y + j + GRID_SIZE) % GRID_SIZE;
+                            neighbors += state.grid[nx + ny * GRID_SIZE];
+                        }
+                    }
+                    const alive = state.grid[idx] === 1;
+                    if (!alive && neighbors === 3) state.nextGrid[idx] = 1;
+                    else if (alive && (neighbors < 2 || neighbors > 3)) state.nextGrid[idx] = 0;
+                    else state.nextGrid[idx] = state.grid[idx];
+                }
+            }
+            [state.grid, state.nextGrid] = [state.nextGrid, state.grid];
+        }
+
+        function updateFire() {
+            for (let i = 0; i < state.grid.length; i++) state.nextGrid[i] = state.grid[i];
+
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const idx = x + y * GRID_SIZE;
+                    const current = state.grid[idx];
+                    if (current === 1) { // Tree
+                        if (Math.random() < state.params.p_fire) {
+                             state.nextGrid[idx] = 2; // Spontaneous fire
+                             continue;
+                        }
+                        for (let i = -1; i <= 1; i++) {
+                            for (let j = -1; j <= 1; j++) {
+                                if (i === 0 && j === 0) continue;
+                                const nx = (x + i + GRID_SIZE) % GRID_SIZE;
+                                const ny = (y + j + GRID_SIZE) % GRID_SIZE;
+                                if (state.grid[nx + ny * GRID_SIZE] === 2) {
+                                    state.nextGrid[idx] = 2; // Catches fire
+                                    break;
+                                }
+                            }
+                            if(state.nextGrid[idx] === 2) break;
+                        }
+                    } else if (current === 2) { // Burning
+                        state.nextGrid[idx] = 0;
+                    } else { // Empty
+                        if (Math.random() < state.params.p_growth) state.nextGrid[idx] = 1;
+                    }
+                }
+            }
+            [state.grid, state.nextGrid] = [state.nextGrid, state.grid];
+        }
+
+        function updateIsing() {
+            const T = state.params.temp;
+            // One step in the Metropolis algorithm is one attempted spin flip.
+            // We do N*N attempts per frame to give every spin a chance to flip.
+            for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+                const x = Math.floor(Math.random() * GRID_SIZE);
+                const y = Math.floor(Math.random() * GRID_SIZE);
+                const idx = x + y * GRID_SIZE;
+
+                const spin = state.grid[idx] === 1 ? 1 : -1;
+                let neighbor_spin_sum = 0;
+
+                const xp = (x + 1 + GRID_SIZE) % GRID_SIZE;
+                const xm = (x - 1 + GRID_SIZE) % GRID_SIZE;
+                const yp = (y + 1 + GRID_SIZE) % GRID_SIZE;
+                const ym = (y - 1 + GRID_SIZE) % GRID_SIZE;
+
+                neighbor_spin_sum += state.grid[xp + y * GRID_SIZE] === 1 ? 1 : -1;
+                neighbor_spin_sum += state.grid[xm + y * GRID_SIZE] === 1 ? 1 : -1;
+                neighbor_spin_sum += state.grid[x + yp * GRID_SIZE] === 1 ? 1 : -1;
+                neighbor_spin_sum += state.grid[x + ym * GRID_SIZE] === 1 ? 1 : -1;
+
+                const delta_E = 2 * spin * neighbor_spin_sum; // J=1
+
+                if (delta_E < 0 || Math.random() < Math.exp(-delta_E / T)) {
+                    state.grid[idx] = state.grid[idx] === 1 ? 0 : 1; // Flip spin
+                }
+            }
+        }
+
+        // --- Event Listeners ---
+        dom.runPauseBtn.addEventListener('click', () => {
+            state.isRunning = !state.isRunning;
+            dom.runPauseBtn.textContent = state.isRunning ? 'Pause' : 'Run';
+        });
+        dom.resetBtn.addEventListener('click', reset);
+        dom.modelSelect.addEventListener('change', reset);
+        [dom.speedSlider, dom.growthSlider, dom.fireProbSlider, dom.tempSlider].forEach(s => s.addEventListener('input', updateParams));
+
+        // --- Initial Setup ---
+        const resizeObserver = new ResizeObserver(() => {
+            dom.canvas.width = dom.canvas.clientWidth;
+            dom.canvas.height = dom.canvas.clientHeight;
+            draw();
+        });
+        resizeObserver.observe(dom.canvas);
+
+        updateParams();
+        reset();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>
