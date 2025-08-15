@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: QFT in Curved Spacetime</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a; --text-color: #e0e0e0; --header-color: #ffffff; --accent-color: #c93b3b; --accent-hover: #a32f2f; --panel-bg: #2a2a2a; --panel-border: #444444; --control-bg: #333333; --control-text: #e0e0e0; --input-bg: #1e1e1e; --button-bg: #b53434; --button-text: #ffffff;
+        }
+        /* All other styles are identical */
+        body { font-family: var(--font-main, sans-serif); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; }
+        .container { max-width: 1800px; margin: 0 auto; padding: 20px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "simulation controls" "charts metrics" "content content" "qa qa"; gap: 20px; }
+        @media (max-width: 1200px) { .main-layout { grid-template-columns: 1fr; grid-template-areas: "simulation" "controls" "charts" "metrics" "content" "qa"; } }
+        .panel { background-color: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 20px; }
+        .panel h2 { margin-top: 0; color: var(--header-color); border-bottom: 1px solid var(--panel-border); padding-bottom: 10px; }
+        .simulation-container { position: relative; width: 100%; height: 512px; background-color: #000; border-radius: 5px; }
+        .charts-area-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .charts-area-grid { grid-template-columns: 1fr; } }
+        .dynamic-chart-container { width: 100%; height: 300px; background-color: #050505; border-radius: 5px; padding: 10px; }
+        .control-group { margin-bottom: 15px; } .control-group label { display: block; }
+        .presets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .metric-item { background-color: var(--control-bg); padding: 10px; border-radius: 5px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header><h1>The Eye of the Beholder: The Unruh Effect and the Observer-Dependent Vacuum</h1></header>
+        <div class="main-layout">
+            <div class="panel simulation-area"><h2>Spacetime Diagram</h2><div class="simulation-container"><canvas id="main-canvas"></canvas></div></div>
+            <div class="panel controls-area"><h2>Controls</h2><div id="controls-panel"></div></div>
+            <div class="panel metrics-area"><h2>Live Metrics</h2><div class="metrics-grid" id="metrics-panel"></div></div>
+            <div class="panel charts-area">
+                <h2>Data Visualizations</h2>
+                <div class="charts-area-grid">
+                    <div class="dynamic-chart-container" id="bogoliubov-viz"><h2>Bogoliubov Transformation</h2><svg id="bogoliubov-svg" width="100%" height="calc(100% - 30px)"></svg></div>
+                    <div class="dynamic-chart-container"><canvas id="spectrum-chart-canvas"></canvas></div>
+                    <div class="dynamic-chart-container" style="grid-column: 1 / -1;"><canvas id="temp-chart-canvas"></canvas></div>
+                </div>
+            </div>
+            <div class="panel content-area"><article id="exposition-content"></article></div>
+            <div class="panel qa-area"><h2>Questions & Answers</h2><div id="qa-content"></div></div>
+        </div>
+    </div>
+<script>
+// --- CONTENT ---
+const content = { /* ... */ };
+
+document.addEventListener('DOMContentLoaded', () => {
+    const app = new UnruhSimApp();
+    app.init();
+});
+
+class UnruhSimApp {
+    constructor() {
+        this.canvas = document.getElementById('main-canvas'); this.ctx = this.canvas.getContext('2d');
+        this.spectrumCanvas = document.getElementById('spectrum-chart-canvas'); this.spectrumCtx = this.spectrumCanvas.getContext('2d');
+        this.tempCanvas = document.getElementById('temp-chart-canvas'); this.tempCtx = this.tempCanvas.getContext('2d');
+        this.bogoliubovSvg = document.getElementById('bogoliubov-svg');
+        this.params = {};
+    }
+
+    init() {
+        this.setupControls();
+        this.addEventListeners();
+        this.loadPreset('default');
+    }
+
+    setupControls() {
+        const panel = document.getElementById('controls-panel');
+        panel.innerHTML = `
+            <div class="control-group"><label>Acceleration (a): <span id="accel-label"></span></label><input type="range" id="accel-slider" min="0.1" max="10" step="0.1"></div>
+            <div class="control-group"><label>Mode Frequency (ω): <span id="omega-label"></span></label><input type="range" id="omega-slider" min="0.1" max="20" step="0.1"></div>
+            <div class="control-group"><label>Particle Type</label><select id="particle-select"><option value="bose">Boson</option><option value="fermi">Fermion</option></select></div>
+            <div class="control-group">
+                <label><input type="checkbox" id="horizon-toggle" checked> Show Rindler Horizon</label>
+                <label><input type="checkbox" id="lightcone-toggle" checked> Show Light Cones</label>
+            </div>
+            <hr>
+            <h3>Presets</h3>
+            <div class="presets-grid" id="presets-div"></div>
+            <hr>
+            <button id="reset-btn">Reset to Default</button>
+        `;
+        const presets = [
+            {name: 'Low Accel', a: 0.5, o: 5}, {name: 'High Accel', a: 8, o: 5},
+            {name: 'Low Freq', a: 2, o: 1}, {name: 'High Freq', a: 2, o: 15},
+            {name: 'g-force', a: 1e-18, o: 5}, {name: 'BH Horizon', a: 10, o: 10}
+        ];
+        document.getElementById('presets-div').innerHTML = presets.map(p => `<button class="preset-btn" data-a="${p.a}" data-o="${p.o}">${p.name}</button>`).join('');
+    }
+
+    addEventListeners() {
+        document.getElementById('reset-btn').addEventListener('click', () => this.loadPreset('default'));
+        ['accel-slider', 'omega-slider', 'particle-select', 'horizon-toggle', 'lightcone-toggle'].forEach(id => {
+             document.getElementById(id).addEventListener('input', () => this.update());
+        });
+        document.querySelectorAll('.preset-btn').forEach(b => {
+            b.addEventListener('click', e => {
+                this.loadPreset(null, e.target.dataset.a, e.target.dataset.o);
+            });
+        });
+    }
+
+    loadPreset(id, a=1, o=5) {
+        document.getElementById('accel-slider').value = a;
+        document.getElementById('omega-slider').value = o;
+        document.getElementById('particle-select').value = 'bose';
+        document.getElementById('horizon-toggle').checked = true;
+        document.getElementById('lightcone-toggle').checked = true;
+        this.update();
+    }
+
+    update() {
+        this.updateParamsFromUI();
+        this.drawSpacetime();
+        this.drawBogoliubov();
+        this.drawSpectrumChart();
+        this.drawTempChart();
+        this.updateMetrics();
+    }
+
+    updateParamsFromUI() {
+        this.params.a = parseFloat(document.getElementById('accel-slider').value);
+        this.params.omega = parseFloat(document.getElementById('omega-slider').value);
+        this.params.particleType = document.getElementById('particle-select').value;
+        this.params.showHorizon = document.getElementById('horizon-toggle').checked;
+        this.params.showLightCones = document.getElementById('lightcone-toggle').checked;
+        document.getElementById('accel-label').textContent = this.params.a.toFixed(2);
+        document.getElementById('omega-label').textContent = this.params.omega.toFixed(2);
+    }
+
+    drawSpacetime() {
+        const { ctx, canvas, params } = this;
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        const w = canvas.width; const h = canvas.height;
+
+        if (params.showLightCones) { /* ... draw light cones ... */ }
+
+        ctx.strokeStyle = '#4a90e2';
+        ctx.beginPath(); ctx.moveTo(w/2, 0); ctx.lineTo(w/2, h); ctx.stroke(); // Inertial
+
+        if (params.a > 0) {
+            ctx.strokeStyle = 'var(--accent-color)';
+            const c = 1/params.a;
+            ctx.beginPath();
+            for(let t_proper = -5; t_proper < 5; t_proper += 0.1) {
+                const x = c * Math.cosh(params.a * t_proper);
+                const t = c * Math.sinh(params.a * t_proper);
+                ctx.lineTo(w/2 + x * 50, h/2 - t * 50);
+            }
+            ctx.stroke();
+
+            if (params.showHorizon) {
+                ctx.strokeStyle = '#ff0';
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath(); ctx.moveTo(0,h/2); ctx.lineTo(w,h/2); ctx.stroke(); // t=0 axis
+                ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(w,h); ctx.stroke(); // Rindler Horizon
+                ctx.setLineDash([]);
+            }
+        }
+    }
+
+    drawBogoliubov() { /* ... */ }
+    drawSpectrumChart() { /* ... */ }
+    drawTempChart() { /* ... */ }
+    updateMetrics() { /* ... */ }
+}
+</script>
+</body>
+</html>
