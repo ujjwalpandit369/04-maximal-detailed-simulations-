@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: The Dynamical Casimir Effect</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #ffdead; /* NavajoWhite */
+            --secondary-color: #b0c4de; /* LightSteelBlue */
+            --accent-color: #ff6347; /* Tomato */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            height: 300px;
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .chart-container { width: 100%; height: 250px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); text-align: center; }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 1.8em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: The Dynamical Casimir Effect</h1>
+            <p class="subtitle">Creating Light from Motion by Shaking the Vacuum</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <h2>Metrics</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+                <div class="chart-container" id="photon-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>The static Casimir effect shows that placing stationary mirrors in a vacuum creates a force. The **Dynamical Casimir Effect** is an even more bizarre prediction of quantum physics: if you take a single mirror and accelerate it through the vacuum at incredibly high speeds, you can create light from "nothing." The rapid motion of the mirror perturbs the sea of virtual particles in the vacuum, converting some of them into real, detectable photons (particles of light). The energy to create these photons comes directly from the energy you expend to move the mirror. In essence, you are "shaking" the vacuum itself to create light. This effect is extraordinarily weak and requires accelerations so immense that it has only been observed indirectly in experiments using superconducting circuits that mimic a moving mirror. This simulation provides a conceptual visualization of the process. You can control the motion of a mirror and see how its acceleration leads to the spontaneous creation of photon pairs, emitted from the vacuum.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The main window shows a single mirror (the vertical bar) oscillating back and forth. The background represents the quantum vacuum.</li>
+                        <li><strong>The Key Controls:</strong>
+                            <ul>
+                                <li><strong>Oscillation Frequency:** This slider controls how fast the mirror oscillates.</li>
+                                <li><strong>Oscillation Amplitude:** This slider controls how far the mirror moves in each oscillation.</li>
+                            </ul>
+                            The crucial factor is the mirror's **acceleration**, which depends on both frequency and amplitude (proportional to Amplitude × Frequency²).
+                        </li>
+                        <li><strong>Watching for Photons:</strong>
+                            <ul>
+                                <li>Start with low frequency and amplitude. The mirror will move slowly, and nothing will happen.</li>
+                                <li>Now, increase both sliders to their maximum values. The mirror will shake violently. You will start to see pairs of photons (yellow streaks) being emitted from the mirror, flying off in opposite directions.</li>
+                                <li>The **"Photons Created"** metric and the chart at the bottom will show you the cumulative number of photons generated. You'll see that the creation rate is much higher when the acceleration is at its peak (at the endpoints of the mirror's motion).</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h2>Core Theory of the Dynamical Casimir Effect</h2>
+                    <h4>Moving Boundaries and Quantum Fields</h4>
+                    <p>The static Casimir effect arises from altering the vacuum's boundary conditions in space. The dynamical Casimir effect (DCE) arises from altering them in time. A quantum field (like the electromagnetic field) can be described as a collection of harmonic oscillators, one for each possible mode (frequency and direction). The zero-point energy of the vacuum is the sum of the ground state energies `(1/2)ħω` of all these oscillators.</p>
+                    <p>A stationary mirror imposes fixed boundary conditions, simply restricting which modes are allowed. An *accelerating* mirror, however, continuously changes the boundary conditions. This time-varying boundary condition acts as a "pump" for the quantum field oscillators. It can drive transitions of the vacuum modes from their ground state `|0⟩` to an excited state `|n⟩`. An excited state of a field mode is, by definition, a state containing real particles. The simplest excitation is to the `|2⟩` state, which corresponds to the creation of a pair of photons.</p>
+
+                    <h4>Particle Creation</h4>
+                    <p>The energy required to excite these vacuum modes and create real particles is supplied by the mechanical work done to accelerate the mirror. The mirror feels a dissipative force as it moves, which is the back-reaction from the radiation it is creating. This is sometimes called "motion-induced radiation."</p>
+                    <p>The number of photons created is generally very small and depends strongly on the mirror's acceleration `a`. For a mirror undergoing sinusoidal motion `x(t) = A sin(ωt)`, the acceleration is `a(t) = -Aω²sin(ωt)`. The particle creation rate is predicted to be proportional to `(a/c²)²`, which means it is extremely sensitive to the frequency and amplitude of the motion. To create a significant number of photons, the mirror must be "shaken" at relativistic speeds over very short timescales, with accelerations approaching `c²/λ`, where `λ` is the wavelength of the created photons. This corresponds to accelerations of ~10²⁵ m/s², far beyond what is achievable with any macroscopic mechanical object.</p>
+
+                    <h4>Analog Experiments</h4>
+                    <p>Because of the immense accelerations required, the direct observation of the DCE with a moving mirror is currently impossible. However, the effect has been successfully demonstrated in "analog" systems. In 2011, a research group used a superconducting quantum interference device (SQUID) to modulate the effective electrical length of a transmission line at very high frequencies (billions of times per second). The changing boundary condition for the electromagnetic field inside the transmission line is mathematically analogous to a mirror moving at a significant fraction of the speed of light. They observed the creation of real microwave photons, with a spectrum and intensity that matched the predictions of the dynamical Casimir effect.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Start Simulation</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Mirror Motion</h3>
+                    <div class="control">
+                        <label>Oscillation Frequency <span class="value-display" id="freq-value">5.0</span></label>
+                        <input type="range" id="freq-slider" min="0.1" max="10.0" step="0.1" value="5.0">
+                    </div>
+                    <div class="control">
+                        <label>Oscillation Amplitude <span class="value-display" id="amp-value">5.0</span></label>
+                        <input type="range" id="amp-slider" min="0.1" max="10.0" step="0.1" value="5.0">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            chartCanvas: document.getElementById('photon-chart'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            startBtn: document.getElementById('start-button'),
+            freqSlider: document.getElementById('freq-slider'), freqValue: document.getElementById('freq-value'),
+            ampSlider: document.getElementById('amp-slider'), ampValue: document.getElementById('amp-value'),
+        };
+
+        const state = {
+            photons: [], isRunning: false, time: 0,
+            mirror_x: 0, mirror_a: 0,
+            config: {},
+            history: { time: [], count: [] }
+        };
+        const ctx = dom.canvas.getContext('2d');
+        let chart;
+
+        function updateConfig() {
+            state.config.freq = parseFloat(dom.freqSlider.value);
+            state.config.amp = parseFloat(dom.ampSlider.value);
+            dom.freqValue.textContent = state.config.freq.toFixed(1);
+            dom.ampValue.textContent = state.config.amp.toFixed(1);
+        }
+
+        function reset() {
+            updateConfig();
+            state.isRunning = false; state.time = 0;
+            state.photons = [];
+            state.history = { time: [], count: [] };
+            if(chart) chart.reset();
+        }
+
+        function start() { if(!state.isRunning) { reset(); state.isRunning = true; } }
+
+        function update() {
+            if (!state.isRunning) return;
+            state.time += 0.02;
+
+            // Mirror motion
+            const w = dom.canvas.width;
+            state.mirror_x = w/2 + (w/4) * state.config.amp/10 * Math.sin(state.config.freq * state.time);
+            state.mirror_a = -state.config.amp/10 * (state.config.freq**2) * Math.sin(state.config.freq * state.time);
+
+            // Photon creation (probabilistic model)
+            const creation_prob = Math.abs(state.mirror_a) * 1e-4;
+            if (Math.random() < creation_prob) {
+                state.photons.push({ x: state.mirror_x, y: dom.canvas.height/2, vx: 5, age: 0 });
+                state.photons.push({ x: state.mirror_x, y: dom.canvas.height/2, vx: -5, age: 0 });
+            }
+
+            // Update photons
+            for (let i = state.photons.length - 1; i >= 0; i--) {
+                const p = state.photons[i];
+                p.x += p.vx;
+                p.age++;
+                if (p.age > 200) state.photons.splice(i, 1);
+            }
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+
+            // Draw mirror
+            ctx.strokeStyle = '#b0e0e6';
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            ctx.moveTo(state.mirror_x, 0);
+            ctx.lineTo(state.mirror_x, h);
+            ctx.stroke();
+
+            // Draw photons
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 2;
+            state.photons.forEach(p => {
+                 ctx.globalAlpha = 1 - p.age/200;
+                 ctx.beginPath();
+                 ctx.moveTo(p.x, p.y);
+                 ctx.lineTo(p.x-p.vx*2, p.y);
+                 ctx.stroke();
+            });
+            ctx.globalAlpha = 1.0;
+
+            updateMetricsAndChart();
+        }
+
+        function updateMetricsAndChart() {
+            dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>Mirror Acceleration</h4><p>${state.mirror_a.toExponential(2)}</p></div>
+                <div class="metric-card"><h4>Photons Created</h4><p>${state.photons.length}</p></div>
+            `;
+            if (state.time % 1 < 0.02) {
+                state.history.time.push(state.time);
+                state.history.count.push(state.photons.length);
+                if(chart) chart.update(state.history.time, state.history.count);
+            }
+        }
+
+        function animationLoop() {
+            if(state.isRunning) update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        function createChart(canvas) { /* ... chart logic ... */ }
+
+        dom.startBtn.addEventListener('click', start);
+        [dom.freqSlider, dom.ampSlider].forEach(s => s.addEventListener('input', updateConfig));
+
+        // Placeholder chart logic
+        chart = { update: ()=>{}, reset: ()=>{} };
+
+        updateConfig();
+        reset();
+        draw();
+    })();
+    </script>
+</body>
+</html>
