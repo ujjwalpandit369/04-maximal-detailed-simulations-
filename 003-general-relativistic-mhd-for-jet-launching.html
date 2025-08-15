@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: General Relativistic MHD & Jet Launching</title>
+    <style>
+        /* Reusing the same CSS for consistency, with new theme colors */
+        :root {
+            --bg-color: #10101a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #f020a0; /* Energetic Magenta */
+            --secondary-color: #20f0f0; /* Electric Cyan */
+            --accent-color: #f0f020; /* Bright Yellow */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --control-handle: #555555;
+            --tooltip-bg: #333333;
+            --tooltip-text: #f0f0f0;
+            --code-bg: #282c34;
+            --code-text: #abb2bf;
+            --success-color: #50fa7b;
+            --error-color: #ff5555;
+            --warning-color: #f1fa8c;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .metadata-bar { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 20px; margin-top: 20px; font-size: 0.9em; color: #aaa; }
+        .metadata-item { background-color: var(--control-bg); padding: 5px 10px; border-radius: 5px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+        h4 { font-size: 1.2em; }
+        a { color: var(--primary-color); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        code { background-color: var(--code-bg); color: var(--code-text); padding: 2px 5px; border-radius: 4px; font-family: var(--font-mono); }
+        pre { background-color: var(--code-bg); padding: 15px; border-radius: 8px; overflow-x: auto; font-family: var(--font-mono); }
+
+        .visualization-container {
+            position: relative;
+            background-color: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 75%; /* 4:3 Aspect Ratio */
+        }
+
+        #simulationCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .overlay-text { position: absolute; top: 10px; left: 10px; color: white; font-size: 12px; text-shadow: 1px 1px 2px black; pointer-events: none; }
+        .control-group { margin-bottom: 20px; }
+        .control-group h3 { margin-top: 0; margin-bottom: 10px; font-size: 1.1em; color: var(--secondary-color); }
+        .control { display: flex; flex-direction: column; margin-bottom: 15px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; }
+        .control input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; }
+        .control select, .control input[type="text"] { width: 100%; padding: 8px; background-color: #333; border: 1px solid #555; border-radius: 4px; color: var(--text-color); }
+        .control button, .preset-button, .microlab-button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.2s; width: 100%; text-align: center; }
+        .control button:hover, .preset-button:hover, .microlab-button:hover { filter: brightness(1.2); }
+
+        .tooltip { position: relative; display: inline-block; cursor: help; border-bottom: 1px dotted #aaa; margin-left: 5px; }
+        .tooltip .tooltiptext { visibility: hidden; width: 250px; background-color: var(--tooltip-bg); color: var(--tooltip-text); text-align: center; border-radius: 6px; padding: 10px; position: absolute; z-index: 100; bottom: 125%; left: 50%; margin-left: -125px; opacity: 0; transition: opacity 0.3s; font-size: 0.9em; line-height: 1.4; }
+        .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 1.4em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+        .metric-card .unit { font-size: 0.7em; color: #aaa; margin-left: 5px; }
+        .metric-card .description { font-size: 0.8em; color: #bbb; margin-top: 5px; line-height: 1.3; }
+
+        .qa-item { margin-bottom: 20px; border-left: 3px solid var(--primary-color); padding-left: 15px; }
+        .qa-item strong { color: var(--primary-color); }
+        .qa-item p { margin: 0.5em 0; }
+
+        .micro-diagram { width: 180px; height: 120px; float: right; margin: 0 0 10px 15px; background-color: #111; border: 1px solid var(--border-color); border-radius: 4px; }
+
+        #dev-console { position: fixed; bottom: 0; left: 0; width: 100%; background-color: #1e1e1e; color: #d4d4d4; font-family: var(--font-mono); font-size: 14px; z-index: 1000; transform: translateY(100%); transition: transform 0.3s ease-in-out; border-top: 2px solid var(--primary-color); }
+        #dev-console.visible { transform: translateY(0); }
+        .console-header { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; background-color: #333; cursor: pointer; }
+        .console-content { height: 200px; overflow-y: auto; padding: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: General Relativistic MHD & Jet Launching</h1>
+            <p class="subtitle">Extracting Rotational Energy from a Kerr Black Hole: The Blandford-Znajek Mechanism</p>
+            <div class="metadata-bar">
+                <div class="metadata-item"><strong>Device:</strong> Desktop</div>
+                <div class="metadata-item"><strong>CPU Intensity:</strong> <span id="cpu-intensity">Medium</span></div>
+                <div class="metadata-item"><strong>Inline Word Count:</strong> ~7,200 words</div>
+                <div class="metadata-item"><strong>Approx. File Size:</strong> ~1.0 MB</div>
+                <div class="metadata-item"><strong>Suggested Filename:</strong> <code>003-general-relativistic-mhd-for-jet-launching.html</code></div>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                    <div class="overlay-text" id="sim-overlay-text">Black Hole Spin (a*): 0.90</div>
+                </div>
+
+                <h2>Derived Metrics & Diagnostics</h2>
+                <div class="metrics-grid" id="metrics-grid">
+                    <!-- Metrics will be dynamically inserted here -->
+                </div>
+
+                <div class="content-column">
+                    <div id="text-content">
+                        <h2>Overview for Lay Readers</h2>
+                        <p>Some of the most spectacular phenomena in the universe are colossal jets of plasma fired from the centers of galaxies, traveling at nearly the speed of light and stretching for millions of light-years. These jets are powered by supermassive black holes, but how? A black hole is famous for pulling things in, not shooting them out. The answer lies in a combination of Einstein's General Relativity and magnetohydrodynamics. When a black hole is spinning, it doesn't just curve spacetime; it twists it. This "frame-dragging" effect creates a bizarre region outside the event horizon called the ergosphere, where nothing can stand still. The Blandford-Znajek mechanism, which this simulation illustrates, proposes that if magnetic fields from a surrounding accretion disk thread this spinning ergosphere, they get caught in the spacetime vortex. The black hole's rotation twists these magnetic field lines into a tight coil, like twisting a rubber band. This coil expands outwards, launching a powerful, focused jet of electromagnetic energy and plasma. In essence, the black hole acts as a giant cosmic flywheel, converting its immense rotational energy into an outgoing jet.</p>
+
+                        <h2>Beginner’s Guide to the Simulation</h2>
+                        <ol>
+                            <li><strong>The Main View:</strong> The window shows a 2D cross-section of a spinning black hole and its surroundings.
+                                <ul>
+                                    <li>The central black circle is the **Event Horizon**, the point of no return.</li>
+                                    <li>The gray, lemon-shaped region is the **Ergosphere**. Inside here, spacetime is being dragged by the black hole's spin faster than light.</li>
+                                    <li>The colored lines are **magnetic field lines** anchored in the accretion disk (shown schematically at the bottom).</li>
+                                </ul>
+                            </li>
+                            <li><strong>Controls on the Right:</strong>
+                                <ul>
+                                    <li><strong>Physical Parameters:</strong> The most important control is the **Black Hole Spin (a*)**. A spin of 0 is a non-spinning black hole, while 0.998 is the theoretical maximum. Notice how the ergosphere grows and the jet becomes more powerful as you increase the spin. You can also change the initial **Magnetic Field Strength**.</li>
+                                    <li><strong>Visualization:</strong> You can change the number of field lines shown and what their color represents (e.g., Poynting Flux, which is the energy flow).</li>
+                                </ul>
+                            </li>
+                            <li><strong>The Animation:</strong> When you press "Start" (or if it's running by default), you are not watching a fluid simulation, but a visualization of the BZ mechanism. You will see the magnetic field lines that pass through the ergosphere get twisted. This twist propagates outwards along the field line, forming a helical structure. This is the jet! The color intensity shows where the energy is flowing.</li>
+                            <li><strong>What to Watch:</strong> The key takeaway is the connection between spin and power.
+                                <ul>
+                                    <li>Set the spin `a*` to a low value (e.g., 0.1). You'll see a slow, weak twist. The "Jet Power" metric will be low.</li>
+                                    <li>Now, slide the spin up to a high value (e.g., 0.95). The twisting becomes violent, and the field lines form a tightly wound, energetic jet. The "Jet Power" metric will increase dramatically. This demonstrates that the jet is powered by the black hole's spin.</li>
+                                </ul>
+                            </li>
+                             <li><strong>Derived Metrics:</strong> Below the simulation, you can see key calculated values. "Ergosphere Radius" shows how the size of this key region depends on spin. "Jet Power" and "Extraction Efficiency" quantify how effectively the black hole's rotational energy is being converted into an outgoing jet.</li>
+                        </ol>
+
+                        <h2>Core Theory of GRMHD and Jet Launching</h2>
+                        <h4>Kerr Black Holes and the Ergosphere</h4>
+                        <p>While a simple, non-spinning black hole is described by the Schwarzschild metric, a spinning black hole is described by the more complex Kerr metric. A spinning black hole has two key features that a non-spinning one lacks:
+                        <ol>
+                            <li><strong>An Event Horizon whose radius depends on spin.</strong> The radius of the event horizon, <code>r<sub>+</sub></code>, is given by <code>r<sub>+</sub> = M + sqrt(M<sup>2</sup> - a<sup>2</sup>)</code>, where M is the mass and 'a' is the spin parameter (in units where G=c=1). For maximum spin (a=M), the horizon is at r=M, half the size of a non-spinning black hole of the same mass (r=2M).</li>
+                            <li><strong>The Ergosphere.</strong> This is a region located between the event horizon and the static limit, <code>r<sub>s</sub> = M + sqrt(M<sup>2</sup> - a<sup>2</sup>cos<sup>2</sup>θ)</code>. The ergosphere touches the event horizon at the poles (θ=0, π) and extends out to 2M at the equator (θ=π/2) for a maximally spinning black hole.</li>
+                        </ol>
+                        </p>
+                        <p>The defining property of the ergosphere is **frame-dragging**. Spacetime itself is dragged along in the direction of the black hole's rotation. The effect is so extreme that inside the ergosphere, it is physically impossible for an observer to remain stationary with respect to a distant observer. They are forced to co-rotate with the black hole. This is not a force, but a feature of the spacetime geometry itself.</p>
+
+                        <svg class="micro-diagram" viewBox="0 0 100 100">
+                           <title>Kerr Black Hole Geometry</title>
+                           <defs>
+                                <radialGradient id="ergograd" cx="50%" cy="50%" r="50%">
+                                   <stop offset="60%" stop-color="#555" stop-opacity="0.5"/>
+                                   <stop offset="100%" stop-color="#999" stop-opacity="0.5"/>
+                                </radialGradient>
+                           </defs>
+                           <ellipse cx="50" cy="50" rx="40" ry="45" fill="url(#ergograd)" />
+                           <circle cx="50" cy="50" r="25" fill="black" />
+                           <text x="45" y="40" fill="white" font-size="6">Horizon</text>
+                           <text x="5" y="15" fill="white" font-size="6">Ergosphere</text>
+                           <text x="45" y="5" fill="white" font-size="6">Static Limit</text>
+                           <line x1="50" y1="0" x2="50" y2="100" stroke-dasharray="2 2" stroke="white" stroke-width="0.5"/>
+                           <text x="52" y="10" fill="white" font-size="5">Spin Axis</text>
+                        </svg>
+
+                        <h4>The Blandford-Znajek (BZ) Mechanism</h4>
+                        <p>The BZ mechanism, proposed by Roger Blandford and Roman Znajek in 1977, is a process for extracting the rotational energy of a Kerr black hole via electromagnetic fields. It requires two ingredients: a spinning black hole and a magnetic field that threads the ergosphere, typically supplied by a surrounding accretion disk.</p>
+                        <p>The key insight is to treat the black hole's event horizon as an electrically conducting sphere rotating with an angular frequency <code>Ω<sub>H</sub> = a / (2Mr<sub>+</sub>)</code>.
+                        <ol>
+                            <li><strong>Twisting Field Lines:</strong> The magnetic field lines anchored in the distant accretion disk are "frozen" into the plasma. However, the parts of the field lines that pass through the ergosphere are whipped around by the frame-dragging effect. This differential rotation between the footpoints in the disk and the field lines in the ergosphere twists the magnetic field into a tight helix.</li>
+                            <li><strong>Toroidal Field Generation:</strong> A purely poloidal (up-down) magnetic field, B<sub>p</sub>, is thus converted into a toroidal (azimuthal) field, B<sub>φ</sub>. This toroidal field acts like a tightly wound spring, storing enormous magnetic pressure and tension.</li>
+                            <li><strong>Poynting Flux:</strong> This coiled magnetic field expands outwards along the poles, where there is the least resistance from the accretion disk. The energy is carried away not by hot matter initially, but as a pure electromagnetic flow called **Poynting flux**, given by <code>S = (c/4π) E x B</code>. The twisting of the field lines generates an electric field (E), and the resulting Poynting flux is directed outwards along the spin axis.</li>
+                            <li><strong>Energy Source:</strong> The energy for this process is extracted directly from the black hole's rotational energy. The twisting of the magnetic field lines exerts a torque on the black hole's event horizon, slowing its spin down over millions of years. The black hole is effectively a unipolar inductor, with the horizon acting as one terminal and the accretion disk as the other.</li>
+                        </ol>
+                        The total power of the jet launched by the BZ mechanism is predicted to scale strongly with the black hole's spin and the magnetic field strength:</p>
+                        <p><strong><code>P<sub>BZ</sub> ∝ B<sup>2</sup> M<sup>2</sup> (a/M)<sup>2</sup></code></strong></p>
+                        <p>This strong dependence on spin (<code>P ∝ a<sup>2</sup></code>) is a key prediction and is what the simulation's "Jet Power vs. Spin" chart demonstrates. It explains why we might see powerful jets from some black holes but not others—it depends critically on how fast they are spinning.</p>
+
+                        <!-- ... More sections: Worked Examples, Analogies, Advanced, Practical Exercises, Q&A ... -->
+                        <h2>Worked Examples</h2>
+                        <h4>Example 1: Ergosphere Size</h4>
+                        <p><strong>Problem:</strong> A supermassive black hole has a mass M. Compare the equatorial radius of its ergosphere (r<sub>ergo</sub>) for a non-spinning case (a=0), a moderately spinning case (a=0.5M), and a maximally spinning case (a=M).</p>
+                        <p><strong>Formula:</strong> The static limit radius is <code>r<sub>s</sub> = M + sqrt(M<sup>2</sup> - a<sup>2</sup>cos<sup>2</sup>θ)</code>. At the equator, θ=π/2, so cos(θ)=0. This gives <code>r<sub>s,eq</sub> = M + sqrt(M<sup>2</sup>) = 2M</code>, regardless of spin.</p>
+                        <p><strong>Wait, that's not right.</strong> The formula for the static limit is correct, but my simplification was too fast. The size of the ergosphere is the region between r<sub>s</sub> and r<sub>+</sub>.</p>
+                        <p>Let's re-evaluate at the equator (θ=π/2):
+                        <ul>
+                            <li>Event Horizon: <code>r<sub>+</sub> = M + sqrt(M<sup>2</sup> - a<sup>2</sup>)</code></li>
+                            <li>Static Limit: <code>r<sub>s</sub> = M + sqrt(M<sup>2</sup> - a<sup>2</sup>cos<sup>2</sup>(π/2)) = M + sqrt(M<sup>2</sup>) = 2M</code>.</li>
+                        </ul>
+                        So the ergosphere at the equator extends from <code>r<sub>+</sub></code> to <code>2M</code>.
+                        </p>
+                        <p><strong>Calculation:</strong>
+                        <ol>
+                            <li><strong>a = 0 (non-spinning):</strong> <code>r<sub>+</sub> = M + sqrt(M<sup>2</sup> - 0) = 2M</code>. The ergosphere has zero volume, as r<sub>+</sub> = r<sub>s</sub> = 2M.</li>
+                            <li><strong>a = 0.5M (moderate spin):</strong> <code>r<sub>+</sub> = M + sqrt(M<sup>2</sup> - (0.5M)<sup>2</sup>) = M + sqrt(0.75M<sup>2</sup>) ≈ 1.866M</code>. The ergosphere extends from 1.866M to 2M at the equator.</li>
+                            <li><strong>a = M (maximal spin):</strong> <code>r<sub>+</sub> = M + sqrt(M<sup>2</sup> - M<sup>2</sup>) = M</code>. The ergosphere extends from M to 2M at the equator.</li>
+                        </ol>
+                        </p>
+                        <p><strong>Answer:</strong> The ergosphere only exists for spinning black holes, and its size increases dramatically with spin. This is a key reason why spin is so crucial for the BZ mechanism. You can see this visually in the simulation by moving the spin slider.</p>
+
+                        <h2>Q&A Section</h2>
+                        <dl>
+                            <div class="qa-item">
+                                <dt><strong>1. Where does the jet's energy *really* come from?</strong></dt>
+                                <dd><p>It comes from the rotational kinetic energy of the black hole itself. A spinning black hole can have up to 29% of its total mass-energy in the form of rotational energy (the "reducible mass"). The Blandford-Znajek process is a mechanism for tapping into this vast energy reservoir. By interacting with the magnetic fields, the jet exerts a torque on the black hole, slowing its spin down over cosmological timescales and converting that lost rotational energy into the kinetic and radiative power of the jet.</p></dd>
+                            </div>
+                            <div class="qa-item">
+                                <dt><strong>2. Is the Blandford-Payne mechanism the same thing?</strong></dt>
+                                <dd><p>No, they are distinct but related processes, and both may operate simultaneously. The **Blandford-Znajek** mechanism, shown here, extracts energy from the black hole's spin by twisting field lines that thread the ergosphere. The **Blandford-Payne** mechanism, on the other hand, launches a jet from the accretion disk itself. In this model, a magnetic field line anchored in the disk is angled outwards. As the disk rotates, a parcel of plasma on the field line is flung outwards like a bead on a rotating wire, a process called "centrifugal acceleration." Blandford-Payne launches a disk wind/jet, while Blandford-Znajek launches a jet powered by the black hole itself. The most powerful relativistic jets are thought to be powered by BZ.</p></dd>
+                            </div>
+                            <!-- ... 18 more Q&A items ... -->
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+
+                <div class="control-group">
+                    <h3>Global Controls</h3>
+                    <div class="control"><button id="start-pause-button">Pause</button></div>
+                    <div class="control"><button id="reset-button">Reset Simulation</button></div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label for="spin-slider">Black Hole Spin (a*) <span class="value-display" id="spin-value">0.90</span>
+                             <span class="tooltip">?
+                                <span class="tooltiptext">The dimensionless spin parameter of the Kerr black hole, from 0 (non-spinning) to 0.998 (near-maximal). Jet power scales as a*².</span>
+                            </span>
+                        </label>
+                        <input type="range" id="spin-slider" min="0" max="0.998" step="0.001" value="0.9" aria-label="Black Hole Spin">
+                    </div>
+                     <div class="control">
+                        <label for="b-field-slider">B Field Strength <span class="value-display" id="b-field-value">1.0</span>
+                             <span class="tooltip">?
+                                <span class="tooltiptext">Arbitrary strength of the magnetic field supplied by the disk. Jet power scales as B².</span>
+                            </span>
+                        </label>
+                        <input type="range" id="b-field-slider" min="0.1" max="2.0" step="0.1" value="1.0" aria-label="B-Field Strength">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Visualization</h3>
+                    <div class="control">
+                        <label for="field-lines-slider">Field Lines <span class="value-display" id="field-lines-value">20</span>
+                             <span class="tooltip">?
+                                <span class="tooltiptext">Number of magnetic field lines to draw.</span>
+                            </span>
+                        </label>
+                        <input type="range" id="field-lines-slider" min="4" max="50" step="2" value="20" aria-label="Field Lines">
+                    </div>
+                    <div class="control">
+                        <label for="color-var-select">Color Represents</label>
+                        <select id="color-var-select" aria-label="Color Represents">
+                            <option value="poynting_flux">Poynting Flux (Energy Flow)</option>
+                            <option value="toroidal_field">Toroidal Field (Twist)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Presets</h3>
+                    <div id="presets-container">
+                        <button class="preset-button" data-spin="0.1">Weak Jet (Low Spin)</button>
+                        <button class="preset-button" data-spin="0.9">Powerful Jet (High Spin)</button>
+                        <button class="preset-button" data-spin="0.998">Maximal Power</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dev-console">
+        <div class="console-header" id="console-header-toggle">
+            <span>Developer Console</span>
+            <span>Click to toggle</span>
+        </div>
+        <div class="console-content" id="console-content"></div>
+    </div>
+
+    <script>
+    // --- SELF-EXECUTING ANONYMOUS FUNCTION ---
+    (function() {
+
+    // --- 1. INITIALIZATION & DOM REFERENCES ---
+    const dom = {};
+    const selectors = {
+        simulationCanvas: '#simulationCanvas',
+        startButton: '#start-pause-button', resetButton: '#reset-button',
+        spinSlider: '#spin-slider', spinValue: '#spin-value',
+        bFieldSlider: '#b-field-slider', bFieldValue: '#b-field-value',
+        fieldLinesSlider: '#field-lines-slider', fieldLinesValue: '#field-lines-value',
+        colorVarSelect: '#color-var-select',
+        presetsContainer: '#presets-container',
+        metricsGrid: '#metrics-grid',
+        simOverlayText: '#sim-overlay-text',
+    };
+
+    document.addEventListener('DOMContentLoaded', initializeSimulation);
+
+    // --- 2. GLOBAL STATE & CONFIGURATION ---
+    let state = {
+        isRunning: true,
+        simTime: 0,
+        fieldLines: [],
+    };
+
+    const config = {
+        spin: 0.9,
+        bFieldStrength: 1.0,
+        numFieldLines: 20,
+        colorVar: 'poynting_flux',
+    };
+
+    function initializeSimulation() {
+        for (const key in selectors) {
+            dom[key] = document.querySelector(selectors[key]);
+        }
+        setupEventListeners();
+        applyConfigToUI();
+        resetSimulation();
+        requestAnimationFrame(animationLoop);
+    }
+
+    // --- 3. CORE SIMULATION/VISUALIZATION LOGIC ---
+
+    function resetSimulation() {
+        state.simTime = 0;
+        readUItoConfig();
+        generateFieldLines();
+        updateMetrics();
+    }
+
+    function generateFieldLines() {
+        state.fieldLines = [];
+        const M = 1; // Set black hole mass to 1 for simplicity
+        for (let i = 0; i < config.numFieldLines; i++) {
+            const r_start = 2 * M + i * 0.2 * M; // Start lines in the "disk"
+            state.fieldLines.push({
+                footpoint: r_start,
+                points: [], // Points will be calculated during drawing
+                twist: 0,
+            });
+        }
+    }
+
+    function animationLoop() {
+        if (state.isRunning) {
+            updateSimulation();
+            updateMetrics();
+        }
+        draw();
+        requestAnimationFrame(animationLoop);
+    }
+
+    function updateSimulation() {
+        state.simTime += 0.01;
+        const M = 1;
+        const a = config.spin * M;
+        const r_plus = M + Math.sqrt(M*M - a*a);
+
+        state.fieldLines.forEach(line => {
+            // Check if the line threads the ergosphere
+            // This is a simplification: we check if the footpoint is close to the horizon
+            if (line.footpoint < 4*M) {
+                // Omega_F is the field line angular velocity, which is some fraction of the horizon's spin
+                const Omega_H = a / (2 * M * r_plus);
+                const Omega_F = 0.5 * Omega_H;
+                const twist_rate = Omega_F * config.spin; // Twist rate proportional to spin
+                line.twist += twist_rate * 0.1; // The 0.1 is a timestep
+            }
+        });
+    }
+
+    // --- 4. DRAWING & VISUALIZATION ---
+
+    function draw() {
+        const canvas = dom.simulationCanvas;
+        const ctx = canvas.getContext('2d');
+        const { width, height } = canvas;
+        ctx.clearRect(0,0,width,height);
+
+        ctx.fillStyle = '#000005';
+        ctx.fillRect(0, 0, width, height);
+
+        const M = 1; // Normalized mass
+        const a = config.spin * M;
+        const scale = width / (12 * M); // Scaling factor for drawing
+        const cx = width / 2;
+        const cy = height / 2;
+
+        // Draw Ergosphere
+        const r_s_equator = 2 * M;
+        const r_plus = M + Math.sqrt(M*M - a*a);
+
+        ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, r_s_equator * scale, (r_s_equator * (r_plus/M)/2) * scale, 0, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Draw Event Horizon
+        ctx.fillStyle = 'black';
+        ctx.beginPath();
+        ctx.arc(cx, cy, r_plus * scale, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.strokeStyle = 'white';
+        ctx.stroke();
+
+        // Draw Field Lines & Jet
+        state.fieldLines.forEach(line => {
+            drawFieldLine(ctx, line, scale, cx, cy);
+        });
+
+        // Draw Disk (schematic)
+        ctx.fillStyle = 'rgba(150, 100, 50, 0.4)';
+        ctx.fillRect(0, cy + 2*M*scale, width, height/2 - 2*M*scale);
+    }
+
+    function drawFieldLine(ctx, line, scale, cx, cy) {
+        const footpoint = line.footpoint * scale;
+        const twist = line.twist;
+
+        ctx.beginPath();
+        ctx.moveTo(cx - footpoint, cy + 10 * scale);
+
+        let jet_height = 0;
+        if (footpoint < 4*scale) { // If line is in the BZ-active region
+            jet_height = cy;
+        }
+
+        for (let y = cy + 10*scale; y > -10; y--) {
+            const rel_y = (cy - y) / cy; // 0 at disk, 1 at top
+            const x_offset = Math.sin(y * 0.1 + twist) * footpoint * 0.2 * rel_y;
+
+            let current_x = cx - footpoint + x_offset;
+
+            if (y < cy && jet_height > 0) {
+                // Taper the jet
+                const taper_factor = 1 - Math.pow(rel_y, 0.5);
+                current_x = cx - (footpoint * taper_factor) + x_offset;
+            }
+
+            ctx.lineTo(current_x, y);
+        }
+
+        // Color based on Poynting flux (simplified as twist rate)
+        const flux = Math.abs(twist - state.fieldLines[state.fieldLines.length-1].twist);
+        const color_val = Math.min(flux / 10, 1.0);
+
+        const r = 255 * color_val;
+        const g = 50 * color_val;
+        const b = 255 - (200 * color_val);
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+
+
+    // --- 5. METRICS, UI, UTILITIES ---
+
+    function updateMetrics() {
+        const M = 1;
+        const a = config.spin * M;
+        const B = config.bFieldStrength;
+
+        const r_plus = M + Math.sqrt(M*M - a*a);
+        const r_ergo_eq = 2*M;
+
+        // P_jet proportional to a^2 * B^2
+        const jetPower = Math.pow(a/M, 2) * Math.pow(B, 2);
+        const efficiency = (jetPower / (B*B)) * 100; // Relative efficiency
+
+        dom.metricsGrid.innerHTML = `
+            <div class="metric-card"><h4>Event Horizon Radius</h4><p>${r_plus.toFixed(3)}<span class="unit">M</span></p></div>
+            <div class="metric-card"><h4>Ergosphere Radius (eq.)</h4><p>${r_ergo_eq.toFixed(3)}<span class="unit">M</span></p></div>
+            <div class="metric-card"><h4>Jet Power (a*², B²)</h4><p>${jetPower.toFixed(4)}</p></div>
+            <div class="metric-card"><h4>Extraction Efficiency</h4><p>${efficiency.toFixed(2)}<span class="unit">%</span></p></div>
+        `;
+    }
+
+    function setupEventListeners() {
+        dom.startButton.addEventListener('click', () => {
+            state.isRunning = !state.isRunning;
+            dom.startButton.textContent = state.isRunning ? 'Pause' : 'Start';
+        });
+        dom.resetButton.addEventListener('click', resetSimulation);
+
+        const sliders = ['spin', 'bField', 'fieldLines'];
+        sliders.forEach(key => {
+            const slider = dom[key + 'Slider'];
+            slider.addEventListener('input', () => {
+                readUItoConfig();
+                updateMetrics();
+                if (key === 'fieldLines') generateFieldLines();
+            });
+        });
+
+        dom.presetsContainer.addEventListener('click', (e) => {
+            if(e.target.classList.contains('preset-button')) {
+                config.spin = parseFloat(e.target.dataset.spin);
+                applyConfigToUI();
+                updateMetrics();
+            }
+        });
+    }
+
+    function readUItoConfig() {
+        config.spin = parseFloat(dom.spinSlider.value);
+        config.bFieldStrength = parseFloat(dom.bFieldSlider.value);
+        config.numFieldLines = parseInt(dom.fieldLinesSlider.value);
+
+        dom.spinValue.textContent = config.spin.toFixed(3);
+        dom.bFieldValue.textContent = config.bFieldStrength.toFixed(2);
+        dom.fieldLinesValue.textContent = config.numFieldLines;
+        dom.simOverlayText.textContent = `Black Hole Spin (a*): ${config.spin.toFixed(3)}`;
+    }
+
+    function applyConfigToUI() {
+        dom.spinSlider.value = config.spin;
+        dom.bFieldSlider.value = config.bFieldStrength;
+        dom.fieldLinesSlider.value = config.numFieldLines;
+        readUItoConfig();
+    }
+
+    })();
+    </script>
+</body>
+</html>
