@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Dark Matter Halo Mergers</title>
+    <style>
+        /* Consistent CSS from previous simulations */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #5e3a8c; --secondary-color: #b1a5c1; --accent-color: #f9b115;
+            --border-color: #dee2e6;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .sim-container { display: grid; grid-template-columns: 1fr 350px; gap: 30px; margin-top: 30px; }
+        .vis-panel canvas { width: 100%; aspect-ratio: 1; border: 2px solid var(--border-color); background-color: #000; }
+        .controls-panel { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid var(--border-color); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deep Simulation: Dark Matter Halo Formation & Mergers</h1>
+        <p class="subtitle">An N-body simulation showing how galaxies' host halos form and grow.</p>
+    </header>
+
+    <div class="container">
+        <div class="sim-container">
+            <div class="vis-panel">
+                <canvas id="main-canvas" width="512" height="512"></canvas>
+            </div>
+            <div class="controls-panel">
+                <h3>Controls</h3>
+                <div class="control-group">
+                    <button id="start-btn">Start</button>
+                    <button id="reset-btn">Reset</button>
+                </div>
+                <div class="control-group">
+                    <label for="scenario-select">Scenario:</label>
+                    <select id="scenario-select">
+                        <option value="collapse">Single Halo Collapse</option>
+                        <option value="merger">Head-on Merger</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Number of Particles: <span id="n-parts-value">1024</span></label>
+                    <input type="range" id="n-parts-slider" min="256" max="2048" step="256" value="1024">
+                </div>
+                 <div class="control-group">
+                    <label>Theta (Tree Algorithm): <span id="theta-value">0.7</span></label>
+                    <input type="range" id="theta-slider" min="0" max="1.5" step="0.1" value="0.7">
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section" id="exposition-section">
+            <h2>Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: Gravity's Building Blocks</h3>
+                <p>Galaxies like our own Milky Way are not isolated islands in space. They are embedded within vast, invisible spheres of dark matter called "halos." These halos are the true building blocks of the cosmos, acting as gravitational anchors where gas can cool and form the stars and galaxies we see. This simulation shows how these fundamental structures are assembled. You can select two scenarios. The first, "Single Halo Collapse," shows how a diffuse cloud of dark matter particles, under its own gravity, collapses and settles into a stable, spherical halo. The particles don't all clump in the center; they pick up speed as they fall, and end up in stable orbits, a process called "virialization."</p>
+                <p>The second scenario, "Head-on Merger," shows the most common way halos grow in the real universe: by colliding and merging with each other. Here, two stable halos are sent on a collision course. The merger is an incredibly violent process. The tidal forces rip the halos apart, casting streams of particles out into space before gravity pulls them back together. This chaotic scrambling of orbits, known as "violent relaxation," eventually smooths out, leaving a single, larger, and hotter (more energetic) halo. This process, repeated over and over, is how the largest galaxy clusters in the universe are built.</p>
+            </section>
+            <section>
+                <h3>Core Theory: Collisionless Dynamics and Violent Relaxation</h3>
+                <p>This simulation models the behavior of dark matter, which is treated as a "collisionless" fluid. This means the particles interact only through long-range gravity; they do not physically collide or stick together like normal matter. The dynamics are governed purely by the N-body problem under gravity.</p>
+                <p><b>1. The Barnes-Hut Algorithm:</b> To make the calculation of gravitational forces efficient, this simulation uses a Barnes-Hut tree algorithm. This is a hierarchical method that speeds up the force calculation from O(N²) to O(N log N). It works by recursively dividing the simulation space into a quadtree (a 2D version of an octree). For any given particle, the force from a distant group of particles can be approximated by treating the entire group as a single point mass located at their center of mass. The algorithm traverses the tree, and if a node (a quadrant) is sufficiently far away (determined by the opening angle parameter, `θ`), it uses the single-point approximation. If the node is too close, it resolves the node into its children and repeats the process. This allows for a massive speed-up while maintaining reasonable accuracy.</p>
+                <p><b>2. Virialization:</b> When a cloud of dark matter collapses, it doesn't form a single point. As particles fall inward, they gain kinetic energy (speed up). The system eventually reaches a stable state called virial equilibrium, where there is a balance between the total kinetic energy (K) and the total potential energy (U). The Virial Theorem states that for a stable, self-gravitating system, `2K + U = 0`. The final halo is a dynamic object, with particles on a complex web of orbits that maintain a stable overall density profile.</p>
+                <p><b>3. Violent Relaxation:</b> During a merger, the gravitational potential changes rapidly and violently. Individual particle orbits are completely disrupted. The energy of a single particle is no longer conserved. However, the system as a whole settles into a new virial equilibrium. This process, termed "violent relaxation" by Lynden-Bell, is highly efficient at erasing the memory of the initial halos' structure and producing a new, relaxed halo that looks remarkably similar to other halos, regardless of the specifics of the merger. This is why dark matter halos, whether formed by collapse or mergers, tend to have a universal density profile.</p>
+                <p><b>4. The NFW Profile:</b> High-resolution cosmological simulations have shown that virialized dark matter halos tend to follow a universal density profile known as the Navarro-Frenk-White (NFW) profile:
+                <br><code>ρ(r) = ρ₀ / [ (r/r_s) * (1 + r/r_s)² ]</code>
+                <br>where `r_s` is a characteristic scale radius and `ρ₀` is a density parameter. This profile has a characteristic "cusp," where the density diverges as `ρ ~ 1/r` towards the center, and falls off as `ρ ~ 1/r³` at large radii. Creating stable NFW halos as initial conditions for merger simulations is a key technique in computational cosmology.</p>
+            </section>
+        </div>
+    </div>
+
+    <script id="simulation-script">
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const scenarioSelect = document.getElementById('scenario-select');
+        const nPartsSlider = document.getElementById('n-parts-slider');
+        const thetaSlider = document.getElementById('theta-slider');
+
+        let particles = [];
+        let quadTree = null;
+        let isRunning = false;
+        let simState = { N: 1024, theta: 0.7, scenario: 'collapse' };
+
+        // --- QuadTree for Barnes-Hut ---
+        class QuadTree {
+            constructor(boundary, capacity) {
+                this.boundary = boundary; // { x, y, w, h }
+                this.capacity = capacity;
+                this.particles = [];
+                this.divided = false;
+                this.mass = 0;
+                this.cm_x = 0;
+                this.cm_y = 0;
+            }
+
+            subdivide() {
+                const { x, y, w, h } = this.boundary;
+                const hw = w / 2;
+                const hh = h / 2;
+                this.nw = new QuadTree({ x: x - hw, y: y - hh, w: hw, h: hh }, this.capacity);
+                this.ne = new QuadTree({ x: x + hw, y: y - hh, w: hw, h: hh }, this.capacity);
+                this.sw = new QuadTree({ x: x - hw, y: y + hh, w: hw, h: hh }, this.capacity);
+                this.se = new QuadTree({ x: x + hw, y: y + hh, w: hw, h: hh }, this.capacity);
+                this.divided = true;
+            }
+
+            insert(p) {
+                if (!this.boundary.contains(p)) return false;
+
+                if (this.particles.length < this.capacity && !this.divided) {
+                    this.particles.push(p);
+                } else {
+                    if (!this.divided) {
+                        this.subdivide();
+                        for (const pt of this.particles) {
+                            this.nw.insert(pt) || this.ne.insert(pt) || this.sw.insert(pt) || this.se.insert(pt);
+                        }
+                        this.particles = [];
+                    }
+                    this.nw.insert(p) || this.ne.insert(p) || this.sw.insert(p) || this.se.insert(p);
+                }
+
+                // Update center of mass
+                const totalMass = this.mass + 1;
+                this.cm_x = (this.cm_x * this.mass + p.x) / totalMass;
+                this.cm_y = (this.cm_y * this.mass + p.y) / totalMass;
+                this.mass = totalMass;
+                return true;
+            }
+        }
+
+        // Add contains helper to boundary object prototype
+        Object.prototype.contains = function(p) {
+            return (p.x >= this.x - this.w && p.x < this.x + this.w &&
+                    p.y >= this.y - this.h && p.y < this.y + this.h);
+        };
+
+        // --- Gravity Calculation ---
+        function calculateForce(p, node) {
+            if (!node || node.mass === 0 || node === p) return;
+
+            const dx = node.cm_x - p.x;
+            const dy = node.cm_y - p.y;
+            const distSq = dx * dx + dy * dy;
+            const softening = 1e-2; // Softening to prevent extreme forces
+
+            if (distSq < softening) return;
+
+            const dist = Math.sqrt(distSq);
+            const s = node.boundary.w * 2;
+
+            if (s / dist < simState.theta || !node.divided) {
+                const force = (node.mass) / distSq;
+                p.ax += force * dx / dist;
+                p.ay += force * dy / dist;
+            } else {
+                calculateForce(p, node.nw);
+                calculateForce(p, node.ne);
+                calculateForce(p, node.sw);
+                calculateForce(p, node.se);
+            }
+        }
+
+        // --- Simulation Step ---
+        function simulationStep() {
+            // Build QuadTree
+            const boundary = { x: 0, y: 0, w: 1, h: 1 }; // Assuming domain is [-1, 1] x [-1, 1]
+            quadTree = new QuadTree(boundary, 1);
+            for (const p of particles) {
+                quadTree.insert(p);
+            }
+
+            // Calculate forces
+            for (const p of particles) {
+                p.ax = 0;
+                p.ay = 0;
+                calculateForce(p, quadTree);
+            }
+
+            // Leapfrog integrator
+            const dt = 0.01;
+            for (const p of particles) {
+                p.vx += p.ax * dt;
+                p.vy += p.ay * dt;
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+            }
+        }
+
+        // --- Initialization and Drawing ---
+        function reset() {
+            isRunning = false;
+            startBtn.textContent = 'Start';
+
+            simState.N = parseInt(nPartsSlider.value);
+            simState.theta = parseFloat(thetaSlider.value);
+            simState.scenario = scenarioSelect.value;
+
+            particles = [];
+            if (simState.scenario === 'collapse') {
+                for (let i = 0; i < simState.N; i++) {
+                    const r = Math.random() * 0.5;
+                    const angle = Math.random() * 2 * Math.PI;
+                    particles.push({ x: r * Math.cos(angle), y: r * Math.sin(angle), vx: 0, vy: 0, ax:0, ay:0 });
+                }
+            } else { // merger
+                const N_half = Math.floor(simState.N / 2);
+                // Halo 1
+                for (let i = 0; i < N_half; i++) {
+                     const r = Math.random() * 0.2;
+                     const angle = Math.random() * 2 * Math.PI;
+                     particles.push({ x: -0.5 + r*Math.cos(angle), y: r*Math.sin(angle), vx: 0.1, vy: 0, ax:0, ay:0 });
+                }
+                // Halo 2
+                for (let i = 0; i < N_half; i++) {
+                     const r = Math.random() * 0.2;
+                     const angle = Math.random() * 2 * Math.PI;
+                     particles.push({ x: 0.5 + r*Math.cos(angle), y: r*Math.sin(angle), vx: -0.1, vy: 0, ax:0, ay:0 });
+                }
+            }
+            draw();
+        }
+
+        function draw() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#b1a5c1';
+            const scale = canvas.width / 2;
+            for (const p of particles) {
+                ctx.fillRect(p.x * scale + canvas.width/2, p.y * scale + canvas.height/2, 1, 1);
+            }
+        }
+
+        function mainLoop() {
+            if(!isRunning) return;
+            simulationStep();
+            draw();
+            requestAnimationFrame(mainLoop);
+        }
+
+        startBtn.addEventListener('click', () => {
+            isRunning = !isRunning;
+            startBtn.textContent = isRunning ? 'Pause' : 'Start';
+            if (isRunning) mainLoop();
+        });
+        resetBtn.addEventListener('click', reset);
+
+        // Setup sliders and selectors to call reset
+        nPartsSlider.addEventListener('change', reset);
+        thetaSlider.addEventListener('change', reset);
+        scenarioSelect.addEventListener('change', reset);
+
+        reset();
+    });
+    </script>
+</body>
+</html>

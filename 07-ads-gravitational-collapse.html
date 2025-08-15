@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Gravitational Collapse in AdS</title>
+    <style>
+        /* Reusing consistent CSS from previous files */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #007bff; --secondary-color: #6c757d; --accent-color: #dc3545;
+            --border-color: #dee2e6; --code-bg-color: #e9ecef; --shadow-color: rgba(0, 0, 0, 0.1);
+            --font-family: 'Georgia', 'Times New Roman', serif; --font-family-sans: 'Helvetica', 'Arial', sans-serif;
+            --max-width: 1200px;
+        }
+        body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: var(--max-width); margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3 { font-family: var(--font-family-sans); color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .sim-container { display: grid; grid-template-columns: 1fr; gap: 30px; margin-top: 30px; }
+        .vis-panel { display: flex; flex-direction: column; gap: 5px; }
+        .vis-panel canvas { width: 100%; height: 300px; border: 2px solid var(--border-color); background-color: #fff; }
+        .controls-panel { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px var(--shadow-color); border: 1px solid var(--border-color); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-color); }
+        .metrics-panel { display: flex; gap: 20px; justify-content: center; font-family: var(--font-family-sans); text-align: center; }
+        .metric-item .value { font-size: 1.5em; font-weight: bold; color: var(--accent-color); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Deep Simulation: Gravitational Collapse of a Scalar Field in AdS</h1>
+        <p class="subtitle">Witness the formation of a black hole from a collapsing pulse of energy.</p>
+    </header>
+
+    <div class="container">
+        <div class="controls-panel">
+            <h3>Controls</h3>
+            <div class="control">
+                <label>Initial Pulse Amplitude (A): <span id="amp-value">1.0</span></label>
+                <input type="range" id="amp-slider" min="0.1" max="2.0" step="0.01" value="1.0">
+            </div>
+            <button id="start-btn">Start Simulation</button>
+            <button id="reset-btn">Reset</button>
+        </div>
+
+        <div class="sim-container">
+            <div class="vis-panel">
+                <h4>Scalar Field Profile φ(r)</h4>
+                <canvas id="field-canvas" width="1000" height="300"></canvas>
+            </div>
+            <div class="vis-panel">
+                <h4>Horizon Function: 2m(r) - r</h4>
+                <canvas id="horizon-canvas" width="1000" height="300"></canvas>
+            </div>
+            <div class="metrics-panel">
+                <div class="metric-item"><div class="label">Time</div><div id="time-metric" class="value">0.0</div></div>
+                <div class="metric-item"><div class="label">Horizon Radius</div><div id="horizon-metric" class="value">0.0</div></div>
+                <div class="metric-item"><div class="label">BH Mass</div><div id="mass-metric" class="value">0.0</div></div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>Overview</h2>
+            <p>This simulation visualizes one of the most fundamental processes in general relativity: the formation of a black hole from the gravitational collapse of matter. Here, we use a massless scalar field as our "matter". An initial pulse of scalar field energy is set up and allowed to evolve. If the pulse's amplitude (and thus its total energy) is small, it will propagate inwards, bounce off the center (or the AdS boundary), and disperse. However, if the amplitude is large enough, the energy density becomes so great that spacetime itself curves catastrophically, trapping the energy behind an event horizon. This simulation tracks the scalar field `φ(r)` and, crucially, the "mass aspect" `m(r)`, which is the amount of energy contained within a radius `r`. An apparent horizon forms when `2m(r) = r`. You can see this visually in the lower plot: when the blue curve crosses above the x-axis, a black hole is born. By tuning the initial amplitude, you can explore the threshold of collapse and witness the dramatic formation of a trapped surface from which nothing can escape.</p>
+        </div>
+
+        <div class="content-section">
+            <h2>Full Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: The Point of No Return</h3>
+                <p>What is a black hole? It's often described as an object with such strong gravity that nothing, not even light, can escape. But how does such an object form? It forms when matter or energy is compressed into a small enough volume. The boundary of this region of no escape is the event horizon. This simulation shows that process in action. We start with a pulse of pure energy, represented by a "scalar field" (you can think of it as a wave of light, but one that has its own gravity). We give this pulse a certain amplitude, or strength, and let it go.</p>
+                <p>In the top panel, you see the shape of the pulse. It starts moving inwards. In the bottom panel, a blue line shows a calculation of how "gravitationally strong" the pulse is at each point. If this blue line stays below the black horizontal line, gravity is not strong enough to cause a collapse. The pulse will eventually disperse. But if you increase the initial amplitude enough, you will see the blue line arch upwards and cross the black line. The point where it crosses marks the birth of a black hole horizon. From that moment on, the energy inside that radius is trapped forever. The black hole has formed. This threshold behavior is a key feature of general relativity: below a certain energy, you get a dispersing wave; above it, you get an inescapable gravitational prison.</p>
+            </section>
+            <section>
+                <h3>Core Theory: Apparent Horizons and Critical Collapse</h3>
+                <p>This simulation solves a simplified version of the coupled Einstein-Klein-Gordon equations under the assumption of spherical symmetry. We evolve a massless scalar field `φ` using the wave equation in a curved background. The curvature itself is generated by the stress-energy tensor `T_μν` of the scalar field. The energy density `ρ` is the `T_tt` component.</p>
+                <p>A key concept for locating a black hole in a dynamic simulation is the <strong>apparent horizon</strong>. This is a "marginally trapped surface," a spherical surface where outgoing light rays are momentarily not moving outwards or inwards. It is a practical tool for finding black holes in numerical relativity, as it can be located on a single time-slice, unlike the global event horizon which requires knowledge of the entire future spacetime. In spherical symmetry, the location `r` of an apparent horizon is given by the condition that the expansion of outgoing null geodesics vanishes. This simplifies to the elegant equation:
+                <br><code>2m(r, t) = r</code>
+                <br>where `m(r, t)` is the "mass aspect" or "Hawking mass", defined as the total mass-energy contained within radius `r` at time `t`. It is calculated from the energy density `ρ` of the scalar field:
+                <br><code>m(r, t) = 4π ∫₀ʳ ρ(r', t) r'² dr'</code>
+                <br>Our simulation evolves `φ`, calculates `ρ`, integrates it to find `m(r)`, and then checks the condition `2m(r) - r = 0` at every time step. The largest root `r` of this equation is the radius of the apparent horizon.</p>
+                <p>In the 1990s, Matthew Choptuik discovered the phenomenon of <strong>critical collapse</strong> while performing simulations very similar to this one. He found that if one fine-tunes the initial amplitude `A` of the scalar field pulse to a critical value `A*`, the system forms an infinitesimally small black hole. For amplitudes slightly above critical (`A > A*`), the mass of the resulting black hole follows a power law:
+                <br><code>M_BH ∝ (A - A*)^γ</code>
+                <br>where `γ` is a universal critical exponent, approximately 0.37 for a massless scalar field. This universality and power-law scaling are hallmarks of critical phenomena seen in many other areas of physics, like phase transitions. It revealed a rich, unexpected structure in the violent dynamics of Einstein's equations.</p>
+            </section>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const fieldCanvas = document.getElementById('field-canvas');
+        const fCtx = fieldCanvas.getContext('2d');
+        const horizonCanvas = document.getElementById('horizon-canvas');
+        const hCtx = horizonCanvas.getContext('2d');
+        const ampSlider = document.getElementById('amp-slider');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+
+        const N = 512; // Grid points
+        const R = 20.0; // Max radius
+        const dr = R / N;
+        let phi = new Float32Array(N); // Field value
+        let pi = new Float32Array(N);  // Field time derivative
+        let m = new Float32Array(N);   // Mass aspect
+
+        let isRunning = false;
+        let time = 0;
+        let horizonRadius = 0;
+        let bhMass = 0;
+
+        function reset() {
+            isRunning = false;
+            time = 0;
+            horizonRadius = 0;
+            bhMass = 0;
+
+            const A = parseFloat(ampSlider.value);
+            const r0 = 5.0;
+            const w = 1.0;
+
+            for (let i = 0; i < N; i++) {
+                const r = i * dr;
+                phi[i] = A * Math.exp(-((r - r0) * (r - r0)) / (2 * w * w));
+                pi[i] = 0; // Start from rest
+            }
+
+            update(true);
+            draw();
+        }
+
+        function update(isInitial = false) {
+            const dt = isInitial ? 0 : 0.01;
+            const dr2 = dr*dr;
+
+            // Evolve phi, pi with a leapfrog integrator
+            const next_phi = new Float32Array(N);
+            for(let i=1; i<N-1; ++i) {
+                const laplacian = (phi[i+1] - 2*phi[i] + phi[i-1])/dr2 + (2/ (i*dr)) * (phi[i+1]-phi[i-1])/(2*dr);
+                const next_pi = pi[i] + dt * laplacian;
+                next_phi[i] = phi[i] + dt * next_pi;
+                pi[i] = next_pi;
+            }
+            phi = next_phi;
+            // Boundary conditions
+            phi[0] = 0; phi[N-1] = 0; pi[0]=0; pi[N-1]=0;
+
+            // Calculate mass aspect
+            m[0] = 0;
+            for (let i = 1; i < N; i++) {
+                const r = i * dr;
+                const dphidr = (phi[i] - phi[i-1]) / dr;
+                const rho = 0.5 * pi[i] * pi[i] + 0.5 * dphidr * dphidr;
+                m[i] = m[i-1] + 4 * Math.PI * r * r * rho * dr;
+            }
+
+            // Find horizon
+            horizonRadius = 0;
+            bhMass = 0;
+            for(let i=N-1; i>0; --i) {
+                const r = i*dr;
+                if(2 * m[i] > r) {
+                    horizonRadius = r;
+                    bhMass = m[i];
+                    break;
+                }
+            }
+            time += dt;
+        }
+
+        function draw() {
+            // Draw field
+            fCtx.clearRect(0,0,fCtx.canvas.width, fCtx.canvas.height);
+            fCtx.beginPath();
+            for(let i=0; i<N; ++i) {
+                const x = (i/N) * fCtx.canvas.width;
+                const y = fCtx.canvas.height/2 * (1 - phi[i] * 0.5);
+                if(i===0) fCtx.moveTo(x,y); else fCtx.lineTo(x,y);
+            }
+            fCtx.strokeStyle = '#007bff'; fCtx.stroke();
+
+            // Draw horizon function
+            hCtx.clearRect(0,0,hCtx.canvas.width, hCtx.canvas.height);
+            hCtx.beginPath();
+            for(let i=0; i<N; ++i) {
+                const r = i*dr;
+                const val = 2*m[i] - r;
+                const x = (i/N) * hCtx.canvas.width;
+                const y = hCtx.canvas.height/2 * (1 - val * 0.2);
+                if(i===0) hCtx.moveTo(x,y); else hCtx.lineTo(x,y);
+            }
+            hCtx.strokeStyle = '#007bff'; hCtx.stroke();
+
+            // Zero line
+            hCtx.beginPath();
+            hCtx.moveTo(0, hCtx.canvas.height/2);
+            hCtx.lineTo(hCtx.canvas.width, hCtx.canvas.height/2);
+            hCtx.strokeStyle = 'black'; hCtx.stroke();
+
+            // Draw horizon on field plot
+            if(horizonRadius > 0) {
+                const h_x = (horizonRadius / R) * fCtx.canvas.width;
+                fCtx.fillStyle = 'rgba(220, 53, 69, 0.3)';
+                fCtx.fillRect(0, 0, h_x, fCtx.canvas.height);
+            }
+
+            document.getElementById('time-metric').textContent = time.toFixed(2);
+            document.getElementById('horizon-metric').textContent = horizonRadius.toFixed(2);
+            document.getElementById('mass-metric').textContent = bhMass.toFixed(2);
+        }
+
+        function gameLoop() {
+            if(!isRunning) return;
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        ampSlider.addEventListener('input', e => {
+            document.getElementById('amp-value').textContent = parseFloat(e.target.value).toFixed(2);
+            if(!isRunning) reset();
+        });
+        startBtn.addEventListener('click', () => {
+            if(!isRunning) {
+                isRunning = true;
+                gameLoop();
+            }
+        });
+        resetBtn.addEventListener('click', reset);
+
+        reset();
+    });
+    </script>
+</body>
+</html>
