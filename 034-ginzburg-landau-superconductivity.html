@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Ginzburg-Landau Theory of Superconductivity</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #00bcd4; /* Cyan */
+            --secondary-color: #ffeb3b; /* Yellow */
+            --accent-color: #f44336; /* Red */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; margin-top: 5px; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+        .button-group { display: flex; gap: 10px; }
+        code { background-color: #333; color: var(--secondary-color); padding: 2px 5px; border-radius: 3px; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Ginzburg-Landau Theory of Superconductivity</h1>
+            <p class="subtitle">Visualizing the Quantum Wave Function of a Superconductor</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Superconductivity is a quantum mechanical phenomenon on a macroscopic scale. Instead of thinking about individual electrons, we can describe all the superconducting electrons in a material with a single, unified quantum wave function, called the **order parameter** (<code>ψ</code>). This simulation visualizes the behavior of this wave function based on the Nobel prize-winning Ginzburg-Landau theory.</p>
+                    <p>The wave function <code>ψ</code> has two key properties at every point in the material:</p>
+                    <ul>
+                        <li><strong>Amplitude (Brightness):</strong> The "strength" of the superconductivity. Bright regions are fully superconducting, while dark regions are normal (not superconducting).</li>
+                        <li><strong>Phase (Color):</strong> A quantum property related to the wave's rhythm. The way the phase changes from point to point determines the flow of supercurrent, which carries electricity with zero resistance.</li>
+                    </ul>
+                    <p>In this simulation, you can control the temperature and magnetic field to see how they affect this quantum wave. You'll see phenomena like the **Meissner effect** (the expulsion of magnetic fields) and the formation of **vortices** (tiny whirlpools in the quantum wave where superconductivity is destroyed at the center) appear naturally from the theory.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Viewport:</strong> The main window shows a 2D slice of the superconductor.
+                            <ul>
+                                <li><strong>Brightness:</strong> Strength of superconductivity. Bright = strong, Dark = none.</li>
+                                <li><strong>Color (Hue):</strong> The phase of the quantum wave.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Key Controls:</strong>
+                            <ul>
+                                <li><strong>Magnetic Field (H):</strong> Start with this at zero. The material should become uniformly bright (fully superconducting). Now, slowly increase the magnetic field.</li>
+                                <li><strong>G-L Parameter (κ):</strong> This number determines the *type* of superconductor.
+                                    <ul>
+                                        <li>Set <code>κ < 0.7</code> for a **Type-I** superconductor. As you increase the field, the material will resist it until it suddenly goes dark (superconductivity is destroyed).</li>
+                                        <li>Set <code>κ > 0.7</code> for a **Type-II** superconductor. As you increase the field, you'll see dark spots appear—these are **vortices**. Notice the colors swirl around each vortex, indicating a circulating supercurrent.</li>
+                                    </ul>
+                                </li>
+                                <li><strong>"Quench" Button:</strong> This simulates rapidly cooling the material from a normal state. You'll see a chaotic storm of vortices and anti-vortices (with opposite color swirls) that annihilate each other until a stable state is reached.</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h2>Core Theory: The Ginzburg-Landau Model</h2>
+                    <p>The Ginzburg-Landau (GL) theory is a phenomenological theory that describes the superconducting state near the critical temperature T<sub>c</sub>. It is based on an expansion of the free energy density `f` in terms of a complex order parameter `ψ(r)`. `|ψ(r)|²` is interpreted as the local density of superconducting electrons.</p>
+                    <p>The total free energy `F` to be minimized is:</p>
+                    <p><code>F = ∫ d³r [ α(T)|ψ|² + (β/2)|ψ|⁴ + (1/2m)|(-iħ∇ - 2eA)ψ|² + (B²/2μ₀) ]</code></p>
+                    <p>Where `α(T)` and `β` are phenomenological parameters, `A` is the magnetic vector potential, and `B` is the magnetic field. The term `α(T) = α₀(T - T_c)` drives the phase transition.</p>
+                    <p>The behavior of the system can be described by the **Time-Dependent Ginzburg-Landau (TDGL) equation**, which describes how `ψ` relaxes towards a state that minimizes the free energy:</p>
+                    <p><code>∂ψ/∂t = -(i∇ + A)²ψ + (1 - T/T_c - |ψ|²)ψ</code></p>
+                    <p>(in dimensionless units). This is the equation being solved in this simulation. The `(i∇ + A)²` term is the kinetic energy, and the `(1 - T/T_c - |ψ|²)ψ` term drives `|ψ|` to its equilibrium value.</p>
+
+                    <h4>Coherence Length (ξ) and Penetration Depth (λ)</h4>
+                    <p>The theory gives rise to two fundamental length scales:</p>
+                    <ul>
+                        <li><strong>Coherence Length (ξ):</strong> The characteristic length scale over which the order parameter `ψ` can vary significantly. It's essentially the minimum size of a superconducting-normal boundary.</li>
+                        <li><strong>Penetration Depth (λ):</strong> The characteristic length scale over which an external magnetic field is screened and decays inside the superconductor.</li>
+                    </ul>
+                    <h4>The Ginzburg-Landau Parameter (κ)</h4>
+                    <p>The ratio of these two lengths, <code>κ = λ/ξ</code>, is a crucial dimensionless constant that determines the type of superconductor:</p>
+                    <ul>
+                        <li>If <code>κ < 1/√2</code>: **Type-I Superconductor**. The coherence length is large. It is energetically unfavorable for interfaces to form, so the material exhibits a complete Meissner effect up to a critical field H<sub>c</sub>, at which point the entire material becomes normal.</li>
+                        <li>If <code>κ > 1/√2</code>: **Type-II Superconductor**. The penetration depth is large. It becomes energetically favorable for the magnetic field to penetrate the material by creating an array of vortices (or flux tubes) above a lower critical field H<sub>c1</sub>. Each vortex has a normal core of size `~ξ` and is surrounded by screening currents over a distance `~λ`.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="button-group">
+                        <button id="reset-button">Initialize</button>
+                        <button id="quench-button">Quench Cool</button>
+                    </div>
+                     <div class="control">
+                        <label>Sim Speed <span class="value-display" id="speed-value">1</span></label>
+                        <input type="range" id="speed-slider" min="1" max="10" step="1" value="1">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Magnetic Field (H) <span class="value-display" id="hfield-value">0.0</span></label>
+                        <input type="range" id="hfield-slider" min="0" max="1.0" step="0.01" value="0.0">
+                    </div>
+                    <div class="control">
+                        <label>G-L Parameter (κ) <span class="value-display" id="kappa-value">1.0</span></label>
+                        <input type="range" id="kappa-slider" min="0.2" max="4.0" step="0.1" value="1.0">
+                    </div>
+                    <div class="control">
+                        <label>Temperature (T/T<sub>c</sub>) <span class="value-display" id="temp-value">0.0</span></label>
+                        <input type="range" id="temp-slider" min="0" max="1.0" step="0.01" value="0.0">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            resetBtn: document.getElementById('reset-button'),
+            quenchBtn: document.getElementById('quench-button'),
+            hfieldSlider: document.getElementById('hfield-slider'), hfieldValue: document.getElementById('hfield-value'),
+            kappaSlider: document.getElementById('kappa-slider'), kappaValue: document.getElementById('kappa-value'),
+            tempSlider: document.getElementById('temp-slider'), tempValue: document.getElementById('temp-value'),
+            speedSlider: document.getElementById('speed-slider'), speedValue: document.getElementById('speed-value'),
+        };
+
+        const N = 128; // Grid size
+        const state = {
+            psi_re: new Float32Array(N * N),
+            psi_im: new Float32Array(N * N),
+            isRunning: true, config: {}
+        };
+        const ctx = dom.canvas.getContext('2d');
+        const imageData = ctx.createImageData(N, N);
+
+        function updateConfig() {
+            state.config.H = parseFloat(dom.hfieldSlider.value);
+            state.config.kappa = parseFloat(dom.kappaSlider.value);
+            state.config.temp = parseFloat(dom.tempSlider.value);
+            state.config.speed = parseInt(dom.speedSlider.value);
+
+            dom.hfieldValue.textContent = state.config.H.toFixed(2);
+            dom.kappaValue.textContent = state.config.kappa.toFixed(1);
+            dom.tempValue.textContent = state.config.temp.toFixed(2);
+            dom.speedValue.textContent = state.config.speed;
+        }
+
+        function init(isQuench) {
+            for (let i = 0; i < N * N; i++) {
+                if (isQuench) {
+                    state.psi_re[i] = Math.random() * 2 - 1;
+                    state.psi_im[i] = Math.random() * 2 - 1;
+                } else {
+                    state.psi_re[i] = 1.0;
+                    state.psi_im[i] = 0.0;
+                }
+            }
+            updateConfig();
+        }
+
+        function get(arr, x, y) {
+            x = (x + N) % N; y = (y + N) % N;
+            return arr[x + y * N];
+        }
+
+        function update() {
+            if (!state.isRunning) return;
+
+            const { H, kappa, temp } = state.config;
+            const dt = 0.05;
+            const dx = 1.0;
+            const dx2 = dx * dx;
+
+            const new_psi_re = new Float32Array(N*N);
+            const new_psi_im = new Float32Array(N*N);
+
+            for (let y = 0; y < N; y++) {
+                for (let x = 0; x < N; x++) {
+                    const idx = x + y * N;
+                    const re = state.psi_re[idx];
+                    const im = state.psi_im[idx];
+
+                    // Laplacian
+                    let lap_re = (get(state.psi_re, x+1, y) + get(state.psi_re, x-1, y) + get(state.psi_re, x, y+1) + get(state.psi_re, x, y-1) - 4*re) / dx2;
+                    let lap_im = (get(state.psi_im, x+1, y) + get(state.psi_im, x-1, y) + get(state.psi_im, x, y+1) + get(state.psi_im, x, y-1) - 4*im) / dx2;
+
+                    // Magnetic term: -(i*d/dx + Ay)^2 - (i*d/dy - Ax)^2
+                    // Use Landau gauge A = (0, Hx). Then A*psi = (0, Hx) * (re + i*im) -> not right
+                    // The covariant derivative is (grad - i*A)psi. So (grad - i*A)^2 psi = lap(psi) - 2i*A.grad(psi) - i*div(A)psi - A^2*psi
+                    // With A = (-Hy/2, Hx/2) for uniform field, div(A)=0
+                    const Ax = -H * (y - N/2);
+                    const Ay = H * (x - N/2);
+
+                    const grad_x_re = (get(state.psi_re, x+1, y) - get(state.psi_re, x-1, y)) / (2*dx);
+                    const grad_x_im = (get(state.psi_im, x+1, y) - get(state.psi_im, x-1, y)) / (2*dx);
+                    const grad_y_re = (get(state.psi_re, x, y+1) - get(state.psi_re, x, y-1)) / (2*dx);
+                    const grad_y_im = (get(state.psi_im, x, y+1) - get(state.psi_im, x, y-1)) / (2*dx);
+
+                    const A_grad_psi_re = Ax*grad_x_re + Ay*grad_y_re;
+                    const A_grad_psi_im = Ax*grad_x_im + Ay*grad_y_im;
+                    const A2 = Ax*Ax + Ay*Ay;
+
+                    // TDGL equation
+                    // d(psi)/dt = (1 - |psi|^2)psi - (1/kappa^2) * (grad - iA)^2 psi
+                    const mag_term_re = (lap_re - 2*A_grad_psi_im - A2*re) / (kappa*kappa);
+                    const mag_term_im = (lap_im + 2*A_grad_psi_re - A2*im) / (kappa*kappa);
+
+                    const magSq = re*re + im*im;
+                    const pot_term_re = (1 - temp - magSq) * re;
+                    const pot_term_im = (1 - temp - magSq) * im;
+
+                    new_psi_re[idx] = re + dt * (pot_term_re - mag_term_re);
+                    new_psi_im[idx] = im + dt * (pot_term_im - mag_term_im);
+                }
+            }
+            state.psi_re = new_psi_re;
+            state.psi_im = new_psi_im;
+        }
+
+        function draw() {
+            for (let y = 0; y < N; y++) {
+                for (let x = 0; x < N; x++) {
+                    const idx = x + y * N;
+                    const re = state.psi_re[idx];
+                    const im = state.psi_im[idx];
+
+                    const mag = Math.sqrt(re*re + im*im);
+                    const phase = Math.atan2(im, re); // -PI to PI
+
+                    const hue = (phase + Math.PI) / (2 * Math.PI) * 360;
+                    const lightness = mag * 50; // 0 to 50
+                    const saturation = 90;
+
+                    const [r, g, b] = hslToRgb(hue/360, saturation/100, lightness/100);
+
+                    const dataIdx = (x + y * N) * 4;
+                    imageData.data[dataIdx] = r;
+                    imageData.data[dataIdx + 1] = g;
+                    imageData.data[dataIdx + 2] = b;
+                    imageData.data[dataIdx + 3] = 255;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function animationLoop() {
+            for(let i=0; i<state.config.speed; i++) update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.resetBtn.addEventListener('click', () => init(false));
+        dom.quenchBtn.addEventListener('click', () => init(true));
+        [dom.hfieldSlider, dom.kappaSlider, dom.tempSlider, dom.speedSlider].forEach(s => s.addEventListener('input', updateConfig));
+
+        init(false);
+        animationLoop();
+
+        // HSL to RGB conversion function
+        function hslToRgb(h, s, l){
+            let r, g, b;
+            if(s == 0){ r = g = b = l; }
+            else {
+                const hue2rgb = (p, q, t) => {
+                    if(t < 0) t += 1; if(t > 1) t -= 1;
+                    if(t < 1/6) return p + (q - p) * 6 * t;
+                    if(t < 1/2) return q;
+                    if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                }
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+    })();
+    </script>
+</body>
+</html>

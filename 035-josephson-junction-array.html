@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Josephson Junction Array Dynamics</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #ff4081; /* Pink */
+            --secondary-color: #76ff03; /* Lime Green */
+            --accent-color: #448aff; /* Blue */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #111;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        #simulationCanvas { display: block; width: 100%; }
+        .chart-container { width: 100%; height: 200px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { width: 100%; }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        code { background-color: #333; color: var(--secondary-color); padding: 2px 5px; border-radius: 3px; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Josephson Junction Array Dynamics</h1>
+            <p class="subtitle">Exploring Topological Transitions and Quantum Matter</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+                <div class="chart-container" id="vortex-chart"></div>
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Imagine a vast checkerboard where each square is a tiny droplet of a superconductor. Each droplet has a quantum "rhythm" (its phase). The droplets are weakly linked to their neighbors, trying to synchronize their rhythms. This entire setup is a **Josephson Junction Array**.</p>
+                    <p>At very low temperatures, all droplets succeed in syncing up, creating a perfect, global rhythm. This is a **2D superconductor**. But as you add heat, the thermal jiggling creates tiny, local disruptions—like little whirlpools in the rhythm. These are called **vortices**. A vortex and its opposite, an anti-vortex, are created in pairs.</p>
+                    <p>At first, these pairs stay tightly bound. But at a specific critical temperature, they suddenly break free and roam across the array, completely destroying the global rhythm. This sudden unbinding is a famous type of phase transition called the **Berezinskii-Kosterlitz-Thouless (BKT) transition**, which was worth a Nobel Prize. This simulation lets you control the temperature and see this amazing topological phenomenon happen in real-time.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The grid shows the superconducting droplets (junctions). The **color** represents the quantum phase (the rhythm). The small white and black circles are **vortices** and **anti-vortices**.</li>
+                        <li><strong>The BKT Transition:</strong>
+                            <ul>
+                                <li>Start with the **Temperature** slider at a low value. The colors should be smoothly varying, and you'll see very few vortices.</li>
+                                <li>Slowly increase the temperature. You'll see more vortex-antivortex pairs appear, but they stay close.</li>
+                                <li>At a critical temperature (around 0.4-0.5), you'll see a sudden explosion! The pairs unbind, and free vortices flood the screen. You've just triggered the BKT transition. The **Vortex Density Chart** below will show this jump clearly.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Magnetic Fields:</strong>
+                            <ul>
+                                <li>Reset the simulation at low temperature.</li>
+                                <li>Use the **Frustration (f)** slider. This simulates a magnetic field. Setting `f = 0.5` tries to force a 180-degree phase shift between every neighbor, which is impossible. The system compromises by creating a perfect checkerboard pattern of vortices and anti-vortices.</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h2>Core Theory: The XY Model and BKT Transition</h2>
+                    <p>A 2D Josephson Junction Array (JJA) is a physical realization of the **XY model** of statistical mechanics. The state of the system is defined by a set of phases <code>θ_i</code> on a 2D lattice, representing the superconducting order parameter of each island.</p>
+                    <p>The energy of the system is given by the Hamiltonian:</p>
+                    <p><code>H = -E_J Σ<sub>&lt;i,j&gt;</sub> cos(θ_i - θ_j - A<sub>ij</sub>)</code></p>
+                    <p>Here, <code>E_J</code> is the Josephson coupling energy, which favors alignment of the phases of neighboring islands. The term <code>A<sub>ij</sub> = (2e/ħ) ∫<sub>i</sub><sup>j</sup> **A**⋅d**l**</code> is the line integral of the magnetic vector potential, which accounts for an external magnetic field perpendicular to the array. This term introduces **frustration**. For a uniform field B, the frustration `f` is the number of magnetic flux quanta (<code>Φ₀=h/2e</code>) per unit cell of the lattice: `f = BA²/Φ₀`.</p>
+
+                    <h4>Topological Defects: Vortices</h4>
+                    <p>Unlike phase transitions driven by spontaneous symmetry breaking (like magnetism), the transition in the 2D XY model is driven by **topological defects**. A vortex is a point-like defect in the phase field. If you trace a path around a vortex, the phase `θ` will accumulate a total change of `±2π`. The energy of a single vortex scales logarithmically with the size of the system, meaning it's impossible to have a single free vortex at low temperatures. However, a **vortex-antivortex pair** has a finite energy and can be created by thermal fluctuations.</p>
+
+                    <h4>The BKT Transition</h4>
+                    <p>The Berezinskii-Kosterlitz-Thouless (BKT) transition is a fascinating phase transition that occurs in 2D systems like this one.
+                    <ul>
+                        <li><strong>Low Temperature Phase (T < T<sub>BKT</sub>):</strong> Vortices exist only in tightly bound vortex-antivortex pairs. The system exhibits "quasi-long-range order," meaning the phases are correlated over long distances. The array behaves like a superconductor.</li>
+                        <li><strong>High Temperature Phase (T > T<sub>BKT</sub>):</strong> The entropy gained by having free vortices overcomes the energy cost of creating them. The vortex-antivortex pairs unbind, creating a plasma of free vortices. These free vortices move around and destroy the long-range phase correlations, driving the system into a resistive state.</li>
+                    </ul>
+                    This transition is topological because it's not about a change in local order but about a change in the large-scale topological structure of the phase field.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <div class="control"><button id="reset-button">Reset Simulation</button></div>
+                </div>
+                <div class="control-group">
+                    <div class="control">
+                        <label>Temperature (T) <span class="value-display" id="temp-value">0.10</span></label>
+                        <input type="range" id="temp-slider" min="0" max="1.0" step="0.01" value="0.1">
+                    </div>
+                    <div class="control">
+                        <label>Frustration (f) <span class="value-display" id="frust-value">0.00</span></label>
+                        <input type="range" id="frust-slider" min="0" max="0.5" step="0.01" value="0.0">
+                    </div>
+                    <div class="control">
+                        <label>Damping (β) <span class="value-display" id="damp-value">0.5</span></label>
+                        <input type="range" id="damp-slider" min="0.1" max="2.0" step="0.1" value="0.5">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            resetBtn: document.getElementById('reset-button'),
+            tempSlider: document.getElementById('temp-slider'), tempValue: document.getElementById('temp-value'),
+            frustSlider: document.getElementById('frust-slider'), frustValue: document.getElementById('frust-value'),
+            dampSlider: document.getElementById('damp-slider'), dampValue: document.getElementById('damp-value'),
+            chartContainer: document.getElementById('vortex-chart'),
+        };
+
+        const N = 64; // Grid size
+        const state = {
+            theta: new Float32Array(N * N),
+            omega: new Float32Array(N * N), // d(theta)/dt
+            vortices: [],
+            config: {}
+        };
+        const ctx = dom.canvas.getContext('2d');
+        let chart;
+
+        function updateConfig() {
+            state.config.T = parseFloat(dom.tempSlider.value);
+            state.config.f = parseFloat(dom.frustSlider.value);
+            state.config.beta = parseFloat(dom.dampSlider.value);
+
+            dom.tempValue.textContent = state.config.T.toFixed(2);
+            dom.frustValue.textContent = state.config.f.toFixed(2);
+            dom.dampValue.textContent = state.config.beta.toFixed(1);
+        }
+
+        function reset() {
+            updateConfig();
+            for (let i = 0; i < N * N; i++) {
+                state.theta[i] = (Math.random() - 0.5) * 0.1;
+                state.omega[i] = 0.0;
+            }
+        }
+
+        function get(arr, x, y) { return arr[((x + N) % N) + ((y + N) % N) * N]; }
+        function set(arr, x, y, val) { arr[((x + N) % N) + ((y + N) % N) * N] = val; }
+
+        function update() {
+            const { T, f, beta } = state.config;
+            const dt = 0.1;
+            const noise_strength = Math.sqrt(2 * beta * T * dt);
+
+            for (let y = 0; y < N; y++) {
+                for (let x = 0; x < N; x++) {
+                    const idx = x + y * N;
+                    const th_i = state.theta[idx];
+
+                    const th_xp = get(state.theta, x+1, y);
+                    const th_xm = get(state.theta, x-1, y);
+                    const th_yp = get(state.theta, x, y+1);
+                    const th_ym = get(state.theta, x, y-1);
+
+                    // Using Landau gauge A = (0, Bx) where B = 2*pi*f
+                    const A_y = 2 * Math.PI * f * x;
+
+                    const force = Math.sin(th_xp - th_i) +      // Right neighbor (A_ij = 0)
+                                  Math.sin(th_xm - th_i) +      // Left neighbor (A_ij = 0)
+                                  Math.sin(th_yp - th_i - A_y) +  // Top neighbor (A_ij = A_y)
+                                  Math.sin(th_ym - th_i + A_y);   // Bottom neighbor (force is sin(th_j - th_i - A_ji), and A_ji = -A_ij)
+
+                    const noise = (Math.random() - 0.5) * noise_strength;
+
+                    let new_omega = state.omega[idx] * (1 - beta*dt) + force * dt + noise;
+                    state.omega[idx] = new_omega;
+                }
+            }
+            for (let i=0; i<N*N; i++) {
+                state.theta[i] += state.omega[i] * dt;
+            }
+        }
+
+        function findVortices() {
+            state.vortices = [];
+            for (let y = 0; y < N-1; y++) {
+                for (let x = 0; x < N-1; x++) {
+                    // Plaquette: (x,y), (x+1,y), (x+1,y+1), (x,y+1)
+                    const th1 = get(state.theta, x, y);
+                    const th2 = get(state.theta, x+1, y);
+                    const th3 = get(state.theta, x+1, y+1);
+                    const th4 = get(state.theta, x, y+1);
+
+                    let d1 = th2 - th1; d1 -= Math.round(d1/(2*Math.PI)) * 2*Math.PI;
+                    let d2 = th3 - th2; d2 -= Math.round(d2/(2*Math.PI)) * 2*Math.PI;
+                    let d3 = th4 - th3; d3 -= Math.round(d3/(2*Math.PI)) * 2*Math.PI;
+                    let d4 = th1 - th4; d4 -= Math.round(d4/(2*Math.PI)) * 2*Math.PI;
+
+                    const vorticity = Math.round((d1 + d2 + d3 + d4) / (2*Math.PI));
+                    if (vorticity !== 0) {
+                        state.vortices.push({x: x + 0.5, y: y + 0.5, q: vorticity});
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            dom.canvas.width = dom.canvas.clientWidth;
+            dom.canvas.height = dom.canvas.width;
+            const w = dom.canvas.width;
+            const h = dom.canvas.height;
+            const cell_w = w / N;
+            const cell_h = h / N;
+
+            // Draw phases
+            for (let y = 0; y < N; y++) {
+                for (let x = 0; x < N; x++) {
+                    const phase = state.theta[x + y * N];
+                    const hue = (phase % (2*Math.PI) + 2*Math.PI) % (2*Math.PI) / (2*Math.PI) * 360;
+                    ctx.fillStyle = `hsl(${hue}, 90%, 50%)`;
+                    ctx.fillRect(x * cell_w, y * cell_h, cell_w, cell_h);
+                }
+            }
+
+            // Draw vortices
+            state.vortices.forEach(v => {
+                ctx.beginPath();
+                ctx.arc(v.x * cell_w, v.y * cell_h, cell_w * 0.4, 0, 2*Math.PI);
+                ctx.fillStyle = v.q > 0 ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)';
+                ctx.fill();
+            });
+        }
+
+        function setupChart() {
+            const chartCtx = dom.chartContainer.getContext('2d');
+            chart = new Chart(chartCtx, {
+                type: 'line',
+                data: { labels: [], datasets: [{
+                    label: 'Vortex Density',
+                    data: [],
+                    borderColor: 'var(--primary-color)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1
+                }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { min: 0, title: { display: true, text: 'Vortex Density' } }, x: { title: { display: true, text: 'Time' } } }
+                }
+            });
+        }
+        let frameCount = 0;
+        function animationLoop() {
+            update();
+            if (frameCount % 5 === 0) {
+                findVortices();
+                draw();
+                updateChart();
+            }
+            frameCount++;
+            requestAnimationFrame(animationLoop);
+        }
+
+        function updateChart() {
+            if (!chart) return;
+            const vortexDensity = state.vortices.length / (N*N);
+            chart.data.labels.push(frameCount);
+            chart.data.datasets[0].data.push(vortexDensity);
+            if (chart.data.labels.length > 100) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+            chart.update('none');
+        }
+
+        dom.resetBtn.addEventListener('click', reset);
+        [dom.tempSlider, dom.frustSlider, dom.dampSlider].forEach(s => s.addEventListener('input', updateConfig));
+
+        reset();
+        setupChart();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>

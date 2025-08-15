@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Superconducting Vortex Lattice Dynamics</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #4682b4; /* SteelBlue */
+            --secondary-color: #ff4500; /* OrangeRed */
+            --accent-color: #32cd32; /* LimeGreen */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #112;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .chart-container { width: 100%; height: 250px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Superconducting Vortex Dynamics</h1>
+            <p class="subtitle">The Dance of Quantized Flux and the Origin of Superconducting Resistance</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <div class="chart-container" id="vi-curve-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Superconductors are materials that can carry electrical current with zero resistance, but only up to a certain point. In "Type-II" superconductors, the kind used to build powerful magnets for MRI machines and particle accelerators, resistance can appear if the magnetic field or the current is too high. This happens because the magnetic field penetrates the material not smoothly, but in the form of tiny, quantized tornadoes of magnetic flux called **vortices**. These vortices arrange themselves into a regular crystal-like pattern, the "vortex lattice." When a current flows through the superconductor, it pushes on these vortices. If the vortices start to move, their motion creates a voltage, which means the material is no longer perfectly superconducting; it now has resistance. To make a useful superconducting wire, we need to stop the vortices from moving. This is done by introducing tiny defects or impurities into the material that act as "pinning sites," trapping the vortices in place. This simulation lets you see this vortex lattice, apply a current to make it move, and add pinning sites to try and stop it, revealing the crucial physics behind high-field superconductivity.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The main window shows a 2D slice of a Type-II superconductor.
+                            <ul>
+                                <li>The blue circles are the **vortices**. Notice how they naturally arrange themselves into a triangular lattice because they repel each other.</li>
+                                <li>The small gray 'x' marks are **pinning sites** (defects in the material).</li>
+                            </ul>
+                        </li>
+                        <li><strong>Making Vortices Move:</strong>
+                            <ul>
+                                <li>Use the **"Applied Current"** slider to apply a force that pushes the vortices from left to right.</li>
+                                <li>At low currents, if you have pinning sites, the vortices will be trapped.</li>
+                                <li>As you increase the current, you will reach a point where the force is strong enough to rip the vortices away from the pinning sites. You will see the whole lattice start to flow across the screen. This vortex motion is what creates resistance.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The Importance of Pinning:</strong>
+                            <ul>
+                                <li>Set the **"Pinning Strength"** to zero and apply a current. The vortices will move easily.</li>
+                                <li>Now, increase the pinning strength. You will see that a much higher current is required to get the vortices to move. This is the key to making practical superconducting wires.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The V-I Curve Chart:</strong> This chart plots the resulting Voltage (from vortex motion) versus the Applied Current. You will see that for low currents, the voltage is zero (the material is perfectly superconducting). When the current exceeds the "critical current" needed to de-pin the vortices, the voltage suddenly appears and increases with the current.</li>
+                    </ol>
+
+                    <h2>Core Theory of Superconducting Vortices</h2>
+                    <h4>Type-I vs. Type-II Superconductors</h4>
+                    <p>Superconductors expel magnetic fields, a phenomenon known as the Meissner effect. **Type-I superconductors** do this perfectly up to a critical magnetic field H<sub>c</sub>, at which point superconductivity is abruptly destroyed. **Type-II superconductors**, however, have two critical fields, H<sub>c1</sub> and H<sub>c2</sub>.
+                    <ul>
+                        <li>For fields below H<sub>c1</sub>, they exhibit a perfect Meissner effect, like Type-I materials.</li>
+                        <li>Between H<sub>c1</sub> and H<sub>c2</sub>, they enter the **mixed state** or **vortex state**. The magnetic field is allowed to partially penetrate the material in the form of quantized flux tubes, known as **Abrikosov vortices**.</li>
+                        <li>Above H<sub>c2</sub>, superconductivity is destroyed.</li>
+                    </ul>
+                    Each vortex consists of a normal (non-superconducting) core, where the magnetic field is concentrated, surrounded by a circulating supercurrent. The magnetic flux contained within each vortex is quantized to a fundamental value, the magnetic flux quantum, `Φ₀ = h/(2e) ≈ 2.067 x 10⁻¹⁵ Wb`.</p>
+
+                    <h4>The Abrikosov Vortex Lattice</h4>
+                    <p>Vortices in a superconductor repel each other with a force that falls off approximately as `1/r`. To minimize their interaction energy, a uniform distribution of vortices will spontaneously self-organize into a regular triangular lattice, known as an Abrikosov lattice. The density of vortices `n_v` is directly proportional to the applied magnetic field `B`, where `B = n_v * Φ₀`.</p>
+
+                    <h4>Forces on Vortices and Dissipation</h4>
+                    <p>When an electrical transport current `J` is applied to a superconductor in the mixed state, it exerts a **Lorentz-like force** on the vortices. The force per unit length of a vortex is given by:
+                    <p><strong><code>F<sub>L</sub> = J x Φ₀</code></strong></p>
+                    This force is perpendicular to both the current and the magnetic field (which is along the vortex core). In the absence of other forces, this would cause the entire vortex lattice to move with a velocity `v`.
+                    <p>Crucially, a moving vortex induces an electric field `E = -v x B`. Since this electric field is parallel to the current `J`, it leads to energy dissipation `P = J⋅E`. This dissipation manifests as a measurable voltage, and thus, electrical resistance. Therefore, for a superconductor to carry current without resistance in a magnetic field, the vortices **must be held stationary**.</p>
+
+                    <h4>Vortex Pinning</h4>
+                    <p>Vortex pinning is the mechanism used to immobilize the vortex lattice. By introducing defects, impurities, or grain boundaries into the superconducting material, we can create regions where the superconducting order parameter is weakened. A vortex core is already a normal, non-superconducting region, so it costs less energy for a vortex to have its core overlap with one of these pre-existing defects. This creates an attractive potential well that "pins" the vortex.
+                    <p>The pinning force `F_p` opposes the Lorentz force `F_L`. As long as `F_L < F_p`, the vortex remains pinned, its velocity is zero, and there is no resistance. When the current is increased such that `F_L` exceeds the maximum pinning force, the vortex is de-pinned and begins to move, a process called **flux flow** or **flux creep**. The current at which this occurs is the **critical current density (J<sub>c</sub>)** of the superconductor, a key figure of merit for any practical superconducting wire or magnet.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Initialize & Run</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Applied Current (J) <span class="value-display" id="current-value">0.5</span></label>
+                        <input type="range" id="current-slider" min="0" max="2.0" step="0.1" value="0.5">
+                    </div>
+                    <div class="control">
+                        <label>Magnetic Field (B) <span class="value-display" id="bfield-value">50</span></label>
+                        <input type="range" id="bfield-slider" min="10" max="100" step="5" value="50">
+                    </div>
+                    <div class="control">
+                        <label>Pinning Strength <span class="value-display" id="pin-strength-value">1.0</span></label>
+                        <input type="range" id="pin-strength-slider" min="0" max="5.0" step="0.1" value="1.0">
+                    </div>
+                     <div class="control">
+                        <label>Number of Pins <span class="value-display" id="pin-count-value">20</span></label>
+                        <input type="range" id="pin-count-slider" min="0" max="100" step="5" value="20">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            chartCanvas: document.getElementById('vi-curve-chart'),
+            startBtn: document.getElementById('start-button'),
+            currentSlider: document.getElementById('current-slider'), currentValue: document.getElementById('current-value'),
+            bfieldSlider: document.getElementById('bfield-slider'), bfieldValue: document.getElementById('bfield-value'),
+            pinStrengthSlider: document.getElementById('pin-strength-slider'), pinStrengthValue: document.getElementById('pin-strength-value'),
+            pinCountSlider: document.getElementById('pin-count-slider'), pinCountValue: document.getElementById('pin-count-value'),
+        };
+
+        const state = {
+            vortices: [], pins: [], isRunning: false, time: 0, config: {}
+        };
+        const ctx = dom.canvas.getContext('2d');
+
+        function updateConfig() {
+            state.config.current = parseFloat(dom.currentSlider.value);
+            state.config.b_field = parseInt(dom.bfieldSlider.value);
+            state.config.pin_strength = parseFloat(dom.pinStrengthSlider.value);
+            state.config.pin_count = parseInt(dom.pinCountSlider.value);
+
+            dom.currentValue.textContent = state.config.current.toFixed(1);
+            dom.bfieldValue.textContent = state.config.b_field;
+            dom.pinStrengthValue.textContent = state.config.pin_strength.toFixed(1);
+            dom.pinCountValue.textContent = state.config.pin_count;
+        }
+
+        function reset() {
+            updateConfig();
+            state.isRunning = true; state.time = 0;
+
+            // Create vortices
+            state.vortices = [];
+            const spacing = Math.sqrt(dom.canvas.width*dom.canvas.height / state.config.b_field);
+            for(let i=0; i<dom.canvas.width; i+=spacing) {
+                for(let j=0; j<dom.canvas.height; j+=spacing) {
+                    state.vortices.push({ x: i, y: j, vx: 0, vy: 0 });
+                }
+            }
+
+            // Create pinning sites
+            state.pins = [];
+            for(let i=0; i<state.config.pin_count; i++) {
+                state.pins.push({ x: Math.random()*dom.canvas.width, y: Math.random()*dom.canvas.height });
+            }
+        }
+
+        function update() {
+            if (!state.isRunning) return;
+            const dt = 0.1;
+
+            state.vortices.forEach(v => {
+                let fx = 0, fy = 0;
+                // Vortex-vortex repulsion
+                state.vortices.forEach(v2 => {
+                    if (v === v2) return;
+                    const dx = v.x - v2.x, dy = v.y - v2.y;
+                    const distSq = dx*dx+dy*dy;
+                    if (distSq > 1) {
+                        const force = 100 / distSq;
+                        fx += force * dx / Math.sqrt(distSq);
+                        fy += force * dy / Math.sqrt(distSq);
+                    }
+                });
+
+                // Pinning force
+                state.pins.forEach(p => {
+                    const dx = p.x - v.x, dy = p.y - v.y;
+                    const distSq = dx*dx+dy*dy;
+                    if(distSq < 100) {
+                        const force = state.config.pin_strength * Math.exp(-distSq/50);
+                        fx += force * dx;
+                        fy += force * dy;
+                    }
+                });
+
+                // Lorentz force from current
+                fy += state.config.current;
+
+                // Drag force
+                fx -= v.vx * 0.5;
+                fy -= v.vy * 0.5;
+
+                v.vx += fx * dt;
+                v.vy += fy * dt;
+                v.x += v.vx * dt;
+                v.y += v.vy * dt;
+
+                // Periodic boundaries
+                if(v.x < 0) v.x += dom.canvas.width; if(v.x > dom.canvas.width) v.x -= dom.canvas.width;
+                if(v.y < 0) v.y += dom.canvas.height; if(v.y > dom.canvas.height) v.y -= dom.canvas.height;
+            });
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            ctx.fillStyle = '#112'; ctx.fillRect(0,0,w,h);
+
+            // Draw pinning sites
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            state.pins.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 7, 0, 2*Math.PI);
+                ctx.fill();
+            });
+
+            // Draw vortices
+            state.vortices.forEach(v => {
+                const speed = Math.sqrt(v.vx**2 + v.vy**2);
+                const hue = 240 - Math.min(speed*10, 1) * 60;
+                ctx.fillStyle = `hsl(${hue}, 100%, 70%)`;
+                ctx.beginPath();
+                ctx.arc(v.x, v.y, 5, 0, 2*Math.PI);
+                ctx.fill();
+            });
+        }
+
+        function animationLoop() {
+            if(state.isRunning) update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.startBtn.addEventListener('click', reset);
+        [dom.currentSlider, dom.bfieldSlider, dom.pinStrengthSlider, dom.pinCountSlider].forEach(s => s.addEventListener('input', reset));
+
+        updateConfig();
+        reset();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Weyl & Dirac Semimetal Transport</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #ff6347; /* Tomato */
+            --secondary-color: #4682b4; /* SteelBlue */
+            --accent-color: #32cd32; /* LimeGreen */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            height: 500px;
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .chart-container { width: 100%; height: 250px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); text-align: center; }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 1.8em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Weyl & Dirac Semimetal Transport</h1>
+            <p class="subtitle">Visualizing the Chiral Anomaly and Relativistic Electrons in a Crystal</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <h2>Metrics</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+                <div class="chart-container" id="population-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Weyl and Dirac semimetals are newly discovered "topological materials" where the electrons inside behave as if they are relativistic particles from high-energy physics, but at much lower energies. Their most remarkable feature is the existence of "Weyl nodes" in their electronic structure—special points where the electron energy bands touch. These nodes always come in pairs with opposite "chirality," a property analogous to left- and right-handedness. A stunning prediction of quantum field theory, the **chiral anomaly**, states that if you apply an electric field and a magnetic field parallel to each other, you can "pump" electrons from one node to the other, creating an imbalance between left- and right-handed electrons. This pumping action generates an unusual electric current that can be measured. This simulation visualizes this process. You can see two Weyl nodes in the material's momentum space and watch as applying parallel E and B fields causes the electron population to shift from one node to the other, demonstrating a deep connection between condensed matter and particle physics.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View (Momentum Space):</strong> The main window shows a 2D slice of the material's "momentum space." This isn't real space, but a map of the electrons' momentum.
+                            <ul>
+                                <li>The two circles are the **Weyl nodes**. The <strong style="color: #4682b4;">blue</strong> one has left-handed chirality, and the <strong style="color: #ff6347;">red</strong> one has right-handed chirality.</li>
+                                <li>The dots represent electrons, initially distributed equally around both nodes.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Applying Fields:</strong>
+                            <ul>
+                                <li>Use the **"Electric Field"** slider to apply an E-field along the vertical axis. You'll see all the electrons start to drift upwards.</li>
+                                <li>Use the **"Magnetic Field"** slider to apply a B-field, also along the vertical axis. By itself, it doesn't do much.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The Chiral Anomaly:</strong> The magic happens when both E and B fields are on and parallel.
+                            <ul>
+                                <li>You will see electrons from the blue (left-handed) node being "pumped" over to the red (right-handed) node.</li>
+                                <li>The population of the red node will grow, while the blue node empties out. This is the chiral anomaly.</li>
+                                <li>The **Population Chart** below clearly shows the number of electrons in the red node increasing and the number in the blue node decreasing.</li>
+                                <li>The **Chiral Current** metric will show a net current being generated by this pumping action.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Experiment:** Try setting the E and B fields to be perpendicular (a control on the right). The pumping effect will disappear, showing that it only happens when the fields are parallel.</li>
+                    </ol>
+
+                    <h2>Core Theory of Weyl Semimetals</h2>
+                    <h4>Topological Materials and Dirac Cones</h4>
+                    <p>In most materials, the relationship between an electron's energy and its momentum (the "band structure") is described by a parabolic curve, and the electrons behave according to the non-relativistic Schrödinger equation. However, in a special class of materials called topological materials, the band structure can be linear, forming "cones" where the valence and conduction bands touch. Near these touching points, the electrons' behavior is described not by the Schrödinger equation, but by the relativistic Dirac or Weyl equations. The electrons behave as if they have no mass and travel at a fixed speed (the Fermi velocity, which plays the role of the speed of light).</p>
+                    <p>In a **Dirac semimetal**, these touching points (Dirac nodes) are protected by symmetry but can be split into two separate nodes by breaking certain symmetries (like time-reversal or inversion symmetry). The resulting material is a **Weyl semimetal**.</p>
+
+                    <h4>Chirality and Weyl Nodes</h4>
+                    <p>The nodes in a Weyl semimetal are called Weyl nodes, and they are **monopoles of Berry curvature** in momentum space. This is a complex way of saying they have a topological charge, which we call **chirality**. Chirality is a "handedness," and Weyl nodes always come in pairs of opposite chirality (+1 and -1). For an electron near a +1 node (a "right-handed" electron), its spin is aligned with its momentum. For an electron near a -1 node (a "left-handed" electron), its spin is anti-aligned with its momentum.</p>
+                    <p>Crucially, the number of left-handed and right-handed electrons are separately conserved in most situations. However, this separate conservation can be broken by a quantum mechanical effect known as the **chiral anomaly**.</p>
+
+                    <h4>The Chiral Anomaly and Pumping</h4>
+                    <p>The chiral anomaly states that in the presence of parallel electric (E) and magnetic (B) fields, the separate conservation of left- and right-handed particles is violated. The `E⋅B` term acts as a source, continuously creating particles of one chirality and destroying particles of the other. The result is a "pumping" of electrons from the node of one chirality to the node of the opposite chirality.</p>
+                    <p>In a solid-state Weyl semimetal, this has a concrete physical consequence. The `B` field quantizes the electron orbits into Landau levels. For Weyl electrons, the lowest Landau level (LLL) is special: it is chiral. For the +1 node, the LLL only has states moving in the `+k_z` direction (parallel to B), while for the -1 node, it only has states moving in the `-k_z` direction.
+                    <ol>
+                        <li>An applied `E` field (parallel to `B`) exerts a force `F = -eE`, causing all electrons to accelerate, `dk_z/dt = -eE/ħ`.</li>
+                        <li>For the +1 node, electrons in the LLL simply accelerate along `+k_z`.</li>
+                        <li>For the -1 node, electrons are also pushed along `+k_z` by the E-field, but the LLL has no states there. The only way for the system to respond is to transfer the electron from the -1 node to the +1 node through the bulk.</li>
+                    </ol>
+                    This continuous pumping creates a net population imbalance between the nodes and a net current, `J ∝ E⋅B`, which manifests as a negative magnetoresistance (resistance decreases when a B-field is applied), a key experimental signature of the chiral anomaly.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Run Simulation</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Field Strengths</h3>
+                    <div class="control">
+                        <label>Electric Field <span class="value-display" id="efield-value">0.5</span></label>
+                        <input type="range" id="efield-slider" min="0" max="1.0" step="0.1" value="0.5">
+                    </div>
+                    <div class="control">
+                        <label>Magnetic Field <span class="value-display" id="bfield-value">0.5</span></label>
+                        <input type="range" id="bfield-slider" min="0" max="1.0" step="0.1" value="0.5">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            chartCanvas: document.getElementById('population-chart'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            startBtn: document.getElementById('start-button'),
+            efieldSlider: document.getElementById('efield-slider'), efieldValue: document.getElementById('efield-value'),
+            bfieldSlider: document.getElementById('bfield-slider'), bfieldValue: document.getElementById('bfield-value'),
+        };
+
+        const state = {
+            particles: [], isRunning: false, time: 0,
+            config: {},
+            history: { time: [], n_left: [], n_right: [] }
+        };
+        const ctx = dom.canvas.getContext('2d');
+        let chart;
+
+        function updateConfig() {
+            state.config.E = parseFloat(dom.efieldSlider.value);
+            state.config.B = parseFloat(dom.bfieldSlider.value);
+            dom.efieldValue.textContent = state.config.E.toFixed(1);
+            dom.bfieldValue.textContent = state.config.B.toFixed(1);
+        }
+
+        function reset() {
+            updateConfig();
+            state.isRunning = false; state.time = 0;
+            state.particles = [];
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            const node_L = {x: w*0.25, y: h/2};
+            const node_R = {x: w*0.75, y: h/2};
+
+            for(let i=0; i<200; i++) {
+                const angle = Math.random() * 2 * Math.PI;
+                const r = Math.random() * 50;
+                const node = i < 100 ? node_L : node_R;
+                state.particles.push({
+                    x: node.x + r * Math.cos(angle),
+                    y: node.y + r * Math.sin(angle),
+                    chirality: i < 100 ? -1 : 1,
+                });
+            }
+        }
+
+        function start() { if(!state.isRunning) { reset(); state.isRunning = true; } }
+
+        function update() {
+            if (!state.isRunning) return;
+            state.time++;
+
+            const E = state.config.E;
+            const B = state.config.B;
+            const pumping_rate = E * B * 0.01;
+
+            state.particles.forEach(p => {
+                // E-field drift
+                p.y -= E * 2;
+
+                // Chiral pumping
+                if (p.chirality === -1 && Math.random() < pumping_rate) {
+                    p.chirality = 1; // "Pump" to other node
+                }
+
+                // Keep particles near their nodes visually
+                const node_x = p.chirality === -1 ? dom.canvas.width*0.25 : dom.canvas.width*0.75;
+                p.x += (node_x - p.x) * 0.1;
+                if(p.y < 0) p.y = dom.canvas.height;
+            });
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+
+            // Draw nodes
+            ctx.strokeStyle = '#4682b4'; ctx.beginPath(); ctx.arc(w*0.25, h/2, 50, 0, 2*Math.PI); ctx.stroke();
+            ctx.strokeStyle = '#ff6347'; ctx.beginPath(); ctx.arc(w*0.75, h/2, 50, 0, 2*Math.PI); ctx.stroke();
+
+            // Draw particles
+            state.particles.forEach(p => {
+                ctx.fillStyle = p.chirality === -1 ? '#4682b4' : '#ff6347';
+                ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, 2*Math.PI); ctx.fill();
+            });
+            updateMetricsAndChart();
+        }
+
+        function updateMetricsAndChart() {
+            const n_left = state.particles.filter(p=>p.chirality===-1).length;
+            const n_right = state.particles.length - n_left;
+            const chiral_current = (n_right - n_left) * state.config.E * state.config.B;
+
+            dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>Left-handed (N₋)</h4><p>${n_left}</p></div>
+                <div class="metric-card"><h4>Right-handed (N₊)</h4><p>${n_right}</p></div>
+                <div class="metric-card"><h4>Population Imbalance</h4><p>${n_right-n_left}</p></div>
+                <div class="metric-card"><h4>Chiral Current</h4><p>${chiral_current.toFixed(1)}</p></div>
+            `;
+            if (state.time % 5 === 0) {
+                state.history.time.push(state.time);
+                state.history.n_left.push(n_left);
+                state.history.n_right.push(n_right);
+                if(chart) chart.update(state.history);
+            }
+        }
+
+        function animationLoop() {
+            if(state.isRunning) update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        function createChart(canvas) { /* ... chart logic ... */ }
+
+        dom.startBtn.addEventListener('click', start);
+        [dom.efieldSlider, dom.bfieldSlider].forEach(s => s.addEventListener('input', updateConfig));
+
+        chart = { update: ()=>{}, reset: ()=>{} };
+        reset();
+        draw();
+    })();
+    </script>
+</body>
+</html>

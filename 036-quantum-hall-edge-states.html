@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Quantum Hall Edge States</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #8e44ad; /* Purple */
+            --secondary-color: #1abc9c; /* Teal */
+            --accent-color: #e74c3c; /* Red */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            min-height: 500px;
+        }
+        #simulationCanvas { display: block; width: 100%; height: 100%; position: absolute; top:0; left:0; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { width: 100%; }
+        .control button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        code { background-color: #333; color: var(--secondary-color); padding: 2px 5px; border-radius: 3px; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Quantum Hall Edge States</h1>
+            <p class="subtitle">The Superhighways of Topological Electron Transport</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>The Quantum Hall Effect is a bizarre and wonderful phenomenon that happens to electrons confined in a 2D sheet at very low temperatures and in a very strong magnetic field. The magnetic field forces the electrons to move in tiny circles. This effectively makes the interior (the "bulk") of the sheet an insulator—no current can flow. </p>
+                    <p>But at the edges of the sheet, something amazing happens. The electrons can't complete their circles and instead start skipping along the edge. This creates perfect, one-way "superhighways" for electrons. Electrons on the top edge all flow in one direction, and electrons on the bottom edge all flow in the opposite direction. These are known as **chiral edge states**.</p>
+                    <p>The most incredible property of these edge states is that they are **topologically protected**. This means they are unbelievably robust. You can add dirt and defects (impurities) to the material that would normally block electrical flow, but these edge currents just flow around them as if they're not there. This simulation lets you see this in action.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Clean System:</strong> With the **Number of Impurities** set to zero, click **Reset Electrons**. You'll see electrons moving.
+                            <ul>
+                                <li>In the middle (the bulk), electrons are trapped in small circular orbits.</li>
+                                <li>Along the top and bottom edges, electrons perform "skipping orbits," causing them to drift steadily along the edge. Notice the top and bottom currents flow in opposite directions.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Adding Disorder:</strong>
+                            <ul>
+                                <li>Now, increase the **Number of Impurities** slider. You'll see gray circles appear, which represent defects.</li>
+                                <li>Observe the bulk electrons. They get scattered by the impurities and their circular motion is disrupted. The bulk is an insulator.</li>
+                                <li>Now look at the edge electrons. They flow right past the impurities, completely unaffected! This is topological protection in action. An electron on the edge cannot reverse its direction because there's no available "lane" for it to move into. It's forced to go forward.</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h2>Core Theory: Landau Levels and Topological Protection</h2>
+                    <p>When a 2D electron gas is subjected to a strong perpendicular magnetic field `B`, the electrons' continuous spectrum of energy levels collapses into a series of discrete, highly degenerate energy levels known as **Landau Levels**.</p>
+                    <p><code>E_n = ħω_c(n + 1/2)</code>, where <code>ω_c = eB/m</code> is the cyclotron frequency.</p>
+                    <p>If the Fermi energy `E_F` lies in the gap between two Landau levels, there are no available states for electrons to move into. This means the bulk of the material becomes an electrical insulator. This is the fundamental origin of the "insulating bulk."</p>
+
+                    <h4>Origin of Edge States</h4>
+                    <p>In a finite-sized sample, there must be a potential that confines the electrons (e.g., the edges of the material). This confining potential `V(y)` bends the Landau levels. Near the edges, the potential increases, causing the Landau levels to rise in energy. They must eventually cross the Fermi energy `E_F`.</p>
+                    <p>The points where the Landau levels cross `E_F` represent available electronic states. These states are spatially located at the edges of the sample. An electron in one of these states has a group velocity `v_g = (1/ħ) dE/dk`, which is non-zero. This gives rise to a current that flows only along the edges.</p>
+
+                    <h4>Chirality and Topological Protection</h4>
+                    <p>The direction of the current in an edge state is determined by the direction of the magnetic field and the slope of the confining potential. On opposite sides of the sample, the potential slopes in opposite directions, causing the currents to flow in opposite directions. This one-way nature is called **chirality**.</p>
+                    <p>This chirality is the source of the remarkable robustness. Consider an electron moving along the top edge. For it to be "back-scattered" by an impurity, it would need to start moving in the opposite direction. But the only states available for opposite-direction travel are on the *other side* of the sample, separated by the insulating bulk. An impurity is a local defect and cannot cause a "quantum leap" across the entire sample. Therefore, back-scattering is forbidden. The electron has no choice but to flow around the impurity and continue on its way. This is what is meant by **topological protection**.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <div class="control"><button id="reset-button">Reset Electrons</button></div>
+                </div>
+                <div class="control-group">
+                    <div class="control">
+                        <label>Magnetic Field (B) <span class="value-display" id="bfield-value">2.0</span></label>
+                        <input type="range" id="bfield-slider" min="0.5" max="5.0" step="0.1" value="2.0">
+                    </div>
+                    <div class="control">
+                        <label>Number of Impurities <span class="value-display" id="impurity-value">0</span></label>
+                        <input type="range" id="impurity-slider" min="0" max="50" step="1" value="0">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            resetBtn: document.getElementById('reset-button'),
+            bfieldSlider: document.getElementById('bfield-slider'), bfieldValue: document.getElementById('bfield-value'),
+            impuritySlider: document.getElementById('impurity-slider'), impurityValue: document.getElementById('impurity-value'),
+        };
+
+        const state = {
+            electrons: [], impurities: [], config: {}
+        };
+        const ctx = dom.canvas.getContext('2d');
+        let width, height;
+
+        function updateConfig() {
+            state.config.B = parseFloat(dom.bfieldSlider.value);
+            state.config.numImpurities = parseInt(dom.impuritySlider.value);
+
+            dom.bfieldValue.textContent = state.config.B.toFixed(1);
+            dom.impurityValue.textContent = state.config.numImpurities;
+
+            createImpurities();
+        }
+
+        function reset() {
+            width = dom.canvas.clientWidth;
+            height = dom.canvas.clientHeight;
+            dom.canvas.width = width;
+            dom.canvas.height = height;
+
+            state.electrons = [];
+            for(let i=0; i<200; i++) {
+                state.electrons.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    history: []
+                });
+            }
+            updateConfig();
+        }
+
+        function createImpurities() {
+            state.impurities = [];
+            for (let i = 0; i < state.config.numImpurities; i++) {
+                state.impurities.push({
+                    x: width * (0.1 + Math.random() * 0.8),
+                    y: height * (0.2 + Math.random() * 0.6),
+                    strength: (Math.random() - 0.5) * 0.2,
+                    radius: 15 + Math.random() * 10
+                });
+            }
+        }
+
+        function update() {
+            const dt = 0.5;
+            const B = state.config.B;
+
+            state.electrons.forEach(p => {
+                // Confining potential V(y) = k * (y-h/2)^4
+                const y_norm = (p.y - height / 2) / (height / 2);
+                const Ey = -4 * 0.005 * Math.pow(y_norm, 3) / (height/2);
+
+                let Fx = -p.vx * B + 0; // Lorentz + E_x
+                let Fy =  p.vy * B + Ey; // Lorentz + E_y
+
+                // Impurity force
+                state.impurities.forEach(imp => {
+                    const dx = p.x - imp.x;
+                    const dy = p.y - imp.y;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < imp.radius * imp.radius) {
+                        const dist = Math.sqrt(distSq);
+                        const force = imp.strength * (1 - dist/imp.radius);
+                        Fx -= force * dx / dist;
+                        Fy -= force * dy / dist;
+                    }
+                });
+
+                p.vx += Fx * dt;
+                p.vy += Fy * dt;
+
+                // Damping
+                p.vx *= 0.99;
+                p.vy *= 0.99;
+
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+
+                p.history.push({x: p.x, y: p.y});
+                if (p.history.length > 50) p.history.shift();
+
+                // Periodic boundary in x
+                if (p.x < 0) p.x += width;
+                if (p.x > width) p.x -= width;
+                if (p.y < 0 || p.y > height) { // particle lost, re-inject
+                    p.y = Math.random() * height;
+                    p.x = Math.random() * width;
+                    p.history = [];
+                }
+            });
+        }
+
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0,0,width,height);
+
+            // Draw confining potential background
+            for (let y = 0; y < height; y++) {
+                const y_norm = Math.abs((y - height / 2) / (height / 2));
+                const alpha = Math.pow(y_norm, 4) * 0.2;
+                ctx.fillStyle = `rgba(142, 68, 173, ${alpha})`;
+                ctx.fillRect(0, y, width, 1);
+            }
+
+            // Draw impurities
+            state.impurities.forEach(imp => {
+                const g = ctx.createRadialGradient(imp.x, imp.y, 0, imp.x, imp.y, imp.radius);
+                const color = imp.strength > 0 ? '255,255,255' : '100,100,100';
+                g.addColorStop(0, `rgba(${color}, 0.3)`);
+                g.addColorStop(1, `rgba(${color}, 0)`);
+                ctx.fillStyle = g;
+                ctx.fillRect(imp.x - imp.radius, imp.y - imp.radius, imp.radius*2, imp.radius*2);
+            });
+
+            // Draw electrons and their trails
+            state.electrons.forEach(p => {
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 1.5, 0, 2*Math.PI);
+                ctx.fill();
+
+                ctx.strokeStyle = '#1abc9c';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                if (p.history.length > 0) {
+                    ctx.moveTo(p.history[0].x, p.history[0].y);
+                    for (let i = 1; i < p.history.length; i++) {
+                        ctx.lineTo(p.history[i].x, p.history[i].y);
+                    }
+                }
+                ctx.stroke();
+            });
+        }
+
+        function animationLoop() {
+            update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.resetBtn.addEventListener('click', reset);
+        dom.bfieldSlider.addEventListener('input', updateConfig);
+        dom.impuritySlider.addEventListener('input', updateConfig);
+
+        reset();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>
