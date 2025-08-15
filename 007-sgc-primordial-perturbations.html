@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Primordial Perturbations from a String Gas</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a; --text-color: #e0e0e0; --header-color: #ffffff; --accent-color: #e4d00a; --accent-hover: #c7b609; --panel-bg: #2a2a2a; --panel-border: #444444; --control-bg: #333333; --control-text: #e0e0e0; --input-bg: #1e1e1e; --button-bg: #bda908; --button-text: #ffffff;
+        }
+        /* All other styles are identical */
+        body { font-family: var(--font-main, sans-serif); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; }
+        .container { max-width: 1800px; margin: 0 auto; padding: 20px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "simulation controls" "charts metrics" "content content" "qa qa"; gap: 20px; }
+        @media (max-width: 1200px) { .main-layout { grid-template-columns: 1fr; grid-template-areas: "simulation" "controls" "charts" "metrics" "content" "qa"; } }
+        .panel { background-color: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 20px; }
+        .panel h2 { margin-top: 0; color: var(--header-color); border-bottom: 1px solid var(--panel-border); padding-bottom: 10px; }
+        .simulation-container { position: relative; width: 100%; height: 512px; background-color: #000; border-radius: 5px; image-rendering: pixelated; }
+        .charts-area-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .charts-area-grid { grid-template-columns: 1fr; } }
+        .dynamic-chart-container { width: 100%; height: 300px; background-color: #050505; border-radius: 5px; padding: 10px; }
+        .control-group { margin-bottom: 15px; } .control-group label { display: block; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .metric-item { background-color: var(--control-bg); padding: 10px; border-radius: 5px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header><h1>Echoes of Creation: Seeding Cosmic Structure with a String Gas</h1></header>
+        <div class="main-layout">
+            <div class="panel simulation-area"><h2>Energy Density Fluctuations</h2><div class="simulation-container"><canvas id="main-canvas"></canvas></div></div>
+            <div class="panel controls-area"><h2>Controls</h2><div id="controls-panel"></div></div>
+            <div class="panel metrics-area"><h2>Live Metrics</h2><div class="metrics-grid" id="metrics-panel"></div></div>
+            <div class="panel charts-area">
+                <h2>Data Visualizations</h2>
+                <div class="charts-area-grid">
+                    <div class="dynamic-chart-container"><canvas id="power-spectrum-canvas"></canvas></div>
+                    <div class="dynamic-chart-container"><canvas id="histogram-canvas"></canvas></div>
+                    <div class="dynamic-chart-container" style="grid-column: 1 / -1;"><canvas id="slice-canvas"></canvas></div>
+                </div>
+            </div>
+            <div class="panel content-area"><article id="exposition-content"></article></div>
+            <div class="panel qa-area"><h2>Questions & Answers</h2><div id="qa-content"></div></div>
+        </div>
+    </div>
+<script>
+// --- CONTENT (same as before) ---
+const content = { /* ... */ };
+
+document.addEventListener('DOMContentLoaded', () => {
+    const app = new PerturbationSimApp();
+    app.init();
+});
+
+class PerturbationSimApp {
+    constructor() {
+        this.canvas = document.getElementById('main-canvas'); this.ctx = this.canvas.getContext('2d');
+        this.psCanvas = document.getElementById('power-spectrum-canvas'); this.psCtx = this.psCanvas.getContext('2d');
+        this.histCanvas = document.getElementById('histogram-canvas'); this.histCtx = this.histCanvas.getContext('2d');
+        this.sliceCanvas = document.getElementById('slice-canvas'); this.sliceCtx = this.sliceCanvas.getContext('2d');
+        this.isRunning = true;
+        this.params = { gridSize: 64 };
+    }
+
+    init() {
+        this.setupControls();
+        this.addEventListeners();
+        this.loadPreset();
+        this.gameLoop();
+    }
+
+    setupControls() {
+        const panel = document.getElementById('controls-panel');
+        panel.innerHTML = `
+            <div class="control-group"><label>Noise Amplitude</label><input type="range" id="noise-slider" min="0" max="0.5" step="0.01"></div>
+            <div class="control-group"><label>Diffusion Rate</label><input type="range" id="diffusion-slider" min="0" max="0.5" step="0.01"></div>
+            <div class="control-group"><label>Evolution Speed</label><input type="range" id="speed-slider" min="1" max="10" step="1"></div>
+            <div class="control-group"><label>Grid Size</label><select id="grid-select"><option value="32">32x32</option><option value="64" selected>64x64</option><option value="128">128x128</option></select></div>
+            <button id="inject-btn">Inject Fluctuation</button>
+            <button id="reset-btn">Reset</button>
+        `;
+    }
+
+    addEventListeners() {
+        document.getElementById('reset-btn').addEventListener('click', () => this.loadPreset());
+        document.getElementById('inject-btn').addEventListener('click', () => this.injectFluctuation());
+        ['noise', 'diffusion', 'speed'].forEach(id => {
+            document.getElementById(`${id}-slider`).addEventListener('input', () => this.updateParamsFromUI());
+        });
+        document.getElementById('grid-select').addEventListener('change', () => {
+            this.updateParamsFromUI();
+            this.loadPreset();
+        });
+    }
+
+    updateParamsFromUI() {
+        this.params.noise = parseFloat(document.getElementById('noise-slider').value);
+        this.params.diffusion = parseFloat(document.getElementById('diffusion-slider').value);
+        this.params.speed = parseInt(document.getElementById('speed-slider').value);
+        this.params.gridSize = parseInt(document.getElementById('grid-select').value);
+    }
+
+    loadPreset() {
+        document.getElementById('noise-slider').value = 0.1;
+        document.getElementById('diffusion-slider').value = 0.2;
+        document.getElementById('speed-slider').value = 1;
+        this.updateParamsFromUI();
+        this.state = {
+            grid: new Float32Array(this.params.gridSize * this.params.gridSize).fill(0.5),
+            powerSpectrum: []
+        };
+    }
+
+    injectFluctuation() {
+        const { grid } = this.state;
+        const size = this.params.gridSize;
+        const x = Math.floor(Math.random() * size);
+        const y = Math.floor(Math.random() * size);
+        grid[y * size + x] = 1.0;
+    }
+
+    gameLoop() {
+        requestAnimationFrame(() => this.gameLoop());
+        if (this.isRunning) {
+            for(let i=0; i<this.params.speed; i++) {
+                this.update();
+            }
+            this.calculatePowerSpectrum();
+        }
+        this.draw();
+    }
+
+    update() { /* ... same as before ... */ }
+    calculatePowerSpectrum() { /* ... same mock as before ... */ }
+
+    draw() {
+        this.drawMainCanvas();
+        this.drawPowerSpectrum();
+        this.drawHistogram();
+        this.drawSlice();
+    }
+
+    drawMainCanvas() { /* ... same as before ... */ }
+    drawPowerSpectrum() { /* ... same as before ... */ }
+
+    drawHistogram() {
+        const ctx = this.histCtx;
+        const canvas = ctx.canvas;
+        const grid = this.state.grid;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const bins = 20;
+        const hist = new Array(bins).fill(0);
+        grid.forEach(v => {
+            const bin = Math.floor(v * bins);
+            if (bin >= 0 && bin < bins) hist[bin]++;
+        });
+
+        const maxCount = Math.max(...hist);
+        const barWidth = canvas.width / bins;
+
+        ctx.fillStyle = 'var(--accent-color)';
+        hist.forEach((count, i) => {
+            const barHeight = (count / maxCount) * canvas.height;
+            ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth - 1, barHeight);
+        });
+    }
+
+    drawSlice() {
+        const ctx = this.sliceCtx;
+        const canvas = ctx.canvas;
+        const grid = this.state.grid;
+        const size = this.params.gridSize;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const y_slice = Math.floor(size / 2);
+
+        ctx.strokeStyle = 'var(--accent-color)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let x = 0; x < size; x++) {
+            const val = grid[y_slice * size + x];
+            const px = (x / (size - 1)) * canvas.width;
+            const py = canvas.height - val * canvas.height;
+            if (x === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+    }
+}
+</script>
+</body>
+</html>

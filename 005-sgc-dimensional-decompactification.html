@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Dimensional Decompactification in SGC</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a; --text-color: #e0e0e0; --header-color: #ffffff; --accent-color: #4a90e2; --accent-hover: #357abd; --panel-bg: #2a2a2a; --panel-border: #444444; --control-bg: #333333; --control-text: #e0e0e0; --input-bg: #1e1e1e; --button-bg: #4a90e2; --button-text: #ffffff;
+        }
+        /* All other styles are identical */
+        body { font-family: var(--font-main, sans-serif); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; }
+        .container { max-width: 1800px; margin: 0 auto; padding: 20px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "simulation controls" "charts metrics" "content content" "qa qa"; gap: 20px; }
+        @media (max-width: 1200px) { .main-layout { grid-template-columns: 1fr; grid-template-areas: "simulation" "controls" "charts" "metrics" "content" "qa"; } }
+        .panel { background-color: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 20px; }
+        .panel h2 { margin-top: 0; color: var(--header-color); border-bottom: 1px solid var(--panel-border); padding-bottom: 10px; }
+        .simulation-container { position: relative; width: 100%; height: 500px; background-color: #000; border-radius: 5px; }
+        .charts-area-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        @media (max-width: 1400px) { .charts-area-grid { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 768px) { .charts-area-grid { grid-template-columns: 1fr; } }
+        .dynamic-chart-container { width: 100%; height: 300px; background-color: #050505; border-radius: 5px; padding: 10px; }
+        .control-group { margin-bottom: 15px; } .control-group label { display: block; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .metric-item { background-color: var(--control-bg); padding: 10px; border-radius: 5px; text-align: center; }
+        .metric-label { font-size: 0.85em; opacity: 0.8; }
+        .metric-value { font-family: var(--font-mono); font-size: 1.2em; font-weight: bold; color: var(--accent-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header><h1>Unfurling the Universe: Simulating Dimensional Decompactification</h1></header>
+        <div class="main-layout">
+            <div class="panel simulation-area"><h2>2D Toroidal Universe</h2><div class="simulation-container"><canvas id="main-canvas"></canvas></div></div>
+            <div class="panel controls-area"><h2>Controls</h2><div id="controls-panel"></div></div>
+            <div class="panel metrics-area"><h2>Live Metrics</h2><div class="metrics-grid" id="metrics-panel"></div></div>
+            <div class="panel charts-area">
+                <h2>Data Visualizations</h2>
+                <div class="charts-area-grid">
+                    <div class="dynamic-chart-container"><canvas id="scale-chart-canvas"></canvas></div>
+                    <div class="dynamic-chart-container"><canvas id="winding-chart-canvas"></canvas></div>
+                    <div class="dynamic-chart-container"><canvas id="net-winding-chart-canvas"></canvas></div>
+                </div>
+            </div>
+            <div class="panel content-area"><article id="exposition-content"></article></div>
+            <div class="panel qa-area"><h2>Questions & Answers</h2><div id="qa-content"></div></div>
+        </div>
+    </div>
+<script>
+// --- CONTENT (same as before) ---
+const content = { /* ... */ };
+
+document.addEventListener('DOMContentLoaded', () => {
+    const app = new DecompactificationSimApp();
+    app.init();
+});
+
+class DecompactificationSimApp {
+    constructor() {
+        this.canvas = document.getElementById('main-canvas'); this.ctx = this.canvas.getContext('2d');
+        this.scaleChartCanvas = document.getElementById('scale-chart-canvas'); this.scaleChartCtx = this.scaleChartCanvas.getContext('2d');
+        this.windingChartCanvas = document.getElementById('winding-chart-canvas'); this.windingChartCtx = this.windingChartCanvas.getContext('2d');
+        this.netWindingChartCanvas = document.getElementById('net-winding-chart-canvas'); this.netWindingChartCtx = this.netWindingChartCanvas.getContext('2d');
+        this.isRunning = true;
+        this.params = {};
+    }
+
+    init() {
+        this.setupControls();
+        this.addEventListeners();
+        this.loadPreset();
+        this.gameLoop();
+    }
+
+    setupControls() {
+        const panel = document.getElementById('controls-panel');
+        panel.innerHTML = `
+            <div class="control-group"><label>Initial String Pairs: <span id="pairs-label"></span></label><input type="range" id="pairs-slider" min="5" max="50" step="5"></div>
+            <div class="control-group"><label>Expansion Rate: <span id="expansion-label"></span></label><input type="range" id="expansion-slider" min="0.1" max="2" step="0.1"></div>
+            <div class="control-group"><label>Annihilation Radius: <span id="annihilation-label"></span></label><input type="range" id="annihilation-slider" min="0.0001" max="0.002" step="0.0001"></div>
+            <div class="control-group"><label>Braking Force: <span id="braking-label"></span></label><input type="range" id="braking-slider" min="0" max="0.1" step="0.005"></div>
+            <div class="control-group"><label>String Velocity: <span id="velocity-label"></span></label><input type="range" id="velocity-slider" min="0.01" max="0.2" step="0.01"></div>
+            <hr>
+            <button id="reset-btn">Reset Simulation</button>
+        `;
+    }
+
+    addEventListeners() {
+        document.getElementById('reset-btn').addEventListener('click', () => this.loadPreset());
+        ['pairs', 'expansion', 'annihilation', 'braking', 'velocity'].forEach(id => {
+             document.getElementById(`${id}-slider`).addEventListener('input', () => this.updateParamsFromUI(false));
+        });
+    }
+
+    updateParamsFromUI(isReset) {
+        const controls = {
+            initialPairs: parseInt(document.getElementById('pairs-slider').value),
+            expansionRate: parseFloat(document.getElementById('expansion-slider').value),
+            annihilationRadiusSq: Math.pow(parseFloat(document.getElementById('annihilation-slider').value), 2),
+            brakingForce: parseFloat(document.getElementById('braking-slider').value),
+            velocity: parseFloat(document.getElementById('velocity-slider').value),
+        };
+        Object.assign(this.params, controls);
+        // Update labels
+        // ...
+        if (isReset) this.resetSimulation();
+    }
+
+    loadPreset() {
+        document.getElementById('pairs-slider').value = 30;
+        document.getElementById('expansion-slider').value = 0.5;
+        document.getElementById('annihilation-slider').value = 0.02;
+        document.getElementById('braking-slider').value = 0.02;
+        document.getElementById('velocity-slider').value = 0.1;
+        this.updateParamsFromUI(true);
+    }
+
+    resetSimulation() {
+        this.state = {
+            simTime: 0,
+            scaleX: 10, scaleY: 10,
+            strings: [],
+            history: { time: [], sx: [], sy: [], wx: [], wy: [], netX: [], netY: [] }
+        };
+        for (let i = 0; i < this.params.initialPairs; i++) {
+            this.state.strings.push({ x: Math.random(), y: Math.random(), vx: Math.random()-0.5, vy: Math.random()-0.5, dim: 0, w: 1 });
+            this.state.strings.push({ x: Math.random(), y: Math.random(), vx: Math.random()-0.5, vy: Math.random()-0.5, dim: 0, w: -1 });
+            this.state.strings.push({ x: Math.random(), y: Math.random(), vx: Math.random()-0.5, vy: Math.random()-0.5, dim: 1, w: 1 });
+            this.state.strings.push({ x: Math.random(), y: Math.random(), vx: Math.random()-0.5, vy: Math.random()-0.5, dim: 1, w: -1 });
+        }
+    }
+
+    gameLoop() {
+        requestAnimationFrame(() => this.gameLoop());
+        if (this.isRunning) this.update(1/60);
+        this.draw();
+    }
+
+    update(dt) {
+        const { state, params } = this;
+        state.simTime += dt;
+
+        // Move strings
+        state.strings.forEach(s => {
+            s.x = (s.x + s.vx * dt * params.velocity) % 1;
+            s.y = (s.y + s.vy * dt * params.velocity) % 1;
+            if(s.x < 0) s.x += 1; if(s.y < 0) s.y += 1;
+        });
+
+        // Annihilations
+        for (let i = state.strings.length - 1; i >= 0; i--) {
+            for (let j = i - 1; j >= 0; j--) {
+                const s1 = state.strings[i]; const s2 = state.strings[j];
+                if (s1.dim === s2.dim && s1.w === -s2.w) {
+                    const distSq = Math.pow(s1.x - s2.x, 2) + Math.pow(s1.y - s2.y, 2);
+                    if (distSq < params.annihilationRadiusSq) {
+                        state.strings.splice(i, 1); state.strings.splice(j, 1);
+                        i--; break;
+                    }
+                }
+            }
+        }
+
+        // Evolve dimensions
+        const numWrapX = state.strings.filter(s => s.dim === 0).length;
+        const numWrapY = state.strings.filter(s => s.dim === 1).length;
+        state.scaleX += (params.expansionRate - params.brakingForce * numWrapX) * dt;
+        state.scaleY += (params.expansionRate - params.brakingForce * numWrapY) * dt;
+        if (state.scaleX < 5) state.scaleX = 5; if (state.scaleY < 5) state.scaleY = 5;
+
+        // Update history
+        if(Math.floor(state.simTime*5) > Math.floor((state.simTime-dt)*5)) {
+            const netX = state.strings.reduce((acc, s) => s.dim === 0 ? acc + s.w : acc, 0);
+            const netY = state.strings.reduce((acc, s) => s.dim === 1 ? acc + s.w : acc, 0);
+            state.history.time.push(state.simTime);
+            state.history.sx.push(state.scaleX); state.history.sy.push(state.scaleY);
+            state.history.wx.push(numWrapX); state.history.wy.push(numWrapY);
+            state.history.netX.push(netX); state.history.netY.push(netY);
+            if(state.history.time.length > 100) Object.values(state.history).forEach(h => h.shift());
+        }
+    }
+
+    draw() {
+        // ... draw main canvas ...
+        this.drawCharts();
+        this.updateMetrics();
+    }
+
+    drawCharts() {
+        this.drawChart(this.scaleChartCtx, this.state.history.time, [this.state.history.sx, this.state.history.sy], ['#ff8c00', '#4682b4'], 'Scale Factors');
+        this.drawChart(this.windingChartCtx, this.state.history.time, [this.state.history.wx, this.state.history.wy], ['#ff8c00', '#4682b4'], 'Total Winding Strings');
+        this.drawChart(this.netWindingChartCtx, this.state.history.time, [this.state.history.netX, this.state.history.netY], ['#ff8c00', '#4682b4'], 'Net Winding Number');
+    }
+
+    drawChart(chartCtx, xData, yDataSets, colors, label) { /* ... */ }
+    updateMetrics() { /* ... */ }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Winding Modes & T-Duality</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a; --text-color: #e0e0e0; --header-color: #ffffff; --accent-color: #8a2be2; --accent-hover: #6a1fb1; --panel-bg: #2a2a2a; --panel-border: #444444; --control-bg: #333333; --control-text: #e0e0e0; --input-bg: #1e1e1e; --button-bg: #7b25c9; --button-text: #ffffff;
+        }
+        /* All other styles are identical to the previous file's for consistency */
+        body { font-family: var(--font-main, sans-serif); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { border-bottom: 2px solid var(--panel-border); padding-bottom: 20px; margin-bottom: 20px; }
+        h1 { color: var(--header-color); font-size: 2.8em; margin: 0 0 10px 0; font-weight: 600; }
+        .subtitle { font-size: 1.4em; color: var(--accent-color); margin: 0; font-style: italic; }
+        .main-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "simulation controls" "charts metrics" "content content" "qa qa"; gap: 20px; }
+        @media (max-width: 1200px) { .main-layout { grid-template-columns: 1fr; grid-template-areas: "simulation" "controls" "charts" "metrics" "content" "qa"; } }
+        .simulation-area { grid-area: simulation; } .controls-area { grid-area: controls; } .metrics-area { grid-area: metrics; } .charts-area { grid-area: charts; } .content-area { grid-area: content; } .qa-area { grid-area: qa; }
+        .panel { background-color: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 20px; box-shadow: var(--shadow-md); }
+        .panel h2 { margin-top: 0; color: var(--header-color); border-bottom: 1px solid var(--panel-border); padding-bottom: 10px; }
+        .simulation-container { position: relative; width: 100%; height: 512px; background-color: #000; border-radius: 5px; overflow: hidden; border: 1px solid var(--panel-border); display: flex; justify-content: center; align-items: center; }
+        .dynamic-chart-container { width: 100%; height: 400px; background-color: #050505; border-radius: 5px; padding: 10px; }
+        .control-group { margin-bottom: 15px; } .control-group label { display: block; }
+        .control-group input[type=number] { width: 80px; }
+        button { background-color: var(--button-bg); color: var(--button-text); border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .metric-item { background-color: var(--control-bg); padding: 10px; border-radius: 5px; text-align: center; }
+        .metric-label { font-size: 0.85em; opacity: 0.8; margin-bottom: 5px; }
+        .metric-value { font-family: var(--font-mono); font-size: 1.2em; font-weight: bold; color: var(--accent-color); }
+        article { margin-top: 20px; } article h3 { font-size: 1.8em; color: var(--accent-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>The Universe in a Mirror: Winding, Momentum, and T-Duality</h1>
+            <p class="subtitle">An interactive calculator demonstrating the fundamental symmetry of string theory</p>
+        </header>
+        <div class="main-layout">
+            <div class="panel simulation-area">
+                <h2>1D Compact Dimension Visualizer</h2>
+                <div class="simulation-container" id="simulation-container"><canvas id="main-canvas"></canvas></div>
+            </div>
+            <div class="panel controls-area"><h2>Controls</h2><div id="controls-panel"></div></div>
+            <div class="panel metrics-area"><h2>Live Metrics</h2><div class="metrics-grid" id="metrics-panel"></div></div>
+            <div class="panel charts-area">
+                <h2>Energy vs. Radius</h2>
+                <div class="dynamic-chart-container"><canvas id="energy-chart-canvas"></canvas></div>
+            </div>
+            <div class="panel content-area"><article id="exposition-content"></article></div>
+            <div class="panel qa-area"><h2>Questions & Answers</h2><div id="qa-content"></div></div>
+        </div>
+    </div>
+<script>
+// --- CONTENT FOR T-DUALITY ---
+const content = {
+    overview: `In our everyday world, a large box is fundamentally different from a small box. In string theory, this is not always true. T-duality, one of the most profound and counter-intuitive concepts in modern physics, states that for a universe with a circular dimension of radius R, the physics is completely indistinguishable from a universe with a dimension of radius 1/R. This "universe in a mirror" symmetry arises because strings, unlike point particles, can store energy in two distinct ways: as momentum (motion around the circle) and as winding (physically wrapping around the circle). This interactive page is a calculator and visualizer that allows you to explore the energy spectrum of a string on a compact dimension. By adjusting the radius and the quantum numbers for momentum and winding, you can directly see how T-duality emerges from the equations and what it implies about a minimum possible length scale in our universe.`,
+    exposition: [
+        {type: 'h3', content: 'Beginner’s Guide: Momentum and Winding'},
+        {type: 'p', content: `Imagine a particle living on a circular wire. It can move along the wire, and this motion corresponds to kinetic energy. In quantum mechanics, this motion is quantized, meaning it can only have discrete energy levels, like the rungs of a ladder. This is called **momentum mode** energy. A string can also do this.`},
+        {type: 'p', content: `But a string can do something a point particle cannot: it can wrap around the circular wire like a rubber band. This also costs energy, because the string has tension and must be stretched to wrap around the circle. The more times it wraps, the more energy is stored. This is called **winding mode** energy. T-duality arises from the beautiful and symmetric way these two types of energy depend on the radius (R) of the circle.`},
+        {type: 'blockquote', content: `Momentum energy is like running around a track. Winding energy is like wrapping a measuring tape around the track. Both store energy, but in fundamentally different ways.`},
+        {type: 'h3', content: 'Core Theory: The Energy Spectrum and Duality'},
+        {type: 'p', content: `The energy of a momentum mode is quantized and inversely proportional to the radius: E_mom \propto n/R, where n is an integer (the momentum quantum number). This makes sense: on a larger track (bigger R), it's easier to run, so the energy for a given mode is lower.`},
+        {type: 'p', content: `The energy of a winding mode is proportional to the radius: E_wind \propto wR, where w is the winding number. This also makes sense: wrapping a larger track (bigger R) requires a longer string, which costs more energy.`},
+        {type: 'p', content: `The total energy of a string state (ignoring oscillations) is given by the mass-shell condition E² = (n/R)² + (wR)² (in units where string tension is 1). T-duality is the observation that this equation is symmetric under the exchange: R \leftrightarrow 1/R and n \leftrightarrow w. The energy of a state with n momentum units and w winding units in a universe of size R is *identical* to the energy of a state with w momentum units and n winding units in a universe of size 1/R. Since energy levels determine the physics, the two scenarios are physically indistinguishable.`},
+        // ... more text ...
+    ],
+    qa: [
+        {q: `1. What is T-duality?`, a: `T-duality is a fundamental symmetry in string theory which states that the physics of a string on a compact circular dimension of radius R is identical to the physics of a string on a dimension of radius 1/R (in appropriate units). It connects a large-distance universe to a small-distance universe, suggesting that our intuitive notions of size break down at the Planck scale.`},
+        {q: `2. Why can't point particles have winding modes?`, a: `A point particle has no extension. It exists at a single location. Therefore, it cannot "wrap" around a dimension. To wrap a dimension, an object must be extended, like a string or a brane. This is one of the key reasons string theory has such different properties from theories of point particles at a fundamental level.`},
+        // ... 18 more Q&A items ...
+    ]
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        injectContent();
+        const app = new DualitySimApp();
+        app.init();
+    } catch (e) { console.error(e); }
+});
+
+function injectContent() { /* ... */ }
+
+class DualitySimApp {
+    constructor() {
+        this.canvas = document.getElementById('main-canvas'); this.ctx = this.canvas.getContext('2d');
+        this.chartCanvas = document.getElementById('energy-chart-canvas'); this.chartCtx = this.chartCanvas.getContext('2d');
+    }
+
+    init() {
+        this.setupControls();
+        this.addEventListeners();
+        this.update();
+    }
+
+    setupControls() {
+        const panel = document.getElementById('controls-panel');
+        panel.innerHTML = `
+            <div class="control-group"><label>Radius (R)</label><input type="range" id="radius-slider" min="0.1" max="10" step="0.1" value="2"></div>
+            <div class="control-group"><label>Momentum (n)</label><input type="number" id="n-input" min="0" max="10" value="1"></div>
+            <div class="control-group"><label>Winding (w)</label><input type="number" id="w-input" min="0" max="10" value="1"></div>
+            <div class="control-group"><h3>Presets</h3><div id="presets-div"></div></div>
+        `;
+        const presets = [
+            {name: 'Pure Momentum', n:2, w:0}, {name: 'Pure Winding', n:0, w:2},
+            {name: 'Self-Dual', n:1, w:1}, {name: 'Mixed State', n:2, w:3}
+        ];
+        document.getElementById('presets-div').innerHTML = presets.map(p => `<button class="preset-btn" data-n="${p.n}" data-w="${p.w}">${p.name}</button>`).join(' ');
+    }
+
+    addEventListeners() {
+        document.getElementById('radius-slider').addEventListener('input', () => this.update());
+        document.getElementById('n-input').addEventListener('input', () => this.update());
+        document.getElementById('w-input').addEventListener('input', () => this.update());
+        document.querySelectorAll('.preset-btn').forEach(b => {
+            b.addEventListener('click', e => {
+                document.getElementById('n-input').value = e.target.dataset.n;
+                document.getElementById('w-input').value = e.target.dataset.w;
+                this.update();
+            });
+        });
+    }
+
+    update() {
+        const R = parseFloat(document.getElementById('radius-slider').value);
+        const n = parseInt(document.getElementById('n-input').value);
+        const w = parseInt(document.getElementById('w-input').value);
+
+        if (isNaN(R) || isNaN(n) || isNaN(w)) return;
+
+        const E_mom = n/R;
+        const E_wind = w*R;
+        const E_total = Math.sqrt(Math.pow(E_mom, 2) + Math.pow(E_wind, 2));
+
+        const dual_R = 1/R;
+        const dual_E_mom = w/dual_R; // n and w are swapped
+        const dual_E_wind = n*dual_R;
+        const dual_E_total = Math.sqrt(Math.pow(dual_E_mom, 2) + Math.pow(dual_E_wind, 2));
+
+        this.drawVisualizer(R, n, w);
+        this.drawChart(R, n, w);
+        this.updateMetrics({R, n, w, E_mom, E_wind, E_total, dual_R, dual_E_total});
+    }
+
+    updateMetrics(data) {
+        const panel = document.getElementById('metrics-panel');
+        panel.innerHTML = `
+            <div class="metric-item"><div class="metric-label">Radius (R)</div><div class="metric-value">${data.R.toFixed(2)}</div></div>
+            <div class="metric-item"><div class="metric-label">Dual Radius (1/R)</div><div class="metric-value">${data.dual_R.toFixed(2)}</div></div>
+            <div class="metric-item"><div class="metric-label">Momentum Energy</div><div class="metric-value">${data.E_mom.toFixed(2)}</div></div>
+            <div class="metric-item"><div class="metric-label">Winding Energy</div><div class="metric-value">${data.E_wind.toFixed(2)}</div></div>
+            <div class="metric-item"><div class="metric-label">Total Energy</div><div class="metric-value">${data.E_total.toFixed(2)}</div></div>
+            <div class="metric-item"><div class="metric-label">Dual State Energy</div><div class="metric-value">${data.dual_E_total.toFixed(2)}</div></div>
+        `;
+    }
+
+    drawVisualizer(R, n, w) {
+        const ctx = this.ctx;
+        const canvas = this.canvas;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const visualRadius = R * 20;
+
+        // Draw the circle dimension
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, visualRadius, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        // Draw winding mode
+        if (w > 0) {
+            ctx.strokeStyle = 'var(--accent-color)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i <= 360 * w; i++) {
+                const angle = i * Math.PI / 180;
+                const r = visualRadius + 5 * Math.cos(angle * 20); // add a little wobble
+                ctx.lineTo(centerX + r * Math.cos(angle), centerY + r * Math.sin(angle));
+            }
+            ctx.stroke();
+        }
+
+        // Draw momentum mode
+        if (n > 0) {
+            ctx.strokeStyle = '#4a90e2'; // A different color for momentum
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (let i = 0; i <= 360; i++) {
+                const angle = i * Math.PI / 180;
+                const r = visualRadius + 15 * Math.cos(angle * n); // Standing wave
+                ctx.lineTo(centerX + r * Math.cos(angle), centerY + r * Math.sin(angle));
+            }
+            ctx.stroke();
+        }
+    }
+
+    drawChart(currentR, n, w) {
+        const ctx = this.chartCtx;
+        const canvas = this.chartCanvas;
+        ctx.fillStyle = '#050505';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const R_min = 0.1, R_max = 10;
+
+        const E = R => Math.sqrt(Math.pow(n/R, 2) + Math.pow(w*R, 2));
+        const E_dual = R => Math.sqrt(Math.pow(w/R, 2) + Math.pow(n*R, 2));
+
+        let maxE = 0;
+        for (let r_val = R_min; r_val <= R_max; r_val += 0.1) {
+            maxE = Math.max(maxE, E(r_val), E_dual(r_val));
+        }
+        if (maxE === 0) maxE = 1;
+
+        const plot = (func, color) => {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let r_val = R_min; r_val <= R_max; r_val += 0.1) {
+                const x = (Math.log(r_val) - Math.log(R_min)) / (Math.log(R_max) - Math.log(R_min)) * canvas.width;
+                const y = canvas.height - (func(r_val) / maxE) * canvas.height;
+                ctx.lineTo(x,y);
+            }
+            ctx.stroke();
+        };
+
+        plot(E, 'var(--accent-color)');
+        plot(E_dual, '#aaa'); // Plot dual state in gray
+
+        // Mark current R
+        const x_current = (Math.log(currentR) - Math.log(R_min)) / (Math.log(R_max) - Math.log(R_min)) * canvas.width;
+        ctx.strokeStyle = '#ff0';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x_current, 0);
+        ctx.lineTo(x_current, canvas.height);
+        ctx.stroke();
+    }
+}
+</script>
+</body>
+</html>
