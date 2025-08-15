@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: LWFA Particle Injection and Acceleration</title>
+    <style>
+        :root {
+            --bg-color: #111;
+            --text-color: #eee;
+            --header-color: #fff;
+            --primary-color: #33ff33; /* Green */
+            --secondary-color: #ff33ff; /* Magenta */
+            --accent-color: #ffff33; /* Yellow */
+            --border-color: #333;
+            --control-bg: #222;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #1a1a1a; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .chart-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            height: 250px;
+            padding: 10px;
+        }
+        #wakefield-chart { height: 300px; }
+        #phasespace-chart { height: 350px; }
+
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); text-align: center; }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 1.8em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+        .metric-card .unit { font-size: 0.5em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: LWFA Particle Injection and Acceleration</h1>
+            <p class="subtitle">Catching the Wave: Trapping and Accelerating Electrons to Giga-Electronvolt Energies</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="chart-container" id="wakefield-chart">
+                    <canvas id="main-canvas"></canvas>
+                </div>
+                 <div class="chart-container" id="phasespace-chart">
+                    <canvas id="phasespace-canvas"></canvas>
+                </div>
+
+                <h2>Beam Properties</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Once a laser has created a powerful plasma wave (a "wakefield"), the next challenge is to get electrons to "surf" it. The wake moves at nearly the speed of light, so an electron starting from rest can't catch it. The process of getting electrons onto the wave is called "injection." One of the most common methods is "self-injection," where the wake itself becomes so large and violent that it breaks, like an ocean wave crashing on the shore. This breaking traps background plasma electrons and forces them onto the wave. Once trapped, these electrons are subjected to the wake's immense electric field and are accelerated to incredible energies in very short distances. This simulation demonstrates this process. The top panel shows the wakefield, while the crucial bottom panel shows the "phase space" of the electrons—a graph of their energy versus their position. You will see electrons get trapped at low energy and then ride the wave, gaining enormous energy and forming a compact, high-energy beam, the ultimate goal of a plasma accelerator.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>Two Main Views:</strong>
+                            <ul>
+                                <li><strong>Top Chart (Wakefield):</strong> This is the same view as the previous simulation, showing the laser (red), electron density (blue), and electric field (yellow). The small green dots are the "witness" electrons that we are tracking.</li>
+                                <li><strong>Bottom Chart (Phase Space):</strong> This is the key new plot. The horizontal axis is the position, and the vertical axis is the energy of the witness electrons. Each green dot corresponds to a single electron. This plot shows you who is getting accelerated and by how much.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The Injection Process:</strong>
+                            <ul>
+                                <li>Set the **Laser Intensity (a₀)** to a high value (e.g., 3.0). This creates a strong, non-linear wake.</li>
+                                <li>Press **"Reset Simulation"**. Initially, the phase space plot shows all electrons at low energy.</li>
+                                <li>As the simulation runs, you will see the wake "break" near the back of the first bubble. A handful of electrons will be grabbed and injected onto the accelerating part of the wave.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Watching the Acceleration:</strong>
+                            <ul>
+                                <li>In the phase space plot, you will see the injected electrons suddenly jump up in energy. They form a distinct hook-like or spiral shape.</li>
+                                <li>These trapped electrons move forward with the wake, continuously gaining energy from the electric field. You can see their dots "riding the wave" in the top panel and climbing up the energy axis in the bottom panel.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Metrics:</strong> Keep an eye on the "Beam Properties" metrics. **"Max Energy"** will show the peak energy reached by any electron, often hundreds of Mega-electronvolts (MeV) in just a few simulation steps. **"Energy Spread"** tells you how mono-energetic the resulting beam is (lower is better).</li>
+                    </ol>
+
+                    <h2>Core Theory of Injection and Acceleration</h2>
+                    <h4>Particle Trapping</h4>
+                    <p>A particle can only be accelerated by a wave if it is "trapped" by it. This means the particle must travel with a velocity close to the wave's phase velocity (v<sub>ph</sub>). The plasma wake created by the laser travels at the laser's group velocity, v<sub>g</sub>, which is very close to `c`. An electron initially at rest in the plasma has a velocity of zero and cannot catch up to the wave. Therefore, a special mechanism is required to give some electrons an initial kick of momentum in the forward direction. This is the "injection" problem.</p>
+
+                    <h4>Self-Injection in the Bubble Regime</h4>
+                    <p>When the laser intensity `a₀` is sufficiently high (typically a₀ > 2), the wake enters the highly non-linear "bubble" or "blowout" regime. The ponderomotive force is so strong it creates a near-perfect cavity of ions, surrounded by a thin sheath of electrons. The dynamics of this electron sheath at the rear of the bubble become very violent. The electron trajectories can cross and self-intersect, causing the wake to "break." This breaking process can impart a large amount of forward momentum to some electrons, injecting them into the accelerating phase of the wake just behind them. This is called **wave-breaking injection** or **self-injection**.</p>
+                    <p>Once injected, an electron finds itself in a region of the wake with a strong longitudinal electric field pointing in the forward direction. If the electron's velocity is greater than the phase velocity of this part of the wake, it will be trapped and accelerated, continuously drawing energy from the plasma wave.</p>
+
+                    <h4>Phase Space Dynamics</h4>
+                    <p>The "Phase Space" plot (Energy vs. Position) is the most powerful diagnostic for understanding particle acceleration.
+                    <ul>
+                        <li>Initially, all plasma electrons have low energy and are distributed everywhere in position.</li>
+                        <li>During injection, a small subset of electrons at the back of the first wake bubble are pushed forward and gain energy, appearing as a distinct feature that moves up and to the right in the phase space plot.</li>
+                        <li>As they are accelerated, they form a characteristic swirling or hook-like shape. This is because electrons injected at slightly different times see a slightly different field and are accelerated differently.</li>
+                        <li>Ideally, these electrons coalesce into a compact, quasi-monoenergetic bunch at very high energy.</li>
+                    </ul>
+                    </p>
+
+                    <h4>Dephasing Limit</h4>
+                    <p>An electron cannot be accelerated indefinitely. The accelerating wake travels at a phase velocity v<sub>ph</sub> < c, while the accelerated electrons are traveling at a velocity v<sub>e</sub> that approaches `c`. Eventually, the ultra-relativistic electrons will outrun the accelerating region of the wave and slip into a decelerating region just ahead of it. This is called **dephasing**. The length over which an electron is accelerated before it dephases is the dephasing length, L<sub>d</sub>, which sets the maximum possible energy gain from a single LWFA stage.</p>
+                    <p>The dephasing length scales strongly with the plasma density: <code>L<sub>d</sub> ∝ n<sub>e</sub><sup>-3/2</sup></code>. This implies a trade-off: higher density plasmas produce higher accelerating fields (E ∝ n<sub>e</sub><sup>1/2</sup>) but have a shorter acceleration length. The maximum energy gain in a single stage scales as <code>ΔE<sub>max</sub> ∝ n<sub>e</sub><sup>-1</sup></code>. Therefore, reaching the highest energies requires using lower density plasmas and longer acceleration distances.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Laser Intensity (a₀) <span class="value-display" id="a0-value">2.5</span></label>
+                        <input type="range" id="a0-slider" min="0.5" max="5.0" step="0.1" value="2.5">
+                    </div>
+                    <div class="control">
+                        <label>Plasma Density (nₑ) <span class="value-display" id="ne-value">2.0e+18</span> cm⁻³</label>
+                        <input type="range" id="ne-slider" min="17" max="19" step="0.1" value="18.3">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                     <div class="control">
+                        <button id="reset-button">Reset Simulation</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // NOTE: This script reuses the PIC engine from the previous simulation,
+    // but adds tracking for injected particles and a phase-space plot.
+    (function() {
+        const dom = {
+            mainCanvas: document.getElementById('main-canvas'),
+            phaseCanvas: document.getElementById('phasespace-canvas'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            a0Slider: document.getElementById('a0-slider'), a0Value: document.getElementById('a0-value'),
+            neSlider: document.getElementById('ne-slider'), neValue: document.getElementById('ne-value'),
+            resetBtn: document.getElementById('reset-button'),
+        };
+
+        const state = { sim: null, injectedParticles: [], time: 0 };
+        const config = { a0: 2.5, ne: 10**18.3, gridSize: 512, numParticles: 10000 };
+
+        const mainCtx = dom.mainCanvas.getContext('2d');
+        const phaseCtx = dom.phaseCanvas.getContext('2d');
+
+        // Simplified 1D PIC code (same core as previous simulation)
+        class PIC1D {
+             constructor(config) {
+                this.gridSize = config.gridSize;
+                this.n_particles = config.numParticles;
+                this.a0 = config.a0;
+                this.ne = config.ne * 1e6;
+                this.tau = 30e-15;
+
+                this.c = 299792458; this.me = 9.109e-31; this.e = 1.602e-19; this.eps0 = 8.854e-12;
+                this.omega_p = Math.sqrt(this.ne * this.e**2 / (this.me * this.eps0));
+                this.lambda_p = 2 * Math.PI * this.c / this.omega_p;
+                this.dx = this.lambda_p / 20; this.sim_width = this.gridSize * this.dx;
+                this.dt = this.dx / this.c * 0.5;
+                this.laser_pos = this.sim_width * 0.8;
+                this.laser_width = this.c * this.tau;
+
+                this.rho = new Float32Array(this.gridSize); this.Ex = new Float32Array(this.gridSize);
+                this.particles = {
+                    x: new Float32Array(this.n_particles), vx: new Float32Array(this.n_particles),
+                    is_injected: new Uint8Array(this.n_particles).fill(0)
+                };
+                for (let i = 0; i < this.n_particles; i++) {
+                    this.particles.x[i] = Math.random() * this.sim_width;
+                }
+            }
+            step() {
+                this.laser_pos -= this.c * this.dt;
+                if (this.laser_pos < this.sim_width * 0.2) this.laser_pos = this.sim_width * 0.8;
+
+                for (let i = 0; i < this.n_particles; i++) {
+                    const grid_idx = Math.floor(this.particles.x[i] / this.dx);
+                    if (grid_idx < 0 || grid_idx >= this.gridSize) continue;
+
+                    const E_field = this.Ex[grid_idx];
+                    const dist_from_laser = this.particles.x[i] - this.laser_pos;
+                    const laser_envelope = Math.exp(-dist_from_laser**2 / (2 * this.laser_width**2));
+                    const ponderomotive_force = -(this.me * this.c**2 * this.a0**2 / 4) * (-2 * dist_from_laser / (2 * this.laser_width**2)) * laser_envelope;
+
+                    const total_force = -this.e * E_field + ponderomotive_force;
+                    this.particles.vx[i] += total_force / this.me * this.dt;
+                    this.particles.x[i] += this.particles.vx[i] * this.dt;
+
+                    if (this.particles.x[i] < 0) this.particles.x[i] += this.sim_width;
+                    if (this.particles.x[i] > this.sim_width) this.particles.x[i] -= this.sim_width;
+
+                    // Wave-breaking injection model
+                    if (this.a0 > 2.0 && this.particles.vx[i] / this.c > 0.5 && E_field > 0) {
+                        this.particles.is_injected[i] = 1;
+                    }
+                }
+
+                this.rho.fill(-this.ne * this.e);
+                const charge_per_particle = this.ne * this.sim_width / this.n_particles * this.e;
+                for (let i = 0; i < this.n_particles; i++) {
+                    const grid_idx = Math.floor(this.particles.x[i] / this.dx);
+                     if (grid_idx >= 0 && grid_idx < this.gridSize) {
+                        this.rho[grid_idx] -= charge_per_particle / this.dx;
+                    }
+                }
+
+                this.Ex[0] = 0;
+                for (let j = 1; j < this.gridSize; j++) {
+                    this.Ex[j] = this.Ex[j-1] + this.rho[j-1] / this.eps0 * this.dx;
+                }
+            }
+        }
+
+        function updateConfigFromUI() {
+            config.a0 = parseFloat(dom.a0Slider.value);
+            config.ne = 10**parseFloat(dom.neSlider.value);
+            dom.a0Value.textContent = config.a0.toFixed(1);
+            dom.neValue.textContent = config.ne.toExponential(1);
+        }
+
+        function reset() {
+            updateConfigFromUI();
+            state.sim = new PIC1D(config);
+            state.time = 0;
+        }
+
+        function draw() {
+            const sim = state.sim; if (!sim) return;
+            drawWakefield(sim);
+            drawPhaseSpace(sim);
+            updateMetrics(sim);
+        }
+
+        function drawWakefield(sim) {
+            const w = dom.mainCanvas.width; const h = dom.mainCanvas.height;
+            mainCtx.fillStyle = '#000'; mainCtx.fillRect(0,0,w,h);
+            // ... (Re-use drawing logic from previous simulation)
+            const ne_plot = new Float32Array(sim.gridSize).fill(0);
+            const charge_per_particle = sim.ne * sim.sim_width / sim.n_particles;
+            for(let i=0; i<sim.n_particles; i++) {
+                 const grid_idx = Math.floor(sim.particles.x[i] / sim.dx);
+                 if (grid_idx >= 0 && grid_idx < sim.gridSize) ne_plot[grid_idx]++;
+            }
+            for(let i=0; i<sim.gridSize; i++) ne_plot[i] = ne_plot[i] * charge_per_particle / sim.dx / sim.e;
+            const Ex_plot = sim.Ex;
+            const laser_plot = new Float32Array(sim.gridSize);
+            for(let i=0; i<sim.gridSize; i++) {
+                const x = i * sim.dx;
+                const dist = x - sim.laser_pos;
+                laser_plot[i] = sim.a0 * Math.exp(-dist**2 / (2*sim.laser_width**2));
+            }
+            const max_ne = Math.max(...ne_plot, sim.ne * 2);
+            const max_Ex = Math.max(...Ex_plot.map(Math.abs), 1e9);
+            const max_laser = sim.a0;
+
+            function draw_line(data, color, max_val) {
+                mainCtx.strokeStyle = color; mainCtx.lineWidth = 2; mainCtx.beginPath();
+                for(let i=0; i<sim.gridSize; i++) {
+                    const x = i/sim.gridSize * w;
+                    const y = h/2 - (data[i] / max_val) * (h/2 - 10);
+                    if (i === 0) mainCtx.moveTo(x, y); else mainCtx.lineTo(x, y);
+                }
+                mainCtx.stroke();
+            }
+            draw_line(ne_plot.map(n => n - sim.ne), '#00ddff', max_ne);
+            draw_line(Ex_plot, '#ffdd00', max_Ex);
+            draw_line(laser_plot, '#ff3333', max_laser);
+
+            // Draw injected particles
+            mainCtx.fillStyle = '#33ff33';
+            for(let i=0; i<sim.n_particles; i++) {
+                if(sim.particles.is_injected[i]) {
+                    const x = sim.particles.x[i] / sim.sim_width * w;
+                    mainCtx.beginPath(); mainCtx.arc(x, h/2, 3, 0, 2*Math.PI); mainCtx.fill();
+                }
+            }
+        }
+
+        function drawPhaseSpace(sim) {
+            const w = dom.phaseCanvas.width; const h = dom.phaseCanvas.height;
+            phaseCtx.fillStyle = 'rgba(0,0,0,0.1)'; phaseCtx.fillRect(0,0,w,h);
+
+            phaseCtx.fillStyle = '#33ff33';
+            let max_energy = 0;
+            for(let i=0; i<sim.n_particles; i++) {
+                if(sim.particles.is_injected[i]) {
+                    const gamma = 1 / Math.sqrt(1 - (sim.particles.vx[i]/sim.c)**2);
+                    const energy_MeV = (gamma - 1) * 0.511;
+                    if (energy_MeV > max_energy) max_energy = energy_MeV;
+
+                    const x = sim.particles.x[i] / sim.sim_width * w;
+                    const y = h - (energy_MeV / 500) * h; // Scale to 500 MeV max display
+                    phaseCtx.beginPath(); phaseCtx.arc(x, y, 2, 0, 2*Math.PI); phaseCtx.fill();
+                }
+            }
+        }
+
+        function updateMetrics(sim) {
+            let maxEnergy = 0, meanEnergy = 0, count = 0;
+            const energies = [];
+            for(let i=0; i<sim.n_particles; i++) {
+                 if(sim.particles.is_injected[i]) {
+                    const gamma = 1 / Math.sqrt(1 - (sim.particles.vx[i]/sim.c)**2);
+                    const energy_MeV = (gamma - 1) * 0.511;
+                    if(energy_MeV > maxEnergy) maxEnergy = energy_MeV;
+                    meanEnergy += energy_MeV;
+                    energies.push(energy_MeV);
+                    count++;
+                }
+            }
+            meanEnergy /= (count || 1);
+            let energySpread = 0;
+            if(count > 0) {
+                const stddev = Math.sqrt(energies.map(e => (e - meanEnergy)**2).reduce((a,b)=>a+b, 0) / count);
+                energySpread = (stddev / meanEnergy) * 100;
+            }
+
+            dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>Injected Particles</h4><p>${count}</p></div>
+                <div class="metric-card"><h4>Max Energy</h4><p>${maxEnergy.toFixed(1)}<span class="unit"> MeV</span></p></div>
+                <div class="metric-card"><h4>Mean Energy</h4><p>${meanEnergy.toFixed(1)}<span class="unit"> MeV</span></p></div>
+                <div class="metric-card"><h4>Energy Spread (ΔE/E)</h4><p>${energySpread.toFixed(1)}<span class="unit"> %</span></p></div>
+            `;
+        }
+
+        function animationLoop() {
+            if(state.sim) {
+                for(let i=0; i<5; i++) state.sim.step();
+                draw();
+            }
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.resetBtn.addEventListener('click', reset);
+        [dom.a0Slider, dom.neSlider].forEach(s => s.addEventListener('input', updateConfigFromUI));
+
+        reset();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>

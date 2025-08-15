@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Laser Wakefield Acceleration</title>
+    <style>
+        :root {
+            --bg-color: #111;
+            --text-color: #eee;
+            --header-color: #fff;
+            --primary-color: #00ddff; /* Electric Blue */
+            --secondary-color: #ffdd00; /* Gold */
+            --accent-color: #dd00ff; /* Purple */
+            --border-color: #333;
+            --control-bg: #222;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #1a1a1a; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .chart-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            height: 250px;
+            padding: 10px;
+        }
+        #wakefield-chart { height: 400px; }
+
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); text-align: center; }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 1.8em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+        .metric-card .unit { font-size: 0.5em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Laser Wakefield Acceleration</h1>
+            <p class="subtitle">Riding the Wave: Surfing on Plasma for Tabletop Particle Acceleration</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="chart-container" id="wakefield-chart">
+                    <canvas id="main-canvas"></canvas>
+                </div>
+
+                <h2>Key Metrics</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Traditional particle accelerators, like the Large Hadron Collider, are monumental in size, spanning many kilometers to get particles up to speed. Laser Wakefield Acceleration (LWFA) is a revolutionary technique that promises to shrink these machines down to the size of a tabletop. The concept, which won the 2018 Nobel Prize in Physics, is elegantly simple: "surfing on a plasma wave." An ultra-short, ultra-intense laser pulse is fired into a gas, instantly turning it into a plasma (a soup of electrons and ions). The immense pressure of the laser light acts like a speedboat, plowing through the plasma and pushing the lightweight electrons out of its way. The heavier ions are left behind, creating a region of powerful positive charge. This charge pulls the electrons back in, but they overshoot, setting up a massive ripple—a plasma wave or "wake"—that trails the laser pulse. The electric fields in this wake are thousands of times stronger than those in conventional accelerators. This simulation visualizes a 1D slice through this process, showing how the laser creates its own plasma wave, the perfect vehicle for accelerating particles to near the speed of light in just a few centimeters.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The chart shows a 1D "window" that moves along with the laser pulse. There are three plots:
+                            <ul>
+                                <li><strong style="color: #ff3333;">Laser Pulse:</strong> The red curve shows the intensity profile of the laser pulse traveling from left to right.</li>
+                                <li><strong style="color: #00ddff;">Electron Density (nₑ):</strong> The blue curve shows the density of electrons in the plasma. Notice how the laser pushes electrons out of the way, creating a cavity, and how they pile up in crests behind it.</li>
+                                <li><strong style="color: #ffdd00;">Electric Field (Eₓ):</strong> The yellow curve shows the accelerating electric field of the wake. This is the "wave" that particles can surf. The huge positive peaks accelerate electrons forward, while the negative troughs decelerate them.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Controls on the Right:</strong>
+                            <ul>
+                                <li><strong>Laser Intensity (a₀):</strong> This is the "power" of the laser. Increase `a₀` to see the laser push electrons away more forcefully, creating a much larger and more chaotic "bubble" or wake. This is the non-linear or "blowout" regime.</li>
+                                <li><strong>Plasma Density (nₑ):</strong> This controls how dense the gas is. At lower densities, the plasma wavelength is longer, creating a longer, smoother wake. At higher densities, the wake is shorter and more compact.</li>
+                            </ul>
+                        </li>
+                        <li><strong>What to Watch:</strong>
+                            <ul>
+                                <li>Start with a low laser intensity (e.g., a₀ = 0.5). You'll see a smooth, linear, wave-like wake behind the pulse.</li>
+                                <li>Now, increase the intensity to a high value (e.g., a₀ = 2.0). The wake's shape will change dramatically. It will become a non-linear "bubble" with a very strong, sharp electric field at the back. This is the optimal regime for accelerating particles.</li>
+                                <li>Look at the **"Max Accelerating Field"** metric. See how it grows as you increase laser intensity. The values, in Gigavolts per meter (GV/m), are thousands of times greater than the ~0.1 GV/m achievable in conventional accelerators.</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h2>Core Theory of Laser-Plasma Interactions</h2>
+                    <h4>The Ponderomotive Force</h4>
+                    <p>When an intense laser pulse enters a plasma, its interaction is dominated by the **ponderomotive force**. This is an effective, non-linear force that a charged particle experiences in an oscillating electromagnetic field. It's not a fundamental force, but rather the result of averaging the particle's "wobble" over one laser cycle. The force pushes the particle away from regions of high field intensity.</p>
+                    <p>For a laser pulse, the intensity is highest at the center and lowest at the edges. Therefore, the ponderomotive force acts to expel electrons from the path of the laser, both forwards and sideways. The force is given by:</p>
+                    <p><strong><code>F<sub>p</sub> = - (e<sup>2</sup> / 4m<sub>e</sub>ω<sup>2</sup>) ∇E<sup>2</sup></code></strong></p>
+                    <p>This is often expressed in terms of the normalized vector potential, `a₀`, which is a dimensionless measure of laser intensity. <code>a₀ ≈ 8.6 x 10<sup>-10</sup> * λ[μm] * sqrt(I[W/cm²])</code>. In these terms, the ponderomotive potential (the energy associated with the force) is <code>U<sub>p</sub> ≈ m<sub>e</sub>c<sup>2</sup> * a₀<sup>2</sup>/2</code>. For `a₀ ≥ 1`, the laser is considered relativistic, and the ponderomotive force is strong enough to push electrons at nearly the speed of light.</p>
+
+                    <h4>Plasma Waves and the Wake</h4>
+                    <p>Plasma is electrically neutral overall, but the electrons are mobile while the heavier ions are effectively stationary on the fast timescale of the laser pulse. When the ponderomotive force expels electrons from a region, it leaves behind a net positive charge from the ions. This charge separation creates a powerful electrostatic restoring force that pulls the electrons back.</p>
+                    <p>The electrons rush back towards the ion cavity, overshoot their original positions due to inertia, and set up a collective oscillation. This oscillation, known as a plasma wave or Langmuir wave, has a natural frequency called the **plasma frequency**:</p>
+                    <p><strong><code>ω<sub>p</sub> = sqrt( 4πn<sub>e</sub>e<sup>2</sup> / m<sub>e</sub> )</code></strong></p>
+                    <p>Where `n<sub>e</sub>` is the electron density. When a short laser pulse (with duration `τ < 1/ω<sub>p</sub>`) drives this process, it creates a V-shaped wake of plasma waves that trails the pulse, much like the wake behind a boat. The phase velocity of this wake is tied to the group velocity of the laser pulse in the plasma, which is very close to the speed of light, `c`.</p>
+
+                    <h4>Linear vs. Non-Linear Regimes</h4>
+                    <p>The character of the wake depends strongly on the laser intensity `a₀`:
+                    <ul>
+                        <li><strong>Linear Regime (a₀ << 1):</strong> The ponderomotive force is a gentle perturbation. The electron density fluctuations are small, and the resulting wake is a smooth, sinusoidal wave. The accelerating fields are present but modest.</li>
+                        <li><strong>Non-Linear "Bubble" Regime (a₀ > 1):</strong> The ponderomotive force is so strong it expels *all* electrons from the laser's path, creating a nearly complete cavity of positive ions—a "bubble." The electrons form a dense sheath around this bubble. The resulting structure is highly non-linear, and the electric field at the back of the bubble is exceptionally strong, uniform, and ideal for accelerating a trailing bunch of electrons. This is the regime modern LWFA experiments operate in.</li>
+                    </ul>
+                    You can explore this transition directly in the simulation by changing the `a₀` slider.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Laser Intensity (a₀) <span class="value-display" id="a0-value">1.0</span></label>
+                        <input type="range" id="a0-slider" min="0.1" max="4.0" step="0.1" value="1.0">
+                    </div>
+                    <div class="control">
+                        <label>Plasma Density (nₑ) <span class="value-display" id="ne-value">1.0e+18</span> cm⁻³</label>
+                        <input type="range" id="ne-slider" min="17" max="19" step="0.1" value="18">
+                    </div>
+                     <div class="control">
+                        <label>Laser Duration (fs) <span class="value-display" id="tau-value">30</span></label>
+                        <input type="range" id="tau-slider" min="10" max="100" step="1" value="30">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                     <div class="control">
+                        <button id="reset-button">Reset Simulation</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('main-canvas'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            a0Slider: document.getElementById('a0-slider'),
+            a0Value: document.getElementById('a0-value'),
+            neSlider: document.getElementById('ne-slider'),
+            neValue: document.getElementById('ne-value'),
+            tauSlider: document.getElementById('tau-slider'),
+            tauValue: document.getElementById('tau-value'),
+            resetBtn: document.getElementById('reset-button'),
+        };
+
+        const state = {
+            grid: null,
+            particles: null,
+            time: 0,
+            config: {
+                a0: 1.0,
+                ne: 1e18, // cm^-3
+                tau: 30, // fs
+                gridSize: 512,
+                numParticles: 10000,
+            }
+        };
+
+        const ctx = dom.canvas.getContext('2d');
+
+        // Simplified 1D PIC code
+        class PIC1D {
+            constructor(config) {
+                this.gridSize = config.gridSize;
+                this.n_particles = config.numParticles;
+                this.a0 = config.a0;
+                this.ne = config.ne * 1e6; // convert to m^-3
+                this.tau = config.tau * 1e-15; // convert to s
+
+                // Physical constants
+                this.c = 299792458;
+                this.me = 9.109e-31;
+                this.e = 1.602e-19;
+                this.eps0 = 8.854e-12;
+
+                this.omega_p = Math.sqrt(this.ne * this.e**2 / (this.me * this.eps0));
+                this.lambda_p = 2 * Math.PI * this.c / this.omega_p;
+
+                this.dx = this.lambda_p / 20; // cell size
+                this.sim_width = this.gridSize * this.dx;
+                this.dt = this.dx / this.c * 0.5; // CFL condition
+
+                this.laser_pos = this.sim_width * 0.8;
+                this.laser_width = this.c * this.tau;
+
+                this.rho = new Float32Array(this.gridSize);
+                this.Ex = new Float32Array(this.gridSize);
+
+                this.particles = {
+                    x: new Float32Array(this.n_particles),
+                    vx: new Float32Array(this.n_particles),
+                };
+
+                // Initialize particles
+                for (let i = 0; i < this.n_particles; i++) {
+                    this.particles.x[i] = Math.random() * this.sim_width;
+                    this.particles.vx[i] = 0;
+                }
+            }
+
+            step() {
+                // 1. Update laser position
+                this.laser_pos -= this.c * this.dt;
+                if (this.laser_pos < this.sim_width * 0.2) this.laser_pos = this.sim_width * 0.8;
+
+                // 2. Update particle positions
+                for (let i = 0; i < this.n_particles; i++) {
+                    const grid_idx = Math.floor(this.particles.x[i] / this.dx);
+                    if (grid_idx < 0 || grid_idx >= this.gridSize) continue;
+
+                    const E_field = this.Ex[grid_idx];
+
+                    // Ponderomotive force from laser
+                    const dist_from_laser = this.particles.x[i] - this.laser_pos;
+                    const laser_envelope = Math.exp(-dist_from_laser**2 / (2 * this.laser_width**2));
+                    const ponderomotive_force = -(this.me * this.c**2 * this.a0**2 / 4) *
+                                                (-2 * dist_from_laser / (2 * this.laser_width**2)) * laser_envelope;
+
+                    const total_force = -this.e * E_field + ponderomotive_force;
+                    this.particles.vx[i] += total_force / this.me * this.dt;
+                    this.particles.x[i] += this.particles.vx[i] * this.dt;
+
+                    // Periodic boundary
+                    if (this.particles.x[i] < 0) this.particles.x[i] += this.sim_width;
+                    if (this.particles.x[i] > this.sim_width) this.particles.x[i] -= this.sim_width;
+                }
+
+                // 3. Project charge to grid (NGP)
+                this.rho.fill(-this.ne * this.e); // Background ion charge
+                const charge_per_particle = this.ne * this.sim_width / this.n_particles * this.e;
+                for (let i = 0; i < this.n_particles; i++) {
+                    const grid_idx = Math.floor(this.particles.x[i] / this.dx);
+                     if (grid_idx >= 0 && grid_idx < this.gridSize) {
+                        this.rho[grid_idx] -= charge_per_particle / this.dx;
+                    }
+                }
+
+                // 4. Solve for fields (Poisson's eq)
+                this.Ex[0] = 0;
+                for (let j = 1; j < this.gridSize; j++) {
+                    this.Ex[j] = this.Ex[j-1] + this.rho[j-1] / this.eps0 * this.dx;
+                }
+            }
+        }
+
+        function updateConfigFromUI() {
+            state.config.a0 = parseFloat(dom.a0Slider.value);
+            state.config.ne = 10**parseFloat(dom.neSlider.value);
+            state.config.tau = parseFloat(dom.tauSlider.value);
+
+            dom.a0Value.textContent = state.config.a0.toFixed(1);
+            dom.neValue.textContent = state.config.ne.toExponential(1);
+            dom.tauValue.textContent = state.config.tau.toFixed(0);
+        }
+
+        function reset() {
+            updateConfigFromUI();
+            state.sim = new PIC1D(state.config);
+            state.time = 0;
+        }
+
+        function draw() {
+            const sim = state.sim;
+            if (!sim) return;
+
+            const w = dom.canvas.width;
+            const h = dom.canvas.height;
+            ctx.clearRect(0,0,w,h);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0,0,w,h);
+
+            // Get data for plotting
+            const ne_plot = new Float32Array(sim.gridSize).fill(0);
+            const charge_per_particle = sim.ne * sim.sim_width / sim.n_particles;
+            for(let i=0; i<sim.n_particles; i++) {
+                 const grid_idx = Math.floor(sim.particles.x[i] / sim.dx);
+                 if (grid_idx >= 0 && grid_idx < sim.gridSize) {
+                    ne_plot[grid_idx]++;
+                }
+            }
+            for(let i=0; i<sim.gridSize; i++) {
+                ne_plot[i] = ne_plot[i] * charge_per_particle / sim.dx / sim.e;
+            }
+
+            const Ex_plot = sim.Ex;
+            const laser_plot = new Float32Array(sim.gridSize);
+            for(let i=0; i<sim.gridSize; i++) {
+                const x = i * sim.dx;
+                const dist = x - sim.laser_pos;
+                laser_plot[i] = sim.a0 * Math.exp(-dist**2 / (2*sim.laser_width**2));
+            }
+
+            // Find scales
+            const max_ne = Math.max(...ne_plot, sim.ne * 2);
+            const max_Ex = Math.max(...Ex_plot.map(Math.abs), 1e9);
+            const max_laser = sim.a0;
+
+            // Draw plots
+            function draw_line(data, color, max_val) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for(let i=0; i<sim.gridSize; i++) {
+                    const x = i/sim.gridSize * w;
+                    const y = h/2 - (data[i] / max_val) * (h/2 - 10);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            draw_line(ne_plot.map(n => n - sim.ne), '#00ddff', max_ne); // Density perturbation
+            draw_line(Ex_plot, '#ffdd00', max_Ex);
+            draw_line(laser_plot, '#ff3333', max_laser);
+
+            // Update metrics
+            const E0 = sim.me * sim.c * sim.omega_p / sim.e;
+            dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>Plasma Wavelength (λₚ)</h4><p>${(sim.lambda_p*1e6).toFixed(1)}<span class="unit">μm</span></p></div>
+                <div class="metric-card"><h4>Max Accelerating Field</h4><p>${(Math.max(...Ex_plot)/1e9).toFixed(2)}<span class="unit">GV/m</span></p></div>
+                <div class="metric-card"><h4>Wave-breaking Field (E₀)</h4><p>${(E0/1e9).toFixed(2)}<span class="unit">GV/m</span></p></div>
+            `;
+        }
+
+        function animationLoop() {
+            if(state.sim) {
+                for(let i=0; i<5; i++) state.sim.step(); // 5 steps per frame
+                draw();
+            }
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.resetBtn.addEventListener('click', reset);
+        [dom.a0Slider, dom.neSlider, dom.tauSlider].forEach(s => s.addEventListener('input', updateConfigFromUI));
+
+        reset();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>

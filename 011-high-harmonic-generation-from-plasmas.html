@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: High-Harmonic Generation from Plasmas</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #b100cd; /* Violet */
+            --secondary-color: #cdb100; /* Gold */
+            --accent-color: #00cdb1; /* Teal */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            height: 300px;
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .chart-container { width: 100%; height: 300px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 20px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: High-Harmonic Generation from Plasmas</h1>
+            <p class="subtitle">The Relativistic Oscillating Mirror: Forging X-rays from Light</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <div class="chart-container" id="spectrum-chart">
+                    <canvas id="spectrum-canvas"></canvas>
+                </div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>High-Harmonic Generation (HHG) is a remarkable process that can convert ordinary laser light into coherent beams of extreme ultraviolet (XUV) or even soft X-ray light. It's like a guitar string that, when plucked, produces not only its fundamental note but also a series of higher-pitched overtones. One way to achieve this is by firing an incredibly intense laser at a solid target. The laser's immense pressure forces the surface of the target's plasma to oscillate back and forth at nearly the speed of light. This surface effectively becomes a "Relativistic Oscillating Mirror." As the incoming laser light reflects off this rapidly moving mirror, its waveform gets dramatically compressed and distorted, like a reflection in a funhouse mirror that is also shaking violently. This distorted wave is no longer a pure color; it becomes a rainbow of new, higher-frequency colors—the high harmonics. This simulation visualizes this process, showing how the mirror's motion shapes the reflected light and how a frequency analysis (a Fourier transform) of that light reveals the characteristic "comb" of high-harmonic peaks.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>Two Main Views:</strong>
+                            <ul>
+                                <li><strong>Top View (Waveforms):</strong> This shows the laser-plasma interaction. The <strong style="color: #ff4500;">orange wave</strong> is the incoming laser. The <strong style="color: #b100cd;">vertical purple line</strong> is the plasma mirror, which you'll see oscillate. The <strong style="color: #00cdb1;">teal wave</strong> is the reflected light.</li>
+                                <li><strong>Bottom View (Spectrum):</strong> This is a frequency spectrum of the reflected light, calculated using a Fast Fourier Transform (FFT). It shows how much power is present at each frequency.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The Key Control:</strong> The **Laser Intensity (a₀)** slider determines how hard the laser pushes on the plasma mirror.
+                            <ul>
+                                <li>Start with a very low `a₀` (e.g., 0.1). The mirror barely moves. The reflected wave (teal) looks just like the incoming wave (orange), and the spectrum shows only a single peak at the fundamental frequency (labeled "1").</li>
+                                <li>Now, increase `a₀` to a high value (e.g., 5.0 or more). The mirror will oscillate violently. Notice how the reflected wave becomes sharply peaked and distorted. Look at the spectrum: a "comb" of new peaks appears at integer multiples of the fundamental frequency (2, 3, 4, etc.). These are the high harmonics!</li>
+                            </ul>
+                        </li>
+                        <li><strong>What to Watch:</strong> The key is the relationship between the mirror's motion and the generated spectrum. A more relativistic, non-sinusoidal motion of the mirror produces more harmonics, and they extend to higher frequencies. The "sawtooth" shape of the reflected wave is a tell-tale sign that many high frequencies are present, which is confirmed by the FFT spectrum.</li>
+                    </ol>
+
+                    <h2>Core Theory of High-Harmonic Generation</h2>
+                    <h4>The Need for High Frequencies</h4>
+                    <p>Visible light has a wavelength of hundreds of nanometers, which is too long to resolve the smallest and fastest phenomena in nature, like the motion of electrons in atoms or molecules, which occur on attosecond (10<sup>-18</sup> s) timescales. To see these processes, we need light with much shorter wavelengths, in the extreme ultraviolet (XUV) or X-ray range. High-Harmonic Generation (HHG) is a primary method for producing coherent, laser-like beams of this short-wavelength light.</p>
+
+                    <h4>The Relativistic Oscillating Mirror (ROM) Model</h4>
+                    <p>While HHG can occur in gases, a particularly efficient mechanism occurs when an ultra-intense laser strikes a solid-density target, creating a plasma with a sharp interface. This interface acts as a mirror. The laser's ponderomotive force is so strong that it can push the entire plasma surface inwards.
+                    <ol>
+                        <li>During the first half of its cycle, the laser's electric field points into the target, and its ponderomotive pressure pushes the surface electrons inwards.</li>
+                        <li>During the second half, the electric field reverses, pulling the electrons outwards at high speed.</li>
+                        <li>This cycle repeats, forcing the mirror-like plasma surface to oscillate at the laser frequency, `ω₀`.</li>
+                    </ol>
+                    Because the driving force is so strong, the mirror's velocity, `v(t)`, can approach the speed of light, and its motion is highly non-linear (not a simple sine wave). This relativistic, non-sinusoidal motion is the key to HHG.</p>
+
+                    <h4>The Doppler Effect and Waveform Shaping</h4>
+                    <p>The reflection of light from a moving mirror is governed by the Doppler effect. The phase of the reflected wave is modified by the mirror's position and velocity at the moment of reflection. For a mirror with trajectory `x<sub>m</sub>(t)`, the phase of the reflected light is given by:</p>
+                    <p><strong><code>φ(t) = ω₀ * (t + 2x<sub>m</sub>(t)/c)</code></strong></p>
+                    <p>The instantaneous frequency of the wave is the time derivative of the phase, <code>ω(t) = dφ/dt</code>:</p>
+                    <p><strong><code>ω(t) = ω₀ * (1 + 2v<sub>m</sub>(t)/c)</code></strong></p>
+                    <p>This shows that when the mirror is moving towards the incoming light (v<sub>m</sub> < 0), the frequency is down-shifted. When it moves away from the incoming light (v<sub>m</sub> > 0), the frequency is up-shifted. Because the mirror's motion is relativistic and non-sinusoidal, this frequency modulation is extreme and rapid. The reflected waveform becomes compressed and "sharpened" into a series of sharp peaks, almost like a sawtooth wave. This is what you see in the top panel of the simulation.</p>
+
+                    <h4>The Harmonic Spectrum</h4>
+                    <p>A fundamental result from Fourier analysis is that any periodic, non-sinusoidal waveform can be represented as a sum of pure sine waves at integer multiples of the fundamental frequency. This is a Fourier series. The sharp, sawtooth-like reflected waveform is rich in these higher-frequency components. When we take the Fourier Transform (FFT) of this waveform, we see a spectrum consisting of a series of discrete peaks at frequencies `nω₀`, where `n` is an integer. These are the high harmonics.</p>
+                    <p>The efficiency of the harmonics typically decreases for higher `n` in a characteristic way, known as the "roll-off." The maximum harmonic number generated depends on the peak relativistic gamma factor (γ) of the oscillating mirror, scaling roughly as `n<sub>max</sub> ∝ γ³`. Since γ is controlled by the laser intensity `a₀`, more intense lasers produce higher harmonics, pushing further into the X-ray regime.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Laser Intensity (a₀) <span class="value-display" id="a0-value">3.0</span></label>
+                        <input type="range" id="a0-slider" min="0.1" max="10.0" step="0.1" value="3.0">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                     <div class="control">
+                        <button id="reset-button">Reset Simulation</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            simCanvas: document.getElementById('simulationCanvas'),
+            specCanvas: document.getElementById('spectrum-canvas'),
+            a0Slider: document.getElementById('a0-slider'),
+            a0Value: document.getElementById('a0-value'),
+            resetBtn: document.getElementById('reset-button'),
+        };
+
+        const state = { time: 0, config: { a0: 3.0 } };
+        const simCtx = dom.simCanvas.getContext('2d');
+        const specCtx = dom.specCanvas.getContext('2d');
+
+        let reflectedWave = new Float32Array(1024);
+        let mirrorPos = 0, mirrorVel = 0;
+
+        function updateConfig() {
+            state.config.a0 = parseFloat(dom.a0Slider.value);
+            dom.a0Value.textContent = state.config.a0.toFixed(1);
+        }
+
+        function reset() {
+            updateConfig();
+            state.time = 0;
+            mirrorPos = 0; mirrorVel = 0;
+            reflectedWave.fill(0);
+        }
+
+        // Simple FFT implementation
+        function fft(data) {
+            const N = data.length;
+            if (N <= 1) return data;
+            const even = fft(data.filter((_,i) => i % 2 === 0));
+            const odd = fft(data.filter((_,i) => i % 2 !== 0));
+            const result = new Array(N);
+            for(let k=0; k<N/2; k++) {
+                const t = odd[k] * Math.cos(-2 * Math.PI * k / N) - 0; // Simplified complex mult
+                result[k] = even[k] + t;
+                result[k+N/2] = even[k] - t;
+            }
+            return result;
+        }
+
+        function update() {
+            state.time += 0.1;
+
+            // Mirror dynamics (driven oscillator)
+            const omega0 = 1.0;
+            const phase = omega0 * state.time;
+            const laserForce = state.config.a0 * Math.cos(phase);
+            const restoringForce = -mirrorPos * 2.0; // Simple harmonic restoring force
+            mirrorVel += (laserForce + restoringForce) * 0.1;
+            mirrorVel *= 0.95; // Damping
+            mirrorPos += mirrorVel * 0.1;
+
+            // Generate reflected wave
+            for (let i = 0; i < reflectedWave.length; i++) {
+                const t = state.time - (reflectedWave.length - i) * 0.1;
+                const retardedTime = t - Math.abs(mirrorPos); // Simplification
+                const reflectedPhase = omega0 * retardedTime - 2 * omega0 * mirrorPos;
+                reflectedWave[i] = Math.cos(reflectedPhase);
+            }
+        }
+
+        function draw() {
+            const w = dom.simCanvas.width; const h = dom.simCanvas.height;
+            simCtx.fillStyle = '#000'; simCtx.fillRect(0,0,w,h);
+
+            const mirrorX = w/2 + mirrorPos;
+
+            // Draw incoming wave
+            simCtx.strokeStyle = '#ff8c00'; simCtx.lineWidth = 2; simCtx.beginPath();
+            for(let x=0; x<mirrorX; x++) {
+                simCtx.lineTo(x, h/2 + Math.cos(x*0.1 - state.time) * 30);
+            }
+            simCtx.stroke();
+
+            // Draw reflected wave
+            simCtx.strokeStyle = '#00cdb1'; simCtx.lineWidth = 2; simCtx.beginPath();
+            for(let i=0; i<reflectedWave.length; i++) {
+                const x = mirrorX + i;
+                if (x < w) simCtx.lineTo(x, h/2 + reflectedWave[i] * 30);
+            }
+            simCtx.stroke();
+
+            // Draw mirror
+            simCtx.strokeStyle = '#b100cd'; simCtx.lineWidth = 4; simCtx.beginPath();
+            simCtx.moveTo(mirrorX, 0); simCtx.lineTo(mirrorX, h); simCtx.stroke();
+
+            // Draw spectrum
+            drawSpectrum();
+        }
+
+        function drawSpectrum() {
+            const w = dom.specCanvas.width; const h = dom.specCanvas.height;
+            specCtx.fillStyle = '#111'; specCtx.fillRect(0,0,w,h);
+
+            const spectrum = fft(reflectedWave).map(x => Math.abs(x));
+            const maxS = Math.max(...spectrum.slice(1, 50), 1);
+
+            specCtx.fillStyle = '#b100cd';
+            for(let i=1; i<50; i++) {
+                const barHeight = (spectrum[i] / maxS) * (h-10);
+                specCtx.fillRect(i * (w/50), h - barHeight, (w/50) - 2, barHeight);
+            }
+        }
+
+        function animationLoop() {
+            update();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.resetBtn.addEventListener('click', reset);
+        dom.a0Slider.addEventListener('input', updateConfig);
+
+        reset();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>
