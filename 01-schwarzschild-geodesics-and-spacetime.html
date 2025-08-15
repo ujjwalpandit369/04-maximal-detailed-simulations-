@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- ... head content ... -->
+    <style>
+        /* ... styles ... */
+        #self-test-panel { padding: 1rem; margin-bottom: 1rem; border-radius: 5px; display: none; }
+        .test-success { background-color: #2c3c2c; color: #98fb98; }
+        .test-fail { background-color: #403020; color: #ff9a00; }
+    </style>
+    <!-- ... links and scripts ... -->
+</head>
+<body>
+    <header>
+        <!-- ... header content ... -->
+    </header>
+    <main>
+        <div id="simulation-column">
+            <!-- ... sim column ... -->
+        </div>
+        <div id="controls-column">
+            <div id="self-test-panel"></div>
+            <!-- ... controls ... -->
+        </div>
+        <div id="exposition-content">
+            <!-- ... exposition ... -->
+        </div>
+    </main>
+    <script>
+    (function() {
+        'use strict';
+        let mainCanvas, timeChartCanvas, heatmapCanvas, coordSvg, selfTestPanel;
+        // ... other variables ...
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // ... original DOMContentLoaded logic ...
+            runSelfTest();
+        });
+
+        function getDOMElements() {
+            // ... original getDOMElements logic ...
+            selfTestPanel = document.getElementById('self-test-panel');
+        }
+
+        // ... other functions ...
+
+        function runSelfTest() {
+            const errors = [];
+            if (!mainCanvas) errors.push("Main WebGL canvas not found.");
+            if (!timeChartCanvas) errors.push("Time chart canvas not found.");
+            if (!heatmapCanvas) errors.push("Heatmap canvas not found.");
+            if (!coordSvg) errors.push("Coordinate SVG not found.");
+            if (!window.Chart) errors.push("Chart.js library failed to load.");
+
+            selfTestPanel.style.display = 'block';
+            if (errors.length > 0) {
+                selfTestPanel.className = 'test-fail';
+                selfTestPanel.innerHTML = '<strong>Self-Test Failed:</strong><ul>' + errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+            } else {
+                selfTestPanel.className = 'test-success';
+                selfTestPanel.innerHTML = '<strong>Self-Test Passed.</strong> All components initialized.';
+            }
+        }
+    })();
+    </script>
+</body>
+</html>
