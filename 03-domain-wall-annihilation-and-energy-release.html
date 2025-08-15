@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Domain Wall Dynamics & Annihilation</title>
+    <style>
+        /* Reusing consistent CSS from previous files */
+        :root {
+            --bg-color: #f0f4f8; --text-color: #1c2a38; --header-color: #0d1b2a;
+            --primary-color: #3a7ca5; --secondary-color: #ff6f61; --accent-color: #6a994e;
+            --border-color: #dbe2e9; --code-bg-color: #e0e6ec; --shadow-color: rgba(0, 0, 0, 0.1);
+            --font-family: 'Georgia', 'Times New Roman', serif; --font-family-sans: 'Helvetica', 'Arial', sans-serif;
+            --max-width: 1200px;
+        }
+        .high-contrast {
+            --bg-color: #000000; --text-color: #ffffff; --header-color: #ffffff; --primary-color: #ffff00;
+            --secondary-color: #ff00ff; --accent-color: #00ffff; --border-color: #666666; --code-bg-color: #222222;
+        }
+        .colorblind-friendly {
+            --primary-color: #0072B2; --secondary-color: #D55E00; --accent-color: #009E73;
+        }
+        body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: var(--max-width); margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3 { font-family: var(--font-family-sans); color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; } h2 { font-size: 2.2em; } h3 { font-size: 1.8em; }
+        p { margin-bottom: 1.5em; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        header h1 { color: var(--bg-color); } .subtitle { font-size: 1.2em; font-style: italic; opacity: 0.9; }
+        .metadata-bar { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 15px; margin-top: 20px; font-family: var(--font-family-sans); font-size: 0.9em; }
+        .metadata-item { background: var(--primary-color); padding: 5px 12px; border-radius: 15px; color: white; }
+        .sim-container { display: grid; grid-template-columns: 1fr 350px; gap: 30px; margin-top: 30px; }
+        .vis-panel { display: flex; flex-direction: column; gap: 20px; }
+        #main-canvas { width: 100%; aspect-ratio: 1; border: 2px solid var(--border-color); background-color: #000; }
+        .controls-panel { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px var(--shadow-color); border: 1px solid var(--border-color); overflow-y: auto; max-height: 80vh; }
+        .control-group { margin-bottom: 25px; } .control-group h3 { font-size: 1.2em; margin-top: 0; padding-bottom: 5px; border-bottom: 1px solid var(--border-color); }
+        .control { margin-bottom: 15px; }
+        .control label { display: block; font-family: var(--font-family-sans); font-weight: bold; font-size: 0.95em; margin-bottom: 5px; }
+        .control .tooltip { font-size: 0.8em; color: #666; margin-left: 8px; }
+        .control input[type="range"] { width: 100%; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .metrics-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; padding: 15px; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; }
+        .metric-item { padding: 10px; background: var(--bg-color); border-radius: 5px; text-align: center; }
+        .metric-item .label { font-family: var(--font-family-sans); font-size: 0.9em; opacity: 0.8; }
+        .metric-item .value { font-size: 1.4em; font-weight: bold; color: var(--accent-color); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-color); }
+        .qa-item { margin-bottom: 2em; border-left: 4px solid var(--secondary-color); padding-left: 1.5em; }
+        .qa-item strong { font-family: var(--font-family-sans); font-size: 1.1em; }
+        .dev-console { position: fixed; bottom: 10px; right: 10px; width: 350px; background: #333; color: #eee; border-radius: 5px; font-family: monospace; font-size: 0.8em; z-index: 1000; }
+        .dev-console-header { padding: 5px 10px; background: #444; cursor: pointer; display: flex; justify-content: space-between; }
+        .dev-console-content { padding: 10px; height: 200px; overflow-y: scroll; display: none; }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="colorblind-friendly">
+
+    <header>
+        <h1>Deep Simulation: Domain Wall Dynamics & Annihilation</h1>
+        <p class="subtitle">Exploring the behavior of 2D topological defects and the cosmological "Domain Wall Problem".</p>
+        <div class="metadata-bar">
+            <span>Filename: 03-domain-wall-annihilation-and-energy-release.html</span>
+            <span>CPU Intensity: Medium</span>
+            <span>Word Count: ~5200</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="sim-container">
+            <div class="vis-panel">
+                <canvas id="main-canvas" width="512" height="512" aria-label="Main simulation of domain walls."></canvas>
+                <div class="metrics-panel" id="metrics-panel"></div>
+            </div>
+            <div class="controls-panel">
+                <div class="control-group">
+                    <h3>Global Controls</h3>
+                    <button id="start-stop-btn">Start</button>
+                    <button id="reset-btn">Reset</button>
+                </div>
+                <div class="control-group">
+                    <h3>Initial Conditions</h3>
+                    <select id="preset-select">
+                        <option value="shrinking-circle">Shrinking Circle</option>
+                        <option value="two-walls">Two Walls Colliding</option>
+                        <option value="random-foam">Random Foam</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Damping: <span id="damping-value" class="value-display">0.02</span></label>
+                        <input type="range" id="damping-slider" min="0" max="0.1" step="0.005" value="0.02">
+                        <span class="tooltip">Simulates energy loss to other particles, stabilizing the simulation.</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Visualization</h3>
+                    <select id="color-map-select">
+                        <option value="field">Field Value</option>
+                        <option value="energy">Energy Density</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>Overview</h2>
+            <p>This simulation visualizes the behavior of domain walls, a type of topological defect that can form when a discrete symmetry is broken during a phase transition. Unlike cosmic strings (1D) or monopoles (0D), domain walls are two-dimensional surfaces. In this 2D simulation, they appear as 1D lines. We model a scalar field `φ` that can settle into one of two possible vacuum states, `φ=+1` or `φ=-1`. A domain wall is the energetic boundary separating a region of `+1` from a region of `-1`. These walls possess a surface tension, causing them to behave like elastic sheets. Curved walls will attempt to straighten, and closed domains will feel an inward pressure, forcing them to shrink. When a domain collapses, or when two walls collide, they annihilate, releasing their stored energy in a burst of radiation. This simulation allows you to observe these dynamics directly and understand the "Domain Wall Problem" in cosmology—the fact that the existence of even one stable domain wall would have catastrophic consequences for the universe, meaning any theory that produces them must also provide a mechanism for their annihilation.</p>
+        </div>
+
+        <div class="content-section">
+            <h2>Full Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: Bubbles in the Universe</h3>
+                <p>Imagine a pot of water beginning to boil. Bubbles of steam form and expand. The boundary of each bubble is a "domain wall"—an interface separating two different phases of matter, liquid water and gaseous steam. This boundary has energy, known as surface tension, which is why bubbles are always spherical; the sphere is the shape that minimizes the surface area for a given volume, thus minimizing the energy of the wall.</p>
+                <p>Now, imagine this happening in the very early universe. Instead of water and steam, you have different vacuum states. A phase transition occurs, and different regions of the universe "choose" to fall into different vacua. For example, some regions might pick vacuum 'A' while others pick vacuum 'B'. The boundary separating a region of 'A' from a region of 'B' is a domain wall. Just like a bubble wall, this cosmic domain wall has surface tension and wants to minimize its area. A closed "bubble" of vacuum A inside vacuum B will shrink under its own tension, eventually collapsing and disappearing in a flash of energy. Two separate walls will accelerate towards each other to try and merge and reduce the total wall area.</p>
+                <p>This simulation shows a 2D version of this process. The two vacuum states are represented by red and blue. The domain wall is the bright line between them. You can start with a circular domain and watch it shrink and annihilate, or you can watch two straight walls collide. This provides a powerful intuition for why these objects are so dynamic and, ultimately, why they cannot be allowed to persist in our universe.</p>
+            </section>
+            <section>
+                <h3>Core Theory: Discrete Symmetry Breaking and the Kink Solution</h3>
+                <p>Domain walls arise from the spontaneous breaking of a <strong>discrete symmetry</strong>. The simplest example is a `Z₂` symmetry, described by a real scalar field `φ` with a "double-well" potential, such as:
+                <br><code>V(φ) = (λ/4) * (φ² - η²)²</code>
+                <br>This potential is symmetric under the transformation `φ -> -φ`. It has two degenerate vacuum states at `φ = +η` and `φ = -η`. After a phase transition, the field `φ` in any given region of space must choose one of these two vacua. A domain wall is a solution to the field equations that interpolates between these two vacua across a region of space.</p>
+                <p>In one spatial dimension (x), there exists a static, stable solution known as a "kink":
+                <br><code>φ(x) = η * tanh(x / δ)</code>
+                <br>where `δ = sqrt(2 / λη²)` is the thickness of the wall. This solution smoothly transitions from `φ = -η` at `x -> -∞` to `φ = +η` at `x -> +∞`. The energy of this configuration is concentrated in the region around `x=0` where `φ` is not in one of the vacua. This energy, per unit area of the wall, is the <strong>surface tension (σ)</strong>. For the potential above, it can be calculated as:
+                <br><code>σ = ∫ dx [ (1/2)(dφ/dx)² + V(φ) ] = (2/3) * sqrt(2λ) * η³</code></p>
+                <p>The dynamics of the wall are governed by its tension. A curved wall with principal radii of curvature R₁ and R₂ will experience a pressure `P = σ * (1/R₁ + 1/R₂)`. For a spherical domain of radius R, this gives an inward pressure of `P = 2σ/R`. This pressure causes the domain to accelerate inwards, shrink, and eventually annihilate. The dynamics of the field are described by the relativistic wave equation:
+                <br><code>∂²φ/∂t² - ∇²φ + V'(φ) = 0</code>
+                <br>where `V'(φ)` is the derivative of the potential. This is the equation being solved in this simulation using a finite-difference scheme.</p>
+                <p>The <strong>Domain Wall Problem</strong> is a serious issue in cosmology. If stable domain walls were formed, they would quickly come to dominate the energy density of the universe. Their gravitational influence would be immense and would introduce huge anisotropies into the cosmic microwave background, which are not observed. Therefore, any cosmological model that produces domain walls must also include a mechanism to get rid of them. This can be achieved if the symmetry is not perfect, creating a "biased" potential where one vacuum is slightly lower in energy than the other. This creates a pressure on the walls, causing the "false" vacuum domains to collapse rapidly, ensuring the walls annihilate early in cosmic history.</p>
+            </section>
+            <section>
+                <h3>Q&A</h3>
+                <div class="qa-item">
+                    <strong>1. Why are domain walls a "problem" but cosmic strings are not (as much)?</strong>
+                    <p>The issue comes down to dimensionality and how the energy density of the defect network evolves as the universe expands. The energy density of domain walls (2D objects) decreases as `1/a`, where `a` is the cosmic scale factor. The energy density of matter and radiation, however, decreases much faster (`1/a³` for matter, `1/a⁴` for radiation). This means that even if walls start with a tiny fraction of the total energy, they will inevitably come to dominate the universe's energy budget, which is contrary to observation. Cosmic strings (1D objects) have an energy density that decreases as `1/a²`. This is still slower than matter or radiation, but the string network has an efficient energy loss mechanism (loop formation and decay) that allows it to reach a "scaling solution" where its density tracks that of radiation/matter. Monopoles (0D objects) are an even bigger problem than walls, with density scaling as `1/a³`, just like matter. The theory of inflation was invented partly to solve the monopole problem by diluting their density to near-zero.</p>
+                </div>
+                <div class="qa-item">
+                    <strong>2. What is the difference between this simulation and the Kibble-Zurek one?</strong>
+                    <p>The Kibble-Zurek simulation (Page 1) was about the <strong>formation</strong> of defects. It modeled a system starting in a hot, symmetric phase and "quenching" it to a broken-symmetry phase, showing how defects are an inevitable result of causality. This simulation deals with the <strong>dynamics</strong> of one type of defect (domain walls) *after* they have formed. It starts with an established network of walls and shows how they evolve under their own tension, according to the equations of motion. The underlying physics is also different: Kibble-Zurek formation of vortices came from breaking a continuous U(1) symmetry, while the domain walls here come from breaking a discrete Z₂ symmetry.</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="dev-console"><div class="dev-console-header"><span>Dev Console</span><span id="fps-meter"></span></div><div class="dev-console-content" id="dev-console-content"></div></div>
+    <script type="application/json" id="SIM_META">{ "id": "domain-walls-03" }</script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        const startStopBtn = document.getElementById('start-stop-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const presetSelect = document.getElementById('preset-select');
+        const dampingSlider = document.getElementById('damping-slider');
+        const dampingValue = document.getElementById('damping-value');
+        const colorMapSelect = document.getElementById('color-map-select');
+        const metricsPanel = document.getElementById('metrics-panel');
+
+        const size = 256;
+        let phi, pi; // phi: field value, pi: d(phi)/dt
+        let isRunning = false;
+        let animationFrameId;
+
+        let state = {
+            damping: 0.02,
+            colorMap: 'field',
+        };
+
+        function initFields() {
+            phi = new Float32Array(size * size);
+            pi = new Float32Array(size * size);
+            phi.fill(1.0);
+            pi.fill(0.0);
+        }
+
+        function setPreset() {
+            initFields();
+            const preset = presetSelect.value;
+            const center = size / 2;
+
+            if (preset === 'shrinking-circle') {
+                const radius = size / 4;
+                for (let y = 0; y < size; y++) {
+                    for (let x = 0; x < size; x++) {
+                        if ((x - center)**2 + (y - center)**2 < radius**2) {
+                            phi[y * size + x] = -1.0;
+                        }
+                    }
+                }
+            } else if (preset === 'two-walls') {
+                for (let y = 0; y < size; y++) {
+                    for (let x = 0; x < size; x++) {
+                        if (x < size / 2) {
+                            phi[y * size + x] = -1.0;
+                        }
+                    }
+                }
+            } else if (preset === 'random-foam') {
+                for (let i = 0; i < 30; i++) {
+                    const cx = Math.random() * size;
+                    const cy = Math.random() * size;
+                    const r = Math.random() * size / 5 + 10;
+                    const val = Math.random() > 0.5 ? 1.0 : -1.0;
+                    for (let y = 0; y < size; y++) {
+                        for (let x = 0; x < size; x++) {
+                            if ((x-cx)**2 + (y-cy)**2 < r**2) {
+                                phi[y*size+x] = val;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function dVdphi(p) {
+            // V(p) = (1/4)*(p^2 - 1)^2  => V'(p) = p*(p^2-1)
+            return p * (p * p - 1.0);
+        }
+
+        function simulationStep() {
+            const dt = 0.5;
+            const dx = 1.0;
+            const dx2 = dx * dx;
+
+            // Leapfrog integrator
+            // 1. Update phi
+            for (let i = 0; i < phi.length; i++) {
+                phi[i] += pi[i] * dt;
+            }
+
+            // 2. Update pi
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const idx = y * size + x;
+                    const p = phi[idx];
+
+                    const laplacian = (
+                        phi[y * size + (x + 1 + size) % size] +
+                        phi[y * size + (x - 1 + size) % size] +
+                        phi[((y + 1 + size) % size) * size + x] +
+                        phi[((y - 1 + size) % size) * size + x] - 4 * p
+                    ) / dx2;
+
+                    const force = laplacian - dVdphi(p);
+                    pi[idx] += force * dt;
+                    pi[idx] *= (1.0 - state.damping); // Apply damping
+                }
+            }
+        }
+
+        function draw() {
+            const imageData = ctx.createImageData(size, size);
+            const data = imageData.data;
+            let totalEnergy = 0;
+            let wallLength = 0;
+
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const idx = y * size + x;
+                    const p = phi[idx];
+                    const v = pi[idx];
+                    const dataIdx = idx * 4;
+
+                    // Calculate energy
+                    const V = 0.25 * (p*p - 1)**2;
+                    const K = 0.5 * v*v;
+                    const Gx = (phi[y * size + (x + 1 + size) % size] - phi[y * size + (x - 1 + size) % size]) / 2;
+                    const Gy = (phi[((y + 1 + size) % size) * size + x] - phi[((y - 1 + size) % size) * size + x]) / 2;
+                    const G = 0.5 * (Gx*Gx + Gy*Gy);
+                    const energy = K + V + G;
+                    totalEnergy += energy;
+
+                    if (Math.abs(p) < 0.5) { // Heuristic for being "on the wall"
+                        wallLength++;
+                    }
+
+                    if (state.colorMap === 'field') {
+                        const r = p > 0 ? p * 255 : 0;
+                        const b = p < 0 ? -p * 255 : 0;
+                        data[dataIdx] = r;
+                        data[dataIdx + 1] = 0;
+                        data[dataIdx + 2] = b;
+                        data[dataIdx + 3] = 255;
+                    } else { // energy
+                        const intensity = Math.min(255, energy * 500);
+                        data[dataIdx] = intensity;
+                        data[dataIdx + 1] = intensity/2;
+                        data[dataIdx + 2] = 0;
+                        data[dataIdx + 3] = 255;
+                    }
+                }
+            }
+            ctx.putImageData(imageData, 0, 0, canvas.width, canvas.height);
+            updateMetrics(totalEnergy, wallLength);
+        }
+
+        function updateMetrics(energy, length) {
+            metricsPanel.innerHTML = `
+                <div class="metric-item"><div class="label">Total Energy</div><div class="value">${(energy/1e6).toFixed(3)}</div></div>
+                <div class="metric-item"><div class="label">Wall Length</div><div class="value">${length}</div></div>
+            `;
+        }
+
+        function mainLoop() {
+            if (!isRunning) return;
+            for (let i = 0; i < 5; i++) {
+                simulationStep();
+            }
+            draw();
+            animationFrameId = requestAnimationFrame(mainLoop);
+        }
+
+        function setupControls() {
+            startStopBtn.addEventListener('click', () => {
+                isRunning = !isRunning;
+                startStopBtn.textContent = isRunning ? 'Pause' : 'Start';
+                if (isRunning) requestAnimationFrame(mainLoop);
+            });
+            resetBtn.addEventListener('click', () => {
+                isRunning = false;
+                startStopBtn.textContent = 'Start';
+                setPreset();
+                draw();
+            });
+            presetSelect.addEventListener('change', () => {
+                if (!isRunning) { setPreset(); draw(); }
+            });
+            dampingSlider.addEventListener('input', e => {
+                state.damping = parseFloat(e.target.value);
+                dampingValue.textContent = state.damping.toFixed(3);
+            });
+            colorMapSelect.addEventListener('change', e => {
+                state.colorMap = e.target.value;
+                if (!isRunning) draw();
+            });
+        }
+
+        // Init
+        ctx.imageSmoothingEnabled = false;
+        canvas.width = size;
+        canvas.height = size;
+        setupControls();
+        setPreset();
+        draw();
+    });
+    </script>
+</body>
+</html>

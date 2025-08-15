@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Vilenkin's Tunneling Proposal</title>
+    <style>
+        /* Consistent CSS */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #5e3a8c; --secondary-color: #b1a5c1; --accent-color: #f9b115;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .sim-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; }
+        .vis-panel canvas { width: 100%; aspect-ratio: 1; border: 2px solid var(--border-color); background-color: #fff; }
+        .controls-panel { grid-column: 1 / -1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deep Simulation: Vilenkin's Tunneling Proposal vs. Hartle-Hawking</h1>
+        <p class="subtitle">Comparing two competing theories for the quantum origin of the universe.</p>
+    </header>
+
+    <div class="container">
+        <div class="controls-panel">
+            <h4>Boundary Condition Proposal</h4>
+            <select id="model-select">
+                <option value="vilenkin">Vilenkin (Tunneling)</option>
+                <option value="hartle-hawking">Hartle-Hawking (No-Boundary)</option>
+            </select>
+            <hr>
+            <h4>Scalar Field Potential V(φ)</h4>
+            <label>Inflationary Plateau Height: <span id="v0-value">0.1</span></label>
+            <input type="range" id="v0-slider" min="0.01" max="0.5" step="0.01" value="0.1">
+        </div>
+
+        <div class="sim-container">
+            <div class="vis-panel">
+                <h4>Minisuperspace Wave Function |Ψ(a, φ)|²</h4>
+                <canvas id="main-canvas" width="512" height="512"></canvas>
+            </div>
+            <div class="vis-panel">
+                <h4>Potential V(φ) and Classical Boundary</h4>
+                <canvas id="potential-canvas" width="512" height="512"></canvas>
+            </div>
+        </div>
+
+        <div class="content-section" id="exposition-section">
+            <h2>Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: Two Recipes for a Universe</h3>
+                <p>In the last simulation, we explored the Hartle-Hawking "No-Boundary" idea, where the universe emerges from a timeless, edge-less, 4D Euclidean space, much like the North Pole on a globe. This simulation introduces a competing idea from the physicist Alexander Vilenkin, known as the "Tunneling Proposal." Vilenkin's idea is perhaps more intuitive: the universe arises by quantum tunneling from literally "nothing"—a state of zero size and zero energy. The boundary condition is not that there is no boundary, but that at the boundary (at size `a=0`), the wave function must correspond to a universe that is expanding. It's a cosmic birth, not just a smooth transition.</p>
+                <p>This seemingly small difference in starting assumptions leads to a dramatically different prediction. You can use the dropdown menu to switch between the two models and see for yourself. The Hartle-Hawking model (select from the menu) predicts that the universe is most likely to be born onto a high-energy "plateau" of a potential, which is perfect for starting cosmic inflation. The Vilenkin model, however, predicts the opposite. Its wave function `Ψ` is proportional to `exp(-1/3V)`, where `V` is the potential energy. This means it strongly prefers the universe to be born at a state of *low* potential energy. This makes starting inflation in the Vilenkin model a much less probable event, a key point of contention between these two beautiful theories of our ultimate origin.</p>
+            </section>
+            <section>
+                <h3>Core Theory: Comparing Boundary Conditions</h3>
+                <p>The core difference between the Hartle-Hawking (HH) and Vilenkin (V) proposals lies in the boundary conditions they impose on the solutions to the Wheeler-DeWitt equation. This, in turn, changes the resulting wave function `Ψ`.</p>
+                <p><b>Hartle-Hawking (No-Boundary):</b>
+                <br>The prescription is a path integral over compact Euclidean geometries. In the semi-classical approximation, this leads to a wave function whose amplitude in the "Lorentzian" (classical) region is:
+                <br><code>|Ψ_HH|² ∝ exp(+2 / 3V(φ))</code>
+                <br>This probability is maximized when the potential `V(φ)` is large. This is the model's key prediction: it naturally favors the conditions required for inflation. The universe is most likely to be born at the top of an inflationary potential.</p>
+                <p><b>Vilenkin (Tunneling):</b>
+                <br>The prescription is that the wave function at the `a=0` boundary of superspace should consist of only "outgoing" modes, corresponding to an expanding universe. This is analogous to the boundary condition for alpha decay in nuclear physics, where a particle tunnels out of a potential well. The resulting wave function, in the same approximation, has an amplitude of:
+                <br><code>|Ψ_V|² ∝ exp(-2 / 3V(φ))</code>
+                <br>The sign in the exponent is flipped! This means the probability is maximized when the potential `V(φ)` is *small*. This model predicts that the universe is most likely to emerge at a low-energy state, from which it would be difficult to start inflation. Proponents of this model must then invoke anthropic reasoning or other mechanisms to explain why we find ourselves in a universe that did inflate.</p>
+                <p>This simulation allows you to directly see this dramatic difference. When you select Hartle-Hawking, the bright regions of high probability will appear at `φ` values where the potential `V(φ)` is high. When you select Vilenkin, the bright regions will shift to where `V(φ)` is low. This visualizes one of the deepest and most important debates in theoretical cosmology.</p>
+            </section>
+        </div>
+    </div>
+
+    <script id="simulation-script">
+    document.addEventListener('DOMContentLoaded', () => {
+        const mainCanvas = document.getElementById('main-canvas');
+        const mCtx = mainCanvas.getContext('2d');
+        const potentialCanvas = document.getElementById('potential-canvas');
+        const pCtx = potentialCanvas.getContext('2d');
+        const modelSelect = document.getElementById('model-select');
+        const v0Slider = document.getElementById('v0-slider');
+
+        const A_RES = 256, PHI_RES = 256;
+        let probabilityGrid = new Float32Array(A_RES * PHI_RES);
+        let simParams = { v0: 0.1, model: 'vilenkin' };
+
+        function calculateWaveFunction() {
+            const V0 = simParams.v0;
+            const V = (phi_idx) => V0 * Math.exp(-0.05 * (phi_idx - PHI_RES/2)**2);
+
+            for (let i=0; i<A_RES; i++) {
+                const a = (i/A_RES) * 5.0 + 0.1;
+                for (let j=0; j<PHI_RES; j++) {
+                    const v_phi = V(j) || 1e-6;
+                    const classically_forbidden = (a*a*v_phi) < 1;
+                    let exponent;
+
+                    if (classically_forbidden) {
+                        const term = 1 - a*a*v_phi;
+                        const tunneling_term = (-2/(3*v_phi)) * (1 - Math.pow(term, 1.5));
+                        exponent = tunneling_term;
+                    } else {
+                        // This is the key difference between the models
+                        if (simParams.model === 'hartle-hawking') {
+                            // Psi ~ exp(+1/3V)
+                            exponent = (2 / (3 * v_phi));
+                        } else { // Vilenkin
+                            // Psi ~ exp(-1/3V)
+                            exponent = (-2 / (3 * v_phi));
+                        }
+                    }
+                    probabilityGrid[j * A_RES + i] = Math.exp(exponent);
+                }
+            }
+            draw();
+        }
+
+        function draw() {
+            // --- Heatmap ---
+            let max_prob = 0;
+            for(const p of probabilityGrid) if(p > max_prob) max_prob = p;
+            if(max_prob === 0) max_prob = 1;
+            const imageData = mCtx.createImageData(A_RES, PHI_RES);
+            for (let j=0; j<PHI_RES; j++) for (let i=0; i<A_RES; i++) {
+                const idx = j*A_RES + i;
+                const prob = probabilityGrid[idx] / max_prob;
+                const intensity = Math.pow(prob, 0.5) * 255;
+                imageData.data[idx*4+0] = intensity;
+                imageData.data[idx*4+1] = intensity/2;
+                imageData.data[idx*4+2] = 255-intensity;
+                imageData.data[idx*4+3] = 255;
+            }
+            mCtx.putImageData(imageData, 0, 0);
+
+            // --- Potential Plot ---
+            pCtx.clearRect(0,0,pCtx.canvas.width, pCtx.canvas.height);
+            pCtx.strokeStyle = '#007bff'; pCtx.lineWidth = 2;
+            pCtx.beginPath();
+            const V = (phi_idx) => simParams.v0 * Math.exp(-0.05 * (phi_idx - PHI_RES/2)**2);
+            for(let j=0; j<PHI_RES; ++j) {
+                const x = j/PHI_RES * pCtx.canvas.width;
+                const y = pCtx.canvas.height * (1 - V(j)/0.6);
+                if(j===0) pCtx.moveTo(x,y); else pCtx.lineTo(x,y);
+            }
+            pCtx.stroke();
+            pCtx.strokeStyle = 'rgba(220, 53, 69, 0.7)'; pCtx.lineWidth = 1;
+            pCtx.beginPath();
+             for(let j=0; j<PHI_RES; ++j) {
+                const v_phi = V(j) || 1e-6;
+                const a_boundary = 1 / Math.sqrt(v_phi);
+                const x = j/PHI_RES * pCtx.canvas.width;
+                const y = pCtx.canvas.height * (1 - a_boundary / 5.1);
+                if(j===0) pCtx.moveTo(x,y); else pCtx.lineTo(x,y);
+            }
+            pCtx.stroke();
+        }
+
+        function updateAll() {
+            simParams.v0 = parseFloat(v0Slider.value);
+            simParams.model = modelSelect.value;
+            document.getElementById('v0-value').textContent = simParams.v0.toFixed(2);
+            calculateWaveFunction();
+        }
+
+        modelSelect.addEventListener('change', updateAll);
+        v0Slider.addEventListener('input', e => {
+            document.getElementById('v0-value').textContent = parseFloat(e.target.value).toFixed(2);
+        });
+        v0Slider.addEventListener('change', updateAll); // Recalc only on release
+
+        updateAll();
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Geodesics in AdS-Schwarzschild Spacetime</title>
+    <style>
+        /* Reusing consistent CSS from previous files */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #007bff; --secondary-color: #6c757d; --accent-color: #17a2b8;
+            --border-color: #dee2e6; --code-bg-color: #e9ecef; --shadow-color: rgba(0, 0, 0, 0.1);
+            --font-family: 'Georgia', 'Times New Roman', serif; --font-family-sans: 'Helvetica', 'Arial', sans-serif;
+            --max-width: 1200px;
+        }
+        body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: var(--max-width); margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3 { font-family: var(--font-family-sans); color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; } h2 { font-size: 2.2em; } h3 { font-size: 1.8em; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .metadata-bar { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 15px; margin-top: 20px; font-family: var(--font-family-sans); font-size: 0.9em; }
+        .metadata-item { background: var(--primary-color); padding: 5px 12px; border-radius: 15px; color: white; }
+        .sim-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; }
+        .vis-panel { display: flex; flex-direction: column; gap: 20px; }
+        .vis-panel canvas { width: 100%; aspect-ratio: 1; border: 2px solid var(--border-color); background-color: #fff; }
+        .controls-panel { grid-column: 1 / -1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px var(--shadow-color); border: 1px solid var(--border-color); }
+        .control-group { margin-bottom: 25px; } .control-group h3 { font-size: 1.2em; margin-top: 0; padding-bottom: 5px; border-bottom: 1px solid var(--border-color); }
+        .control { margin-bottom: 15px; }
+        .control label { display: block; font-family: var(--font-family-sans); font-weight: bold; font-size: 0.95em; margin-bottom: 5px; }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-color); }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Deep Simulation: Geodesics in AdS-Schwarzschild Spacetime</h1>
+        <p class="subtitle">Exploring the unique orbital dynamics around a black hole in a universe with a containing boundary.</p>
+        <div class="metadata-bar">
+            <span>Filename: 06-ads-schwarzschild-geodesics.html</span>
+            <span>CPU Intensity: Medium</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="controls-panel">
+            <h3>Parameters</h3>
+             <div class="control">
+                <label>Black Hole Mass (M): <span id="mass-value">0.5</span></label>
+                <input type="range" id="mass-slider" min="0.1" max="2" step="0.1" value="0.5">
+            </div>
+             <div class="control">
+                <label>AdS Radius (L): <span id="ads-l-value">5</span></label>
+                <input type="range" id="ads-l-slider" min="2" max="20" step="0.5" value="5">
+            </div>
+            <div class="control">
+                <label>Particle Angular Momentum (J): <span id="ang-mom-value">4</span></label>
+                <input type="range" id="ang-mom-slider" min="0" max="10" step="0.2" value="4">
+            </div>
+             <div class="control">
+                <label><input type="checkbox" id="is-massless-checkbox"> Massless Particle (Photon)</label>
+            </div>
+            <button id="launch-btn">Launch Particle</button>
+        </div>
+
+        <div class="sim-container">
+            <div class="vis-panel">
+                <h3>Orbital Plane (Top-Down View)</h3>
+                <canvas id="orbit-canvas" width="512" height="512"></canvas>
+            </div>
+            <div class="vis-panel">
+                <h3>Effective Potential V_eff(r)</h3>
+                <canvas id="potential-canvas" width="512" height="512"></canvas>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>Overview</h2>
+            <p>This simulation explores the fascinating motion of particles and light (geodesics) around a black hole that exists not in empty, flat spacetime, but in Anti-de Sitter (AdS) space. AdS space has a constant negative curvature, which acts like a gravitational "box" or a confining potential. This has profound consequences for orbital dynamics. In this simulation, you can launch particles around an AdS-Schwarzschild black hole and observe their paths. The key visualization is the "Effective Potential" plot on the right. The shape of this potential well, determined by the black hole's mass, the particle's angular momentum, and the AdS radius, dictates the particle's fate. Unlike black holes in flat space, which only have unstable circular photon orbits, the confining nature of AdS allows for a wide variety of stable, bound orbits for both massive particles and photons, creating a much richer and more complex dynamical system. This simulation is a window into the interplay between the local, attractive gravity of a black hole and the global, confining nature of the AdS universe.</p>
+        </div>
+
+        <div class="content-section">
+            <h2>Full Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: A Black Hole in a Cosmic Bowl</h3>
+                <p>Imagine a bowling ball on a stretched rubber sheet. It creates a deep dimple, and any marble you roll nearby will be deflected or captured by it. This is the standard picture of a black hole in flat space. Now, imagine placing that same bowling ball and rubber sheet inside a giant salad bowl. The marbles you roll are now affected by two things: the central dimple of the bowling ball and the rising walls of the salad bowl. A marble that would have flown off to infinity on the flat sheet might now be turned back by the bowl's wall, re-entering the complex dance around the center. This is the essence of an AdS-Schwarzschild black hole. The "bowling ball" is the black hole mass, and the "salad bowl" is the confining potential of Anti-de Sitter space.</p>
+                <p>This confining nature changes everything. In the flat-sheet universe, a particle is either on a trajectory that falls in, or one that escapes to infinity (unless it's in a precarious, unstable orbit). In the AdS "bowl" universe, escape to infinity is impossible. The AdS boundary acts like a wall, reflecting everything back. This means particles can get trapped in stable, repeating orbits, like planets in our solar system. Even light can have stable orbits! This simulation lets you be the master of this cosmic bowl. You can change the size of the black hole (the dimple) and the curvature of the universe (the steepness of the bowl's walls) and launch particles to see the beautiful and complex orbits that result. The "Effective Potential" plot shows you the exact shape of the 1D surface the particle is rolling on, making the connection between energy, angular momentum, and orbit shape clear.</p>
+            </section>
+            <section>
+                <h3>Core Theory: The AdS-Schwarzschild Effective Potential</h3>
+                <p>The path of a test particle in a spacetime is governed by the geodesic equations, derived from the metric. For the AdS-Schwarzschild metric, we have:
+                <br><code>ds² = -f(r)dt² + f(r)⁻¹dr² + r²dΩ²</code>, where <code>f(r) = 1 - (2M/r) + (r²/L²)</code>.
+                <br>Here, `M` is the black hole mass (we set G=1), and `L` is the AdS radius, which sets the length scale of the spacetime's negative curvature. The `r²/L²` term is the crucial addition; it dominates at large `r` and creates a potential wall.</p>
+                <p>Due to the spacetime's symmetries, a particle's energy (E) and angular momentum (J) are conserved. These conservation laws allow us to simplify the problem of motion into a 1D problem governed by an effective potential, `V_eff(r)`:
+                <br><code>(dr/dτ)² + V_eff(r) = E²</code>
+                <br>where τ is the proper time. The potential is given by:
+                <br><code>V_eff(r) = f(r) * (k + J²/r²) = (1 - 2M/r + r²/L²) * (k + J²/r²)</code>
+                <br>Here, `k=1` for massive particles and `k=0` for massless particles (photons). The particle is classically confined to regions where `E² ≥ V_eff(r)`. The minima of this potential correspond to stable circular orbits, while the maxima correspond to unstable circular orbits. The term `J²/r²` is the familiar angular momentum barrier, preventing a particle from falling straight in. The `1 - 2M/r` term is the standard Schwarzschild gravity. The `r²/L²` term is the AdS contribution, creating a potential wall at large r that prevents particles from escaping.</p>
+                <p>The rich structure of this potential allows for orbits impossible in standard Schwarzschild spacetime. For instance, by tuning `J`, one can create a potential well deep enough to trap photons (`k=0`), leading to stable circular photon orbits. For massive particles, the potential can have both a local minimum and a local maximum, leading to two sets of circular orbits for the same angular momentum: a small, unstable orbit close to the black hole, and a large, stable "planetary" orbit further out.</p>
+            </section>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const orbitCanvas = document.getElementById('orbit-canvas');
+        const potCanvas = document.getElementById('potential-canvas');
+        const oCtx = orbitCanvas.getContext('2d');
+        const pCtx = potCanvas.getContext('2d');
+
+        const massSlider = document.getElementById('mass-slider');
+        const adsLSlider = document.getElementById('ads-l-slider');
+        const angMomSlider = document.getElementById('ang-mom-slider');
+        const isMasslessCheckbox = document.getElementById('is-massless-checkbox');
+        const launchBtn = document.getElementById('launch-btn');
+
+        let state = {
+            M: 0.5,
+            L: 5.0,
+            J: 4.0,
+            k: 1, // 1 for massive, 0 for massless
+            particle: null, // {r, phi, pr, pphi}
+            trace: [],
+            isRunning: false,
+        };
+
+        function f(r, M, L) {
+            return 1 - (2 * M / r) + (r * r) / (L * L);
+        }
+
+        function Veff(r, J, k, M, L) {
+            if (r < 0.1) return 1e9;
+            return f(r, M, L) * (k + (J * J) / (r * r));
+        }
+
+        function drawPotential() {
+            const width = pCtx.canvas.width;
+            const height = pCtx.canvas.height;
+            pCtx.clearRect(0, 0, width, height);
+
+            const rMax = 15.0;
+            const VMax = 2.0;
+
+            // Draw axes
+            pCtx.strokeStyle = '#ccc';
+            pCtx.beginPath();
+            pCtx.moveTo(0, height * 0.75);
+            pCtx.lineTo(width, height * 0.75);
+            pCtx.stroke();
+
+            // Draw potential
+            pCtx.strokeStyle = '#007bff';
+            pCtx.lineWidth = 2;
+            pCtx.beginPath();
+            let first = true;
+            for (let x = 0; x < width; x++) {
+                const r = (x / width) * rMax;
+                const v = Veff(r, state.J, state.k, state.M, state.L);
+                const y = height * (1 - v / VMax);
+                if (first) {
+                    pCtx.moveTo(x, y);
+                    first = false;
+                } else {
+                    pCtx.lineTo(x, y);
+                }
+            }
+            pCtx.stroke();
+        }
+
+        function drawOrbit() {
+            const width = oCtx.canvas.width;
+            const height = oCtx.canvas.height;
+            const scale = width / 30;
+            oCtx.clearRect(0,0,width,height);
+
+            // Draw BH horizon
+            const r_s = 2 * state.M;
+            oCtx.fillStyle = 'black';
+            oCtx.beginPath();
+            oCtx.arc(width/2, height/2, r_s * scale, 0, 2 * Math.PI);
+            oCtx.fill();
+
+            // Draw trace
+            if(state.trace.length > 1) {
+                oCtx.strokeStyle = '#ff6f61';
+                oCtx.lineWidth = 1;
+                oCtx.beginPath();
+                oCtx.moveTo(width/2 + state.trace[0].x * scale, height/2 + state.trace[0].y * scale);
+                for(let i=1; i<state.trace.length; ++i) {
+                     oCtx.lineTo(width/2 + state.trace[i].x * scale, height/2 + state.trace[i].y * scale);
+                }
+                oCtx.stroke();
+            }
+
+            // Draw particle
+            if(state.particle) {
+                oCtx.fillStyle = '#17a2b8';
+                oCtx.beginPath();
+                oCtx.arc(width/2 + state.particle.x * scale, height/2 + state.particle.y * scale, 5, 0, 2*Math.PI);
+                oCtx.fill();
+            }
+        }
+
+        function launchParticle() {
+            // Find a stable orbit if one exists
+            let r_min = -1;
+            let v_min = 1e9;
+            for(let r=0.1; r<15; r+=0.1) {
+                const v = Veff(r, state.J, state.k, state.M, state.L);
+                if(v < v_min) {
+                    v_min = v;
+                    r_min = r;
+                }
+            }
+
+            if(r_min > 0) {
+                const E2 = v_min * 1.01; // a bit more energy to make it oscillate
+                state.particle = {
+                    r: r_min,
+                    phi: 0,
+                    pr: 0, // radial momentum
+                    E2: E2
+                };
+                state.trace = [{x: r_min, y: 0}];
+                state.isRunning = true;
+                gameLoop();
+            }
+        }
+
+        function gameLoop() {
+            if(!state.isRunning || !state.particle) {
+                 state.isRunning = false;
+                 return;
+            }
+
+            const dt = 0.05;
+            const p = state.particle;
+
+            // RK4 integrator
+            function get_derivs(r, pr) {
+                const V = Veff(r, state.J, state.k, state.M, state.L);
+                const dVdr_num = (Veff(r + 0.001, state.J, state.k, state.M, state.L) - V) / 0.001;
+                const dphidt = state.J / (r * r);
+                const drdt = pr;
+                const dprdt = -0.5 * dVdr_num;
+                return {dr: drdt, dpr: dprdt, dphi: dphidt};
+            }
+
+            const k1 = get_derivs(p.r, p.pr);
+            const k2 = get_derivs(p.r + 0.5*dt*k1.dr, p.pr + 0.5*dt*k1.dpr);
+            const k3 = get_derivs(p.r + 0.5*dt*k2.dr, p.pr + 0.5*dt*k2.dpr);
+            const k4 = get_derivs(p.r + dt*k3.dr, p.pr + dt*k3.dpr);
+
+            p.r += (dt/6.0) * (k1.dr + 2*k2.dr + 2*k3.dr + k4.dr);
+            p.pr += (dt/6.0) * (k1.dpr + 2*k2.dpr + 2*k3.dpr + k4.dpr);
+            p.phi += (dt/6.0) * (k1.dphi + 2*k2.dphi + 2*k3.dphi + k4.dphi);
+
+            p.x = p.r * Math.cos(p.phi);
+            p.y = p.r * Math.sin(p.phi);
+            state.trace.push({x: p.x, y: p.y});
+            if(state.trace.length > 2000) state.trace.shift();
+
+            if (p.r < 2 * state.M || p.r > 15) {
+                state.isRunning = false; // stop if it falls in or hits boundary
+            }
+
+            drawOrbit();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateUI() {
+            document.getElementById('mass-value').textContent = state.M.toFixed(2);
+            document.getElementById('ads-l-value').textContent = state.L.toFixed(2);
+            document.getElementById('ang-mom-value').textContent = state.J.toFixed(2);
+            drawPotential();
+            drawOrbit();
+        }
+
+        massSlider.addEventListener('input', e => { state.M = parseFloat(e.target.value); updateUI(); });
+        adsLSlider.addEventListener('input', e => { state.L = parseFloat(e.target.value); updateUI(); });
+        angMomSlider.addEventListener('input', e => { state.J = parseFloat(e.target.value); updateUI(); });
+        isMasslessCheckbox.addEventListener('change', e => { state.k = e.target.checked ? 0 : 1; updateUI(); });
+        launchBtn.addEventListener('click', launchParticle);
+
+        updateUI();
+    });
+    </script>
+</body>
+</html>
