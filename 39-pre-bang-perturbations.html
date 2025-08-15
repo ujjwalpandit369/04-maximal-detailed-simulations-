@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Pre-Big Bang Perturbations</title>
+    <style>
+        /* Consistent CSS from previous simulations */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #5e3a8c; --secondary-color: #b1a5c1; --accent-color: #f9b115;
+            --border-color: #dee2e6;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .subtitle { font-size: 1.2em; font-style: italic; color: var(--secondary-color); }
+        .sim-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; }
+        .vis-panel { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .vis-panel canvas { width: 100%; aspect-ratio: 1; border: 1px solid var(--border-color); background-color: #fff; }
+        .controls-panel { grid-column: 1 / -1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        label { display: block; margin: 15px 0 5px; font-weight: bold; color: var(--header-color); }
+        input[type="range"] { width: 100%; }
+        button { background-color: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover { background-color: #4a2d6e; }
+        #metrics-panel { margin-top: 15px; font-family: 'Courier New', Courier, monospace; background: #e9ecef; padding: 10px; border-radius: 4px; }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deep Simulation: Evolution of Perturbations</h1>
+        <p class="subtitle">From quantum fluctuations to cosmic structures through the Pre-Big Bang bounce.</p>
+    </header>
+
+    <div class="container">
+        <div class="controls-panel">
+            <h3>Controls</h3>
+            <button id="start-btn">Start</button>
+            <button id="pause-btn">Pause</button>
+            <button id="reset-btn">Reset</button>
+            <div id="controls-sliders">
+                <label for="bounce-transfer-slider">Bounce Transfer Function (T<sub>k</sub>): <span id="bounce-transfer-value">1.0</span></label>
+                <input type="range" id="bounce-transfer-slider" min="0.1" max="2.0" step="0.1" value="1.0">
+                <label for="lambda-slider">Comoving Wavelength (λ<sub>comoving</sub>): <span id="lambda-value">100</span></label>
+                <input type="range" id="lambda-slider" min="10" max="500" step="10" value="100">
+            </div>
+            <div id="metrics-panel">Time: 0.00 | Mode Status: Initializing...</div>
+        </div>
+
+        <div class="sim-container">
+            <div class="vis-panel">
+                <h4>Length Scales vs. Time (Log-Log Plot)</h4>
+                <canvas id="scales-canvas" width="512" height="512"></canvas>
+            </div>
+            <div class="vis-panel">
+                <h4>Perturbation Amplitude |δ<sub>k</sub>| vs. Time</h4>
+                <canvas id="amplitude-canvas" width="512" height="512"></canvas>
+            </div>
+        </div>
+
+        <div class="content-section" id="exposition-section">
+            <h2>Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: Cosmic Seeds</h3>
+                <p>Where did galaxies, stars, and planets come from? The modern answer is that they grew from tiny, primordial "seeds." In the very early universe, space was incredibly uniform, but not perfectly so. Quantum mechanics dictates that even in a vacuum, there are tiny, fleeting fluctuations—particles and energy popping in and out of existence. These are quantum vacuum fluctuations.</p>
+                <p>In the Pre-Big Bang model, the universe started vast and contracting. As it shrank, these tiny quantum ripples were squeezed and stretched. The visualization on the left shows this process. The yellow line represents the "Hubble radius," a sort of cosmic horizon. The purple line is the physical wavelength of one of these ripples. When the purple line crosses *above* the yellow line (an event called "Hubble exit"), the ripple is stretched to a size where it's effectively frozen. Its amplitude then grows immensely, as shown in the second plot. After the universe "bounces" and starts expanding, the Hubble radius grows, eventually crossing the ripple's wavelength again ("Hubble re-entry"). At this point, the ripple can act as a seed for cosmic structure, attracting matter through gravity.</p>
+            </section>
+            <section>
+                <h3>Core Theory: Perturbation Evolution in a Bouncing Cosmology</h3>
+                <p>The origin of the observed cosmic microwave background (CMB) anisotropies is a cornerstone of modern cosmology. Any viable model must explain their nearly scale-invariant power spectrum. In the Pre-Big Bang scenario, the mechanism is fundamentally different from standard inflation.</p>
+                <p>The key is the behavior of the Hubble radius, `R_H = 1/|H|`, versus the physical wavelength of a perturbation mode, `λ_phys = a(t)λ_comoving`. The plot of "Length Scales vs. Time" shows these two quantities.
+                <ul>
+                    <li><b>Pre-Bang Contraction (t < 0):</b> The universe is decelerating in its contraction (`ä > 0`), which means the Hubble radius `1/|H|` shrinks faster than the scale factor `a(t)`. Consequently, perturbation modes that start inside the Hubble radius (`λ_phys < R_H`) inevitably see their wavelengths stretched past it (`λ_phys > R_H`). This is "Hubble exit."</li>
+                    <li><b>Super-Hubble Evolution:</b> Once outside the horizon, the perturbation is no longer in causal contact. Its amplitude is "squeezed." For a massless scalar field, the power spectrum of perturbations evolves to be `P(k) ∝ k^4`, which corresponds to a spectral index of `n_s = 4`. This is a stark, unambiguous prediction of the simplest Pre-Big Bang models.</li>
+                    <li><b>The Bounce (t ≈ 0):</b> The perturbations must propagate through the high-curvature, high-coupling stringy bounce phase. The physics of this is complex and model-dependent, encapsulated in a "transfer function," `T_k`. This function dictates how much of the pre-bang perturbation amplitude is transmitted to the post-bang era.</li>
+                    <li><b>Post-Bang Expansion (t > 0):</b> In the expanding, radiation-dominated universe, the Hubble radius `1/H` now grows faster than the scale factor `a(t)`. The modes that exited before the bounce now re-enter the horizon (`λ_phys < R_H`), at which point they become the seeds for large-scale structure.</li>
+                </ul>
+                The `n_s = 4` prediction is in strong conflict with the observed `n_s ≈ 0.96`. This "blue" spectrum (more power on small scales) is a major hurdle for the model and has led to more complex variations involving additional fields or modified bounce dynamics to try and resolve it.
+                </p>
+            </section>
+            <section>
+                <h3>Advanced Details: The Transfer Function and Gravitational Waves</h3>
+                <p>The true challenge lies in the bounce. The evolution of perturbations is governed by the Mukhanov-Sasaki equation, which becomes highly non-trivial in the bounce phase where the background is changing rapidly and higher-derivative and higher-loop string corrections become dominant. The `T_k` factor in this simulation is a phenomenological placeholder for this complex physics. Different models of the bounce (e.g., those involving branes, or non-perturbative string effects) predict different transfer functions. Some might suppress the blue tilt, while others might introduce new features like oscillations in the power spectrum.</p>
+                <p>Furthermore, this entire story also applies to tensor perturbations—primordial gravitational waves. The Pre-Big Bang scenario also predicts a highly blue-tilted spectrum of gravitational waves (`n_T ≈ 3`). This means it predicts a stochastic gravitational wave background that is very weak on the large scales probed by the CMB, but grows very rapidly at high frequencies. This provides a potential, though technologically challenging, observational signature: a detectable gravitational wave signal at frequencies in the kHz-GHz range, accessible to future microwave cavity detectors. The absence of a detected B-mode polarization signal in the CMB is consistent with this prediction, in contrast to many inflationary models which predict a larger, nearly scale-invariant tensor spectrum.</p>
+            </section>
+        </div>
+
+        <div class="content-section" id="interactive-guide-section">
+            <h2>Interactive Elements Guide</h2>
+            <p>This simulation allows you to explore how primordial perturbations evolve through a cosmic bounce.</p>
+            <ul>
+                <li><strong>Start/Pause/Reset:</strong> Control the animation. Reset is crucial after changing sliders, as it recalculates the entire history with the new parameters.</li>
+                <li><strong>Bounce Transfer Function (T<sub>k</sub>):</strong> This slider controls a multiplicative factor applied to the perturbation's amplitude as it passes through the bounce at `t=0`. A value of `1.0` means the amplitude is perfectly transmitted. A value `< 1.0` signifies that the bounce damps perturbations, while a value `> 1.0` means the bounce amplifies them. Observe the final amplitude in the second plot as you change this.</li>
+                <li><strong>Comoving Wavelength (λ<sub>comoving</sub>):</strong> This selects the initial (comoving) wavelength of the perturbation mode being studied. A larger value corresponds to a larger-scale perturbation. Notice how changing this affects the time of Hubble exit and re-entry in the first plot. Larger scales (bigger `λ`) exit the Hubble radius earlier in the contracting phase and re-enter later in the expanding phase.</li>
+                <li><strong>Length Scales Plot:</strong> This log-log plot is the core of the simulation. The yellow line is the Hubble Radius `1/|H|`. The purple line is the physical wavelength `a(t)λ`. "Hubble exit" is where the purple line crosses above the yellow line in the `t<0` phase. "Hubble re-entry" is where it crosses back below in the `t>0` phase.</li>
+                <li><strong>Perturbation Amplitude Plot:</strong> This plot shows the amplitude `|δ_k|` of the mode over time. You can see it is constant when the mode is sub-Hubble, grows significantly when it becomes super-Hubble, is modified by the bounce, and then remains constant again after re-entry.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script id="simulation-script">
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements ---
+        const scalesCanvas = document.getElementById('scales-canvas');
+        const scalesCtx = scalesCanvas.getContext('2d');
+        const amplitudeCanvas = document.getElementById('amplitude-canvas');
+        const amplitudeCtx = amplitudeCanvas.getContext('2d');
+
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const metricsPanel = document.getElementById('metrics-panel');
+
+        const bounceSlider = document.getElementById('bounce-transfer-slider');
+        const bounceValueSpan = document.getElementById('bounce-transfer-value');
+        const lambdaSlider = document.getElementById('lambda-slider');
+        const lambdaValueSpan = document.getElementById('lambda-value');
+
+        // --- Simulation Parameters ---
+        const T_MIN = -50;
+        const T_MAX = 50;
+        const T_BOUNCE = 1; // Half-duration of the bounce phase
+        const T_STEPS = 400; // Number of steps in the simulation history
+        const H_PRE_EXP = -0.5; // a(t) ~ (-t)^H_PRE_EXP for t<0
+        const H_POST_EXP = 0.5;  // a(t) ~ t^H_POST_EXP for t>0
+
+        // --- State Variables ---
+        let history = [];
+        let isRunning = false;
+        let currentStep = 0;
+        let animationFrameId;
+
+        let config = {
+            bounceTransfer: parseFloat(bounceSlider.value),
+            lambdaComoving: parseFloat(lambdaSlider.value)
+        };
+
+        // --- Physics Calculation Functions ---
+        function getScaleFactor(t) {
+            if (t < -T_BOUNCE) {
+                return Math.pow(-t, H_PRE_EXP);
+            } else if (t > T_BOUNCE) {
+                return Math.pow(t, H_POST_EXP);
+            } else {
+                const a_pre = Math.pow(T_BOUNCE, H_PRE_EXP);
+                const a_post = Math.pow(T_BOUNCE, H_POST_EXP);
+                const t_norm = (t + T_BOUNCE) / (2 * T_BOUNCE);
+                // Interpolate a^2 for smooth H
+                const a2 = a_pre**2 * (1 - t_norm) + a_post**2 * t_norm;
+                return Math.sqrt(a2);
+            }
+        }
+
+        function getHubbleParam(t, a) {
+             if (t < -T_BOUNCE) {
+                return H_PRE_EXP / t;
+            } else if (t > T_BOUNCE) {
+                return H_POST_EXP / t;
+            } else {
+                const a_pre = Math.pow(T_BOUNCE, H_PRE_EXP);
+                const a_post = Math.pow(T_BOUNCE, H_POST_EXP);
+                const dadt_num = (a_post**2 - a_pre**2) / (2 * T_BOUNCE);
+                return (0.5 * dadt_num) / (a*a);
+            }
+        }
+
+        // --- Core Simulation Logic ---
+        function recalculateHistory() {
+            history = [];
+            let currentAmplitude = 1.0; // Start with unity amplitude
+            let wasSuperHubble = false;
+
+            for (let i = 0; i <= T_STEPS; i++) {
+                const t = T_MIN + i * (T_MAX - T_MIN) / T_STEPS;
+                const a = getScaleFactor(t);
+                const H = getHubbleParam(t, a);
+                const hubbleRadius = (H !== 0) ? 1 / Math.abs(H) : Infinity;
+                const physWavelength = a * config.lambdaComoving;
+                const isSuperHubble = physWavelength > hubbleRadius;
+
+                // Model for amplitude evolution (simplified)
+                // Amplitude grows when the mode is super-Hubble
+                if (isSuperHubble && wasSuperHubble && history.length > 0) {
+                    const prev_a = history[history.length-1].a;
+                    if(prev_a > 0) currentAmplitude *= (a / prev_a); // Amplitude grows with scale factor
+                }
+
+                // Apply bounce transfer function
+                if (t > 0 && history[history.length-1].t <= 0) {
+                    currentAmplitude *= config.bounceTransfer;
+                }
+
+                history.push({
+                    t: t,
+                    a: a,
+                    H: H,
+                    hubbleRadius: hubbleRadius,
+                    physWavelength: physWavelength,
+                    amplitude: currentAmplitude,
+                    isSuperHubble: isSuperHubble
+                });
+                wasSuperHubble = isSuperHubble;
+            }
+        }
+
+        // --- Drawing Functions ---
+        function draw() {
+            drawScalesCanvas();
+            drawAmplitudeCanvas();
+            updateMetrics();
+        }
+
+        function drawScalesCanvas() {
+            const w = scalesCanvas.width;
+            const h = scalesCanvas.height;
+            scalesCtx.fillStyle = '#ffffff';
+            scalesCtx.fillRect(0, 0, w, h);
+
+            // Find min/max for log scale
+            let minVal = Infinity, maxVal = -Infinity;
+            history.forEach(p => {
+                minVal = Math.min(minVal, p.hubbleRadius, p.physWavelength);
+                maxVal = Math.max(maxVal, p.hubbleRadius, p.physWavelength);
+            });
+
+            const logMin = Math.log(minVal);
+            const logMax = Math.log(maxVal);
+
+            const toX = (t) => (t - T_MIN) / (T_MAX - T_MIN) * w;
+            const toY = (val) => h - ((Math.log(val) - logMin) / (logMax - logMin)) * h;
+
+            // Draw Hubble Radius
+            scalesCtx.strokeStyle = '#f9b115'; // Accent color
+            scalesCtx.lineWidth = 3;
+            scalesCtx.beginPath();
+            history.forEach((p, i) => {
+                if (i === 0) scalesCtx.moveTo(toX(p.t), toY(p.hubbleRadius));
+                else scalesCtx.lineTo(toX(p.t), toY(p.hubbleRadius));
+            });
+            scalesCtx.stroke();
+
+            // Draw Physical Wavelength
+            scalesCtx.strokeStyle = '#5e3a8c'; // Primary color
+            scalesCtx.lineWidth = 3;
+            scalesCtx.beginPath();
+            history.forEach((p, i) => {
+                if (i === 0) scalesCtx.moveTo(toX(p.t), toY(p.physWavelength));
+                else scalesCtx.lineTo(toX(p.t), toY(p.physWavelength));
+            });
+            scalesCtx.stroke();
+
+            // Draw current time marker
+            if (isRunning && currentStep < history.length) {
+                const p = history[currentStep];
+                scalesCtx.fillStyle = 'red';
+                scalesCtx.beginPath();
+                scalesCtx.arc(toX(p.t), toY(p.hubbleRadius), 5, 0, 2 * Math.PI);
+                scalesCtx.fill();
+                scalesCtx.beginPath();
+                scalesCtx.arc(toX(p.t), toY(p.physWavelength), 5, 0, 2 * Math.PI);
+                scalesCtx.fill();
+            }
+        }
+
+        function drawAmplitudeCanvas() {
+            const w = amplitudeCanvas.width;
+            const h = amplitudeCanvas.height;
+            amplitudeCtx.fillStyle = '#ffffff';
+            amplitudeCtx.fillRect(0, 0, w, h);
+
+            let maxAmp = 0;
+            history.forEach(p => maxAmp = Math.max(maxAmp, p.amplitude));
+            if (maxAmp === 0) maxAmp = 1;
+
+            const toX = (t) => (t - T_MIN) / (T_MAX - T_MIN) * w;
+            const toY = (amp) => h - (amp / maxAmp) * h * 0.9;
+
+            amplitudeCtx.strokeStyle = '#003366'; // Header color
+            amplitudeCtx.lineWidth = 3;
+            amplitudeCtx.beginPath();
+
+            let pathStarted = false;
+            for(let i=0; i <= currentStep && i < history.length; i++) {
+                const p = history[i];
+                 if (!pathStarted) {
+                    amplitudeCtx.moveTo(toX(p.t), toY(p.amplitude));
+                    pathStarted = true;
+                } else {
+                    amplitudeCtx.lineTo(toX(p.t), toY(p.amplitude));
+                }
+            }
+            amplitudeCtx.stroke();
+        }
+
+        function updateMetrics() {
+             if (currentStep < history.length) {
+                const p = history[currentStep];
+                const status = p.isSuperHubble ? "Super-Hubble (Squeezed)" : "Sub-Hubble (Oscillating)";
+                metricsPanel.innerHTML = `Time: ${p.t.toFixed(2)} | Mode Status: ${status} | Amplitude: ${p.amplitude.toFixed(2)}`;
+            }
+        }
+
+        // --- Animation Loop ---
+        function simulationLoop() {
+            if (!isRunning) return;
+
+            if (currentStep < T_STEPS) {
+                currentStep++;
+                draw();
+                animationFrameId = requestAnimationFrame(simulationLoop);
+            } else {
+                isRunning = false;
+            }
+        }
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                isRunning = true;
+                if (currentStep >= T_STEPS) {
+                    reset(); // Restart if at the end
+                }
+                simulationLoop();
+            }
+        });
+        pauseBtn.addEventListener('click', () => {
+            isRunning = false;
+            cancelAnimationFrame(animationFrameId);
+        });
+        resetBtn.addEventListener('click', () => {
+            isRunning = false;
+            cancelAnimationFrame(animationFrameId);
+            currentStep = 0;
+            recalculateHistory();
+            draw();
+        });
+
+        bounceSlider.addEventListener('input', (e) => {
+            config.bounceTransfer = parseFloat(e.target.value);
+            bounceValueSpan.textContent = config.bounceTransfer.toFixed(2);
+            reset();
+        });
+
+        lambdaSlider.addEventListener('input', (e) => {
+            config.lambdaComoving = parseFloat(e.target.value);
+            lambdaValueSpan.textContent = config.lambdaComoving.toFixed(0);
+            reset();
+        });
+
+        // --- Initial Setup ---
+        function initialize() {
+            currentStep = 0;
+            recalculateHistory();
+            draw();
+        }
+
+        initialize();
+    });
+    </script>
+</body>
+</html>

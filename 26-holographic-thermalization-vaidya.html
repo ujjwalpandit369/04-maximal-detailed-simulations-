@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Holographic Thermalization</title>
+    <style>
+        /* Consistent CSS */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #5e3a8c; --secondary-color: #b1a5c1; --accent-color: #f9b115;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .sim-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; }
+        .vis-panel canvas { width: 100%; aspect-ratio: 1; border: 2px solid var(--border-color); background-color: #fff; }
+        .controls-panel { grid-column: 1 / -1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deep Simulation: Holographic Thermalization</h1>
+        <p class="subtitle">Watching a quantum system thermalize by forming a black hole in a holographic dimension.</p>
+    </header>
+
+    <div class="container">
+        <div class="controls-panel">
+            <h3>Controls</h3>
+            <button id="start-btn">Start Quench</button>
+            <button id="reset-btn">Reset</button>
+        </div>
+
+        <div class="sim-container">
+            <div class="vis-panel">
+                <h4>AdS Bulk (Poincaré Disk)</h4>
+                <canvas id="bulk-canvas" width="512" height="512"></canvas>
+            </div>
+            <div class="vis-panel">
+                <h4>Boundary CFT Observables</h4>
+                <canvas id="boundary-canvas" width="512" height="512"></canvas>
+            </div>
+        </div>
+
+        <div class="content-section" id="exposition-section">
+            <h2>Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: A Black Hole Forged from a Quantum Quench</h3>
+                <p>One of the most profound ideas in modern physics is the holographic principle, which suggests that a theory of gravity in some volume of space (the "bulk") can be equivalent to a quantum field theory (like the theories that describe particles) living on the boundary of that space. The most concrete example of this is the AdS/CFT correspondence. This simulation visualizes one of its most dramatic predictions: the connection between thermalization and black holes.</p>
+                <p>On the right, we have a quantum system (the CFT). We "quench" it by injecting a sudden pulse of energy at the beginning of the simulation. You can see the energy density on the boundary rise and then settle down to a constant thermal value. This is **thermalization**. On the left, we see the holographic dual of this process in the gravitational theory. The initial energy pulse corresponds to a shell of energy falling in from the boundary of Anti-de Sitter (AdS) space. As this shell collapses, it forms a black hole. The final temperature of the quantum system is directly proportional to the size of the black hole that forms in the extra dimension. In this holographic world, the chaotic process of a quantum system reaching thermal equilibrium is equivalent to the dramatic, gravitational collapse of matter into a black hole.</p>
+            </section>
+            <section>
+                <h3>Core Theory: The AdS-Vaidya Metric and Holographic Quenches</h3>
+                <p>To study thermalization in a CFT using holography, we need a bulk spacetime that corresponds to an initial energy injection that then settles down. A full numerical relativity simulation of this process is very complex. A widely used and powerful toy model is the <strong>AdS-Vaidya metric</strong>. This metric describes a shell of "null dust" (light-like matter) falling into AdS. The metric is given by:
+                <br><code>ds² = (1/z²) * [-f(v,z)dv² - 2dvdz + dx²]</code>
+                <br>where `z` is the radial coordinate in AdS (the boundary is at `z=0`), and the function `f(v,z)` is `1 - m(v)z³`. The function `m(v)` represents the mass enclosed by the shell as a function of time `v`. If `m(v)` is a step function, this describes a single, sharp shell of energy falling in. Outside the shell, `m=0` and the spacetime is empty AdS. Inside the shell, `m=M` (a constant), and the spacetime is the AdS-Schwarzschild black hole geometry.</p>
+                <p>This simulation visualizes this process. The animation of the shell falling in from the boundary (`z=0`) and the subsequent growth of the event horizon is a direct depiction of the AdS-Vaidya geometry. According to the AdS/CFT dictionary, the expectation value of the boundary stress-energy tensor `<T_μν>` can be calculated from the asymptotic behavior of the metric near the boundary. For the AdS-Vaidya metric, this calculation shows that the energy density `<T_tt>` on the boundary is proportional to the mass function `m(v)`. Therefore, the process of the shell falling in and forming a black hole of mass `M` is precisely dual to the boundary state thermalizing to a final energy density proportional to `M`. This simulation plots this boundary energy density, showing it relaxing to a constant value, which is the hallmark of thermalization.</p>
+            </section>
+        </div>
+    </div>
+
+    <script id="simulation-script">
+    document.addEventListener('DOMContentLoaded', () => {
+        const bulkCanvas = document.getElementById('bulk-canvas');
+        const bCtx = bulkCanvas.getContext('2d');
+        const boundaryCanvas = document.getElementById('boundary-canvas');
+        const boundCtx = boundaryCanvas.getContext('2d');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+
+        let isRunning = false;
+        let time = 0;
+        const MAX_TIME = 100;
+        let boundary_energy_history = [];
+
+        function reset() {
+            isRunning = false;
+            time = 0;
+            boundary_energy_history = [];
+            startBtn.textContent = 'Start Quench';
+            draw();
+        }
+
+        function simulationStep() {
+            if (time >= MAX_TIME) {
+                isRunning = false;
+                startBtn.textContent = 'Finished';
+                return;
+            }
+            time += 1;
+
+            // Calculate boundary energy
+            // Model a pulse of energy injected at t=10, thermalizing
+            let energy = 0;
+            if(time > 10) {
+                const thermal_time = time - 10;
+                energy = 1.0 - Math.exp(-thermal_time / 20);
+            }
+            boundary_energy_history.push(energy);
+            if(boundary_energy_history.length > boundaryCanvas.width) boundary_energy_history.shift();
+        }
+
+        function draw() {
+            const w = bulkCanvas.width, h = bulkCanvas.height;
+
+            // --- Draw Bulk (Poincaré Disk) ---
+            bCtx.fillStyle = 'white';
+            bCtx.fillRect(0,0,w,h);
+            // Boundary circle
+            bCtx.strokeStyle = 'black';
+            bCtx.lineWidth = 2;
+            bCtx.beginPath();
+            bCtx.arc(w/2, h/2, w/2 - 5, 0, 2*Math.PI);
+            bCtx.stroke();
+
+            // Infalling shell
+            const shell_rad_ads = MAX_TIME - time; // Shell radius in some AdS coord
+            const shell_rad_screen = (1 - shell_rad_ads/MAX_TIME) * (w/2 - 5);
+            if(time > 0 && time < MAX_TIME) {
+                bCtx.strokeStyle = 'rgba(249, 177, 21, 0.5)';
+                bCtx.lineWidth = 3;
+                bCtx.beginPath();
+                bCtx.arc(w/2, h/2, shell_rad_screen, 0, 2*Math.PI);
+                bCtx.stroke();
+            }
+
+            // Black hole horizon
+            const energy = boundary_energy_history.length > 0 ? boundary_energy_history[boundary_energy_history.length-1] : 0;
+            const bh_rad_screen = energy * (w/4);
+            if (bh_rad_screen > 0) {
+                bCtx.fillStyle = 'black';
+                bCtx.beginPath();
+                bCtx.arc(w/2, h/2, bh_rad_screen, 0, 2*Math.PI);
+                bCtx.fill();
+            }
+
+            // --- Draw Boundary Plot ---
+            boundCtx.fillStyle = 'white';
+            boundCtx.fillRect(0,0,boundCtx.canvas.width, boundCtx.canvas.height);
+            boundCtx.strokeStyle = '#5e3a8c';
+            boundCtx.lineWidth = 2;
+            boundCtx.beginPath();
+            for(let i=0; i<boundary_energy_history.length; ++i) {
+                const x = i;
+                const y = boundCtx.canvas.height * (1 - boundary_energy_history[i] * 0.8);
+                if(i===0) boundCtx.moveTo(x,y); else boundCtx.lineTo(x,y);
+            }
+            boundCtx.stroke();
+        }
+
+        function mainLoop() {
+            if(!isRunning) return;
+            simulationStep();
+            draw();
+            requestAnimationFrame(mainLoop);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (time < MAX_TIME) {
+                isRunning = !isRunning;
+                startBtn.textContent = isRunning ? 'Pause' : 'Start Quench';
+                if (isRunning) mainLoop();
+            }
+        });
+        resetBtn.addEventListener('click', reset);
+
+        reset();
+    });
+    </script>
+</body>
+</html>
