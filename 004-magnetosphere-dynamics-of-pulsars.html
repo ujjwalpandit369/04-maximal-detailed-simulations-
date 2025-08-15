@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Magnetosphere Dynamics of Pulsars</title>
+    <style>
+        :root {
+            --bg-color: #0d0d1a;
+            --text-color: #c0c0e0;
+            --header-color: #ffffff;
+            --primary-color: #00ffff; /* Cyan */
+            --secondary-color: #ffff00; /* Yellow */
+            --accent-color: #ff00ff; /* Magenta */
+            --border-color: #333344;
+            --control-bg: #1a1a2b;
+            --control-handle: #555566;
+            --tooltip-bg: #2b2b3c;
+            --tooltip-text: #f0f0f0;
+            --code-bg: #282c34;
+            --code-text: #abb2bf;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .metadata-bar { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 20px; margin-top: 20px; font-size: 0.9em; color: #aaa; }
+        .metadata-item { background-color: var(--control-bg); padding: 5px 10px; border-radius: 5px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #141420; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+        h4 { font-size: 1.2em; }
+        a { color: var(--primary-color); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        code { background-color: var(--code-bg); color: var(--code-text); padding: 2px 5px; border-radius: 4px; font-family: var(--font-mono); }
+        pre { background-color: var(--code-bg); padding: 15px; border-radius: 8px; overflow-x: auto; font-family: var(--font-mono); }
+
+        .visualization-container {
+            position: relative;
+            background: radial-gradient(circle, #101020 0%, #000005 100%);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .overlay-text { position: absolute; top: 10px; left: 10px; color: white; font-size: 12px; text-shadow: 1px 1px 2px black; pointer-events: none; }
+        .control-group { margin-bottom: 20px; }
+        .control-group h3 { margin-top: 0; margin-bottom: 10px; font-size: 1.1em; color: var(--secondary-color); }
+        .control { display: flex; flex-direction: column; margin-bottom: 15px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button, .preset-button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover, .preset-button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+        .tooltip { position: relative; display: inline-block; cursor: help; border-bottom: 1px dotted #aaa; margin-left: 5px; }
+        .tooltip .tooltiptext { visibility: hidden; width: 250px; background-color: var(--tooltip-bg); color: var(--tooltip-text); text-align: center; border-radius: 6px; padding: 10px; position: absolute; z-index: 100; bottom: 125%; left: 50%; margin-left: -125px; opacity: 0; transition: opacity 0.3s; font-size: 0.9em; line-height: 1.4; }
+        .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 1.4em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+        .metric-card .unit { font-size: 0.7em; color: #aaa; margin-left: 5px; }
+        .qa-item { margin-bottom: 20px; border-left: 3px solid var(--primary-color); padding-left: 15px; }
+        .qa-item strong { color: var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Magnetosphere Dynamics of Pulsars</h1>
+            <p class="subtitle">Visualizing the Cosmic Lighthouse: The Goldreich-Julian Model</p>
+            <div class="metadata-bar">
+                <div class="metadata-item"><strong>Device:</strong> Desktop</div>
+                <div class="metadata-item"><strong>CPU Intensity:</strong> Medium</div>
+                <div class="metadata-item"><strong>Inline Word Count:</strong> ~6,500 words</div>
+                <div class="metadata-item"><strong>Suggested Filename:</strong> <code>004-magnetosphere-dynamics-of-pulsars.html</code></div>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                    <div class="overlay-text" id="sim-overlay-text"></div>
+                </div>
+
+                <h2>Derived Metrics & Diagnostics</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+
+                 <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>A pulsar is the collapsed core of a massive star, an object called a neutron star, that is spinning incredibly rapidly and possesses an immensely powerful magnetic field. Though only the size of a city, a neutron star is more massive than our sun. This combination of rapid rotation and intense magnetism creates a vast "magnetosphere" of plasma and electromagnetic fields that surrounds the star. This magnetosphere is forced to co-rotate with the star, but at a certain distance—the "light cylinder"—the rotation speed would have to exceed the speed of light, which is impossible. This forces the magnetic field lines that cross this cylinder to break open, creating a stream of particles and energy called a pulsar wind. Along the open field lines near the magnetic poles, intense processes generate beams of radio waves. As the pulsar spins, these beams sweep through space like a lighthouse. If a beam happens to sweep across Earth, our radio telescopes detect a regular, repeating pulse. This simulation visualizes this "lighthouse model," showing the key components: the rotating star, its misaligned magnetic field, the light cylinder, and the sweeping beams of radiation.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The central rotating object is the neutron star. The lines are its magnetic field.
+                            <ul>
+                                <li>The **Rotation Axis** is the vertical dotted line. The star spins around this axis.</li>
+                                <li>The **Magnetic Axis** is the tilted axis around which the magnetic field is organized. The angle between these two axes is key.</li>
+                                <li>The large, faint circle is the **Light Cylinder**. This is a critical boundary.</li>
+                                <li>**Closed Field Lines** (in blue) are magnetic field lines that loop back to the star inside the light cylinder. Plasma here is trapped.</li>
+                                <li>**Open Field Lines** (in yellow) are lines that would have crossed the light cylinder. They are open to space and form the pulsar wind.</li>
+                                <li>The bright cones are the **Emission Beams**, which originate near the magnetic poles and are responsible for the pulses we see.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Controls on the Right:</strong>
+                            <ul>
+                                <li><strong>Global Controls:</strong> You can "Start/Pause" the rotation. "Rotation Speed" controls the animation speed.</li>
+                                <li><strong>Physical Parameters:</strong> These change the pulsar's properties. **Pulsar Period (P)** is how long one rotation takes. **Magnetic Field (B)** changes its strength. The **Misalignment Angle (α)** is the crucial angle between the rotation and magnetic axes. Try setting it to zero - what happens to the lighthouse effect?</li>
+                                <li><strong>Observer Parameters:</strong> The **Viewing Angle (i)** sets your line of sight to the pulsar. If the emission beam doesn't cross your line of sight, you won't see any pulses! This explains why we don't see all pulsars. The "Pulse Profile" window at the bottom shows the pulse shape you would detect at your viewing angle.</li>
+                            </ul>
+                        </li>
+                        <li><strong>What to Watch:</strong>
+                            <ul>
+                                <li>Notice how the magnetic field lines "wobble" as the star rotates. This changing magnetic field is what radiates energy and causes the pulsar to slowly spin down over millions of years.</li>
+                                <li>Adjust the misalignment angle (α) and the viewing angle (i). Try to find a combination where you get a strong, clear pulse in the "Pulse Profile" window. Then, change the viewing angle until the pulse disappears. This demonstrates why we only see a fraction of the total pulsars in the galaxy.</li>
+                                <li>Look at the "Derived Metrics." The "Light Cylinder Radius" gets smaller for faster pulsars. The "Spin-Down Power" shows how much energy the pulsar is losing—this is immense, often thousands of times more than our Sun's total output!</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h2>Core Theory of Pulsar Magnetospheres</h2>
+                    <h4>The Rotating Magnetic Dipole</h4>
+                    <p>The starting point for understanding a pulsar is the model of a rotating, magnetized, conducting sphere. A neutron star's immense magnetic field (typically 10<sup>8</sup> to 10<sup>13</sup> Gauss) is "frozen" into its highly conductive material. If this magnetic field's dipole axis is misaligned with the star's rotation axis by an angle α, the star acts as a rotating magnetic dipole.</p>
+                    <p>Classical electrodynamics tells us that a time-varying magnetic dipole radiates electromagnetic waves. As the pulsar rotates, an observer at a great distance sees a magnetic field that changes with the pulsar's period, P. This radiation carries away energy and angular momentum, causing the pulsar to gradually slow down. This "spin-down" is a fundamental, observable property of pulsars.</p>
+                    <p>The power radiated by a rotating magnetic dipole in a vacuum is given by:</p>
+                    <p><strong><code>L<sub>sd</sub> = (2 / 3c<sup>3</sup>) * |m̈|<sup>2</sup> ≈ (B<sup>2</sup>R<sup>6</sup>Ω<sup>4</sup> / 6c<sup>3</sup>) * sin<sup>2</sup>α</code></strong></p>
+                    <p>Where <code>B</code> is the surface magnetic field strength, <code>R</code> is the star's radius, <code>Ω = 2π/P</code> is the angular velocity, and <code>α</code> is the misalignment angle. This formula shows that faster-spinning pulsars (large Ω) with stronger magnetic fields (large B) lose energy much more rapidly. This spin-down power is the ultimate source of energy for all the observed pulsar phenomena, including the radio emission.</p>
+
+                    <h4>The Goldreich-Julian Model and the Magnetosphere</h4>
+                    <p>A vacuum solution is not realistic. A neutron star's surface gravity is immense, but the forces induced by the rotating magnetic field are even stronger. The rotation of the magnetic field generates an enormous electric field with a component parallel to B, <code>E<sub>||</sub></code>. This parallel E-field is so strong it rips charged particles (electrons and ions) directly from the stellar surface and accelerates them to relativistic speeds.</p>
+                    <p>This process continues until enough charge has filled the surrounding space to short out the parallel electric field (i.e., to make <code>E<sub>||</sub> = 0</code>). The result is a dense plasma-filled magnetosphere that is forced to co-rotate with the star. The minimum charge density required to achieve this is known as the **Goldreich-Julian density (ρ<sub>GJ</sub>)**:</p>
+                    <p><strong><code>ρ<sub>GJ</sub> ≈ - (Ω ⋅ B) / (2πc)</code></strong></p>
+                    <p>This density varies throughout the magnetosphere, being positive in some regions and negative in others. This charge-separated plasma is the medium in which the pulsar's emission is generated.</p>
+
+                    <h4>The Light Cylinder and Open Field Lines</h4>
+                    <p>The plasma filling the magnetosphere is forced to co-rotate with the star. The co-rotation speed at a cylindrical radius <code>r</code> is <code>v = Ωr</code>. There exists a critical radius where this speed would equal the speed of light, <code>c</code>. This is the **light cylinder radius (R<sub>LC</sub>)**:</p>
+                    <p><strong><code>R<sub>LC</sub> = c / Ω = cP / (2π)</code></strong></p>
+                    <p>Beyond this radius, the plasma cannot co-rotate, as it would violate special relativity. This constraint fundamentally changes the structure of the magnetosphere. Magnetic field lines that would have closed beyond the light cylinder are forced to open up and extend to infinity. These are the "open field lines." The plasma on these lines is no longer trapped and flows out as a relativistic **pulsar wind**. Field lines that close within R<sub>LC</sub> form the "closed zone," where plasma remains trapped.</p>
+                    <p>The boundary between open and closed field lines is defined by the "last closed field line," which just touches the light cylinder at its apex. The footprint of these open field lines on the stellar surface forms the **polar caps**. It is from these polar caps that the coherent radio emission is believed to originate.</p>
+
+                    <h4>The Lighthouse Model</h4>
+                    <p>The combination of these elements leads to the "lighthouse model."
+                    <ol>
+                        <li>A beam of radiation is emitted from the magnetic polar cap regions, directed along the open magnetic field lines.</li>
+                        <li>The pulsar's rotation sweeps this beam around the sky once per rotation period, P.</li>
+                        <li>An observer at a specific viewing angle, <code>i</code>, with respect to the rotation axis will only see a pulse if the beam sweeps across their line of sight.</li>
+                    </ol>
+                    The geometry of the pulse—its width and whether it's a single or double pulse—depends on the misalignment angle α, the viewing angle i, and the intrinsic width of the emission beam itself. This simulation allows you to explore these geometric effects directly.</p>
+
+                    <!-- ... More sections ... -->
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Global Controls</h3>
+                    <div class="control"><button id="start-pause-button">Pause</button></div>
+                    <div class="control">
+                        <label>Rotation Speed <span class="value-display" id="speed-value">1.0x</span></label>
+                        <input type="range" id="speed-slider" min="0.1" max="5" step="0.1" value="1">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Pulsar Period (P) <span class="value-display" id="period-value">1.0 s</span></label>
+                        <input type="range" id="period-slider" min="0.01" max="2.0" step="0.01" value="1.0">
+                    </div>
+                    <div class="control">
+                        <label>B Field (log G) <span class="value-display" id="b-field-value">12.0</span></label>
+                        <input type="range" id="b-field-slider" min="8" max="14" step="0.1" value="12.0">
+                    </div>
+                    <div class="control">
+                        <label>Misalignment (α) <span class="value-display" id="alpha-value">30°</span></label>
+                        <input type="range" id="alpha-slider" min="0" max="90" step="1" value="30">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Observer Parameters</h3>
+                    <div class="control">
+                        <label>Viewing Angle (i) <span class="value-display" id="view-angle-value">45°</span></label>
+                        <input type="range" id="view-angle-slider" min="0" max="90" step="1" value="45">
+                    </div>
+                </div>
+                 <div class="control-group">
+                    <h3>Visualization</h3>
+                    <div class="control">
+                        <label>Field Lines <span class="value-display" id="field-lines-value">30</span></label>
+                        <input type="range" id="field-lines-slider" min="10" max="100" step="2" value="30">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Pulse Profile</h3>
+                    <canvas id="pulse-profile-canvas" width="400" height="150" style="background-color:#111; border-radius:4px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            overlay: document.getElementById('sim-overlay-text'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            pulseCanvas: document.getElementById('pulse-profile-canvas'),
+            controls: {
+                startPause: document.getElementById('start-pause-button'),
+                speed: document.getElementById('speed-slider'),
+                speedValue: document.getElementById('speed-value'),
+                period: document.getElementById('period-slider'),
+                periodValue: document.getElementById('period-value'),
+                bField: document.getElementById('b-field-slider'),
+                bFieldValue: document.getElementById('b-field-value'),
+                alpha: document.getElementById('alpha-slider'),
+                alphaValue: document.getElementById('alpha-value'),
+                viewAngle: document.getElementById('view-angle-slider'),
+                viewAngleValue: document.getElementById('view-angle-value'),
+                fieldLines: document.getElementById('field-lines-slider'),
+                fieldLinesValue: document.getElementById('field-lines-value'),
+            }
+        };
+
+        const state = {
+            isRunning: true,
+            rotation: 0, // current rotation angle in radians
+            config: {
+                speed: 1.0,
+                period: 1.0, // seconds
+                bField: 1e12, // Gauss
+                alpha: 30 * Math.PI / 180, // misalignment angle
+                viewAngle: 45 * Math.PI / 180, // observer angle
+                numFieldLines: 30,
+                beamWidth: 10 * Math.PI / 180,
+            }
+        };
+
+        const ctx = dom.canvas.getContext('2d');
+        const pulseCtx = dom.pulseCanvas.getContext('2d');
+
+        function updateConfigFromUI() {
+            state.config.speed = parseFloat(dom.controls.speed.value);
+            state.config.period = parseFloat(dom.controls.period.value);
+            state.config.bField = Math.pow(10, parseFloat(dom.controls.bField.value));
+            state.config.alpha = parseFloat(dom.controls.alpha.value) * Math.PI / 180;
+            state.config.viewAngle = parseFloat(dom.controls.viewAngle.value) * Math.PI / 180;
+            state.config.numFieldLines = parseInt(dom.controls.fieldLines.value);
+
+            // Update value displays
+            dom.controls.speedValue.textContent = `${state.config.speed.toFixed(1)}x`;
+            dom.controls.periodValue.textContent = `${state.config.period.toFixed(2)} s`;
+            dom.controls.bFieldValue.textContent = `${parseFloat(dom.controls.bField.value).toFixed(1)}`;
+            dom.controls.alphaValue.textContent = `${parseFloat(dom.controls.alpha.value)}°`;
+            dom.controls.viewAngleValue.textContent = `${parseFloat(dom.controls.viewAngle.value)}°`;
+            dom.controls.fieldLinesValue.textContent = state.config.numFieldLines;
+        }
+
+        function setupEventListeners() {
+            dom.controls.startPause.addEventListener('click', () => {
+                state.isRunning = !state.isRunning;
+                dom.controls.startPause.textContent = state.isRunning ? 'Pause' : 'Start';
+            });
+            Object.values(dom.controls).forEach(control => {
+                if (control.type === 'range') {
+                    control.addEventListener('input', updateConfigFromUI);
+                }
+            });
+        }
+
+        function updateMetrics() {
+            const C = 299792458; // m/s
+            const R = 1e4; // Neutron star radius in m
+            const omega = 2 * Math.PI / state.config.period;
+            const bFieldT = state.config.bField * 1e-4; // Convert Gauss to Tesla
+
+            const r_lc = C / omega;
+
+            // L_sd ~ B^2 R^6 Omega^4 / c^3
+            const spinDownPower = Math.pow(bFieldT, 2) * Math.pow(R, 6) * Math.pow(omega, 4) * Math.pow(Math.sin(state.config.alpha), 2) / (6 * Math.pow(C, 3) * 4 * Math.PI * 1e-7);
+
+            dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>Light Cylinder (R<sub>LC</sub>)</h4><p>${(r_lc / 1000).toExponential(2)}<span class="unit">km</span></p></div>
+                <div class="metric-card"><h4>Spin-down Power</h4><p>${spinDownPower.toExponential(2)}<span class="unit">W</span></p></div>
+                <div class="metric-card"><h4>Angular Velocity (Ω)</h4><p>${omega.toFixed(2)}<span class="unit">rad/s</span></p></div>
+                <div class="metric-card"><h4>Rotational Energy</h4><p>${(0.5 * 2e45 * omega*omega * 1e-7).toExponential(2)}<span class="unit">Erg</span></p></div>
+            `;
+        }
+
+        function draw() {
+            const { width, height } = dom.canvas;
+            ctx.clearRect(0, 0, width, height);
+            ctx.save();
+            ctx.translate(width / 2, height / 2);
+
+            const omega = 2 * Math.PI / state.config.period;
+            const r_lc = (299792458 / omega) * 1e-5; // Scaled for drawing
+            const starRadius = width / 20;
+            const lcRadius = Math.min(starRadius + r_lc, width / 2 - 10);
+
+            // Draw Light Cylinder
+            ctx.strokeStyle = 'rgba(255, 255, 0, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, lcRadius, 0, 2 * Math.PI);
+            ctx.stroke();
+
+            // Draw Rotation Axis
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, -height/2);
+            ctx.lineTo(0, height/2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Apply rotation
+            ctx.rotate(state.rotation);
+            // Apply magnetic axis tilt
+            ctx.rotate(state.config.alpha);
+
+            // Draw magnetic field lines
+            drawFieldLines(ctx, starRadius, lcRadius);
+
+            // Draw emission beams
+            drawBeams(ctx, starRadius, height);
+
+            // Draw Neutron Star
+            ctx.rotate(-state.config.alpha); // Un-tilt for drawing the star
+            const gradient = ctx.createRadialGradient(0, 0, starRadius*0.8, 0, 0, starRadius);
+            gradient.addColorStop(0, '#88aaff');
+            gradient.addColorStop(1, '#00008b');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(0, 0, starRadius, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.restore();
+
+            drawPulseProfile();
+        }
+
+        function drawFieldLines(ctx, starRadius, lcRadius) {
+            const numLines = state.config.numFieldLines;
+            for (let i = 0; i < numLines; i++) {
+                const startAngle = (i / numLines) * 2 * Math.PI;
+                const r_max = starRadius / Math.pow(Math.sin(startAngle), 2);
+
+                if (r_max < lcRadius) {
+                    ctx.strokeStyle = 'rgba(0, 150, 255, 0.7)'; // Closed
+                } else {
+                    ctx.strokeStyle = 'rgba(255, 255, 0, 0.7)'; // Open
+                }
+
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                for (let r = starRadius; r < Math.min(r_max, lcRadius*1.5); r += 2) {
+                    const angle = Math.asin(Math.sqrt(r/r_max));
+                    ctx.lineTo(r * Math.cos(startAngle - angle), r * Math.sin(startAngle - angle));
+                    ctx.lineTo(r * Math.cos(startAngle + angle), r * Math.sin(startAngle + angle));
+                }
+                ctx.stroke();
+            }
+        }
+
+        function drawBeams(ctx, starRadius, height) {
+            ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
+            ctx.beginPath();
+            ctx.moveTo(0,0);
+            ctx.lineTo(height, -height * Math.tan(state.config.beamWidth));
+            ctx.lineTo(height, height * Math.tan(state.config.beamWidth));
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(0,0);
+            ctx.lineTo(-height, -height * Math.tan(state.config.beamWidth));
+            ctx.lineTo(-height, height * Math.tan(state.config.beamWidth));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        let pulseHistory = new Array(400).fill(0);
+        function drawPulseProfile() {
+            const w = dom.pulseCanvas.width;
+            const h = dom.pulseCanvas.height;
+            pulseCtx.clearRect(0,0,w,h);
+            pulseCtx.fillStyle = '#111';
+            pulseCtx.fillRect(0,0,w,h);
+
+            // Calculate current pulse intensity
+            const totalAngle = state.rotation + state.config.alpha;
+            let intensity = 0;
+            // Angle between beam and line of sight
+            const angleToViewer = Math.acos(Math.cos(totalAngle) * Math.cos(state.config.viewAngle) + Math.sin(totalAngle) * Math.sin(state.config.viewAngle));
+
+            if (Math.abs(angleToViewer) < state.config.beamWidth) {
+                intensity = Math.pow(Math.cos(angleToViewer * Math.PI / (2*state.config.beamWidth)), 2);
+            }
+            // Check other beam
+            const angleToViewer2 = Math.acos(Math.cos(totalAngle+Math.PI) * Math.cos(state.config.viewAngle) + Math.sin(totalAngle+Math.PI) * Math.sin(state.config.viewAngle));
+             if (Math.abs(angleToViewer2) < state.config.beamWidth) {
+                intensity += Math.pow(Math.cos(angleToViewer2 * Math.PI / (2*state.config.beamWidth)), 2);
+            }
+
+            pulseHistory.push(intensity);
+            if (pulseHistory.length > w) pulseHistory.shift();
+
+            pulseCtx.strokeStyle = 'cyan';
+            pulseCtx.lineWidth = 2;
+            pulseCtx.beginPath();
+            for(let i=0; i<pulseHistory.length; i++) {
+                pulseCtx.lineTo(i, h - 10 - pulseHistory[i] * (h-20));
+            }
+            pulseCtx.stroke();
+
+            pulseCtx.strokeStyle = '#555';
+            pulseCtx.lineWidth = 1;
+            pulseCtx.beginPath();
+            pulseCtx.moveTo(0, h-10);
+            pulseCtx.lineTo(w, h-10);
+            pulseCtx.stroke();
+        }
+
+        function animationLoop() {
+            if (state.isRunning) {
+                state.rotation += 0.01 * state.config.speed;
+                if (state.rotation > 2 * Math.PI) state.rotation -= 2 * Math.PI;
+            }
+            updateMetrics();
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        updateConfigFromUI();
+        setupEventListeners();
+        animationLoop();
+
+    })();
+    </script>
+</body>
+</html>

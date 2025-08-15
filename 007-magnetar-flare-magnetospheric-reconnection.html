@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Magnetar Flare Magnetospheric Reconnection</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #ff8c00; /* Dark Orange */
+            --secondary-color: #9400d3; /* Dark Violet */
+            --accent-color: #ff0000; /* Red */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 75%; /* 4:3 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .chart-container { width: 100%; height: 300px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 20px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--accent-color); color: #fff; border: 2px solid #ff4444; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; font-size: 1.2em; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 12px var(--accent-color); }
+        .metrics-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); text-align: center; }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 2em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Magnetar Flare Magnetospheric Reconnection</h1>
+            <p class="subtitle">The Snapping of Cosmic Rubber Bands: Powering the Universe's Most Energetic Flares</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <h2>System Energy</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+
+                <div class="chart-container" id="energy-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Magnetars are a special type of neutron star with magnetic fields that are quadrillions of times stronger than Earth's—the most powerful magnets in the universe. This immense magnetic field stores an incredible amount of energy. Sometimes, the magnetar's crust shifts, twisting the magnetic field lines above it like rubber bands being wound up. This stores even more energy in the magnetosphere. When the twist becomes too great, the field lines can suddenly and violently snap and reconfigure into a simpler, lower-energy shape. This process, called "magnetic reconnection," releases the stored energy in a cataclysmic explosion known as a giant flare. In a fraction of a second, a magnetar flare can release more energy than our Sun will in hundreds of thousands of years. This simulation visualizes that process. You can slowly build up the magnetic twist and then trigger a reconnection event to see how the field lines snap, eject a blob of plasma (a plasmoid), and release a massive burst of energy.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The canvas shows a cross-section of the magnetar's surface (at the bottom) and the magnetic field lines above it.
+                            <ul>
+                                <li>The lines represent the magnetic field. Initially, they are in a relaxed, low-energy state.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Building Up Energy:</strong>
+                            <ul>
+                                <li>Use the **"Magnetic Twist"** slider to slowly build up energy in the system. As you increase the twist, you'll see the field lines become more sheared and stressed, storing energy.</li>
+                                <li>The **"Magnetic Energy"** metric and the chart will show the energy in the system increasing as you do this.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Triggering the Flare:</strong>
+                            <ul>
+                                <li>When the twist reaches a critical point, a **"Current Sheet"** (a bright red line) will appear. This is where the field is most stressed and ready to snap.</li>
+                                <li>Press the large **"TRIGGER RECONNECTION"** button to unleash the flare.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The Reconnection Event:</strong>
+                            <ul>
+                                <li>You will see the field lines break and reconnect.</li>
+                                <li>The lower parts snap back into a relaxed, simple arcade of loops.</li>
+                                <li>The upper parts form a disconnected magnetic bubble—a **"plasmoid"**—which is violently ejected upwards.</li>
+                                <li>A bright flash signifies the release of energy. Watch the "Magnetic Energy" metric and chart—you'll see the energy drop suddenly, with the difference being released in the flare.</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h2>Core Theory of Magnetic Reconnection</h2>
+                    <h4>Magnetars and Stored Magnetic Energy</h4>
+                    <p>A magnetar's magnetic field is its defining feature. While a typical dipole field represents the lowest energy state, much more energy can be stored in more complex configurations. The interior of the magnetar is thought to have an even stronger toroidal (wound-up) field. Stresses and fractures in the star's crust (starquakes) can slowly twist the external, poloidal field, transferring energy from the interior to the magnetosphere. This builds up a "twist" in the external field, storing vast amounts of "free energy" above the lowest-energy dipole state.</p>
+                    <p>This stored energy is what powers a magnetar's persistent X-ray glow, and more importantly, its giant flares. The magnetic field configuration becomes stressed, much like a wound-up rubber band. The total energy is much higher than in the relaxed state, and the system seeks a way to release it.</p>
+
+                    <h4>The Reconnection Process</h4>
+                    <p>Magnetic reconnection is a fundamental plasma process that rapidly changes the topology of a magnetic field and converts stored magnetic energy into kinetic energy, thermal energy, and particle acceleration. It occurs in thin layers called **current sheets**, where there is a strong gradient in the magnetic field direction.</p>
+                    <p>In the context of a magnetar flare:
+                    <ol>
+                        <li>Slow twisting by crustal motion causes oppositely-directed magnetic field lines to be pressed together in a confined region, forming a current sheet.</li>
+                        <li>In this sheet, the ideal MHD condition of "frozen-in" flux can break down due to plasma resistivity (or more exotic quantum effects in magnetars). This allows the field lines to "break".</li>
+                        <li>The broken lines immediately "reconnect" with their neighbors in a new configuration. As shown in the simulation, two previously distinct, sheared loops reconnect into a single, lower, relaxed loop and a disconnected upper loop (the plasmoid).</li>
+                        <li>The newly reconnected lines are in a state of high tension and contract rapidly, like a snapped rubber band. This slingshots plasma outwards and downwards. The outflow from the reconnection site can reach relativistic speeds.</li>
+                        <li>The ejected plasmoid contains a huge amount of energy and is violently flung out of the system. The sudden drop in the overall magnetic energy of the configuration is released as a flare of radiation.</li>
+                    </ol>
+                    This process is directly analogous to solar flares, but the energy scales are vastly different. A large solar flare might release 10<sup>32</sup> ergs. A magnetar giant flare can release up to 10<sup>47</sup> ergs—a trillion trillion times more powerful.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Energy Buildup</h3>
+                    <div class="control">
+                        <label>Magnetic Twist <span class="value-display" id="twist-value">0.0</span></label>
+                        <input type="range" id="twist-slider" min="0" max="1" step="0.01" value="0">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Flare Trigger</h3>
+                     <div class="control">
+                        <button id="trigger-button">TRIGGER RECONNECTION</button>
+                    </div>
+                </div>
+                 <div class="control-group">
+                    <h3>System Reset</h3>
+                     <div class="control">
+                        <button id="reset-button" style="background-color: #555;">Reset</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            energyChartCanvas: document.getElementById('energy-chart'),
+            twistSlider: document.getElementById('twist-slider'),
+            twistValue: document.getElementById('twist-value'),
+            triggerBtn: document.getElementById('trigger-button'),
+            resetBtn: document.getElementById('reset-button'),
+        };
+
+        const state = {
+            twist: 0, // 0 to 1
+            reconnectionPhase: 0, // 0 to 1, animation progress
+            isReconnecting: false,
+            plasmoidY: 0,
+            flareOpacity: 0,
+            history: [],
+        };
+
+        const ctx = dom.canvas.getContext('2d');
+        let energyChart;
+
+        function updateConfig() {
+            state.twist = parseFloat(dom.twistSlider.value);
+            dom.twistValue.textContent = state.twist.toFixed(2);
+        }
+
+        function triggerReconnection() {
+            if (state.twist > 0.8 && !state.isReconnecting) {
+                state.isReconnecting = true;
+            }
+        }
+
+        function reset() {
+            state.twist = 0;
+            state.reconnectionPhase = 0;
+            state.isReconnecting = false;
+            state.plasmoidY = 0;
+            state.flareOpacity = 0;
+            dom.twistSlider.value = 0;
+            updateConfig();
+            if (energyChart) energyChart.reset();
+        }
+
+        function setupEventListeners() {
+            dom.twistSlider.addEventListener('input', updateConfig);
+            dom.triggerBtn.addEventListener('click', triggerReconnection);
+            dom.resetBtn.addEventListener('click', reset);
+        }
+
+        function update() {
+            if (state.isReconnecting && state.reconnectionPhase < 1) {
+                state.reconnectionPhase += 0.01;
+                state.plasmoidY += 5;
+                state.flareOpacity = Math.sin(state.reconnectionPhase * Math.PI);
+            } else if (state.reconnectionPhase >= 1) {
+                state.flareOpacity *= 0.95;
+            }
+        }
+
+        function draw() {
+            const { width, height } = dom.canvas;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+
+            const surfaceY = height - 50;
+
+            // Draw Magnetar Surface
+            ctx.fillStyle = '#444';
+            ctx.fillRect(0, surfaceY, width, 50);
+
+            // Draw Magnetic Field
+            drawFieldLines(ctx, width, surfaceY);
+
+            // Draw Flare
+            if (state.flareOpacity > 0) {
+                ctx.fillStyle = `rgba(255, 140, 0, ${state.flareOpacity * 0.8})`;
+                ctx.fillRect(width/4, surfaceY - 200, width/2, 200);
+            }
+        }
+
+        function drawFieldLines(ctx, width, surfaceY) {
+            const numLines = 10;
+            const loopHeight = 200;
+            const twistAmount = state.twist * 100;
+
+            // Reconnection modifies the topology
+            const r = state.reconnectionPhase;
+            const one_minus_r = 1 - r;
+
+            for (let i = 0; i < numLines; i++) {
+                const x0 = width/2 - 150 + i * 30;
+                const x1 = width/2 + 150 - i * 30;
+
+                ctx.strokeStyle = `rgba(255, 140, 0, ${0.2 + 0.8 * (i/numLines)})`;
+                ctx.lineWidth = 2;
+
+                // Draw initial sheared arcade (pre-reconnection)
+                if(one_minus_r > 0.01) {
+                    ctx.globalAlpha = one_minus_r;
+                    ctx.beginPath();
+                    ctx.moveTo(x0 - twistAmount, surfaceY);
+                    ctx.bezierCurveTo(x0, surfaceY - loopHeight, x1, surfaceY - loopHeight, x1 + twistAmount, surfaceY);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1.0;
+                }
+
+                // Draw post-reconnection state
+                if (r > 0.01) {
+                    ctx.globalAlpha = r;
+                    // Lower, relaxed loop
+                    ctx.beginPath();
+                    ctx.moveTo(x0 - twistAmount, surfaceY);
+                    ctx.bezierCurveTo(x0, surfaceY - loopHeight * 0.5, x1, surfaceY - loopHeight * 0.5, x1 + twistAmount, surfaceY);
+                    ctx.stroke();
+
+                    // Ejected plasmoid
+                    const plasmoidCenterX = width/2;
+                    const plasmoidCenterY = surfaceY - loopHeight - state.plasmoidY;
+                    const plasmoidRadius = (x1-x0)/2;
+                    ctx.beginPath();
+                    ctx.arc(plasmoidCenterX, plasmoidCenterY, plasmoidRadius, 0, 2*Math.PI);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1.0;
+                }
+            }
+
+            // Draw current sheet
+            if (state.twist > 0.8 && !state.isReconnecting) {
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(width/2 - 30, surfaceY - loopHeight - 10);
+                ctx.lineTo(width/2 + 30, surfaceY - loopHeight - 10);
+                ctx.stroke();
+            }
+        }
+
+        function updateEnergyAndChart() {
+            const baseEnergy = 100;
+            const storedEnergy = state.twist * 200;
+            const releasedEnergy = state.reconnectionPhase * storedEnergy * 0.8;
+            const currentEnergy = baseEnergy + storedEnergy - releasedEnergy;
+
+            dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>Magnetic Energy</h4><p>${currentEnergy.toFixed(1)}<span style="font-size:0.5em;"> (Arb. Units)</span></p></div>
+            `;
+            if(energyChart) energyChart.update(state.twist, state.reconnectionPhase, currentEnergy);
+        }
+
+        function animationLoop() {
+            update();
+            draw();
+            updateEnergyAndChart();
+            requestAnimationFrame(animationLoop);
+        }
+
+        // Simplified Charting Library
+        function createEnergyChart(canvas) {
+            const chartCtx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const history = [];
+
+            function draw() {
+                chartCtx.clearRect(0,0,w,h);
+                chartCtx.fillStyle = '#111';
+                chartCtx.fillRect(0,0,w,h);
+
+                if (history.length < 1) return;
+
+                const maxEnergy = Math.max(...history.map(p => p.energy), 100);
+
+                chartCtx.strokeStyle = '#ff8c00';
+                chartCtx.lineWidth = 2;
+                chartCtx.beginPath();
+                history.forEach((p, i) => {
+                    const x = i / 200 * w; // Assume 200 steps in history
+                    const y = h - (p.energy / maxEnergy) * (h-10);
+                    if (i === 0) chartCtx.moveTo(x, y);
+                    else chartCtx.lineTo(x, y);
+                });
+                chartCtx.stroke();
+            }
+
+            return {
+                update: (twist, reconn, energy) => {
+                    if (history.length > 200) history.shift();
+                    history.push({ twist, reconn, energy });
+                    draw();
+                },
+                reset: () => { history.length = 0; draw(); }
+            }
+        }
+
+        setupEventListeners();
+        energyChart = createEnergyChart(dom.energyChartCanvas);
+        reset();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Fast Radio Burst Emission Models</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #ff3333; /* Bright Red */
+            --secondary-color: #33ff33; /* Bright Green */
+            --accent-color: #3333ff; /* Bright Blue */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 75%; /* 4:3 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .chart-container { width: 100%; height: 300px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 20px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); text-align: center; }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 2em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Fast Radio Burst Emission Models</h1>
+            <p class="subtitle">The Power of Coherence: Unlocking the Brightness of FRBs</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <h2>Power Output</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+
+                <div class="chart-container" id="power-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Fast Radio Bursts (FRBs) are one of modern astronomy's greatest mysteries. They are incredibly bright, millisecond-long flashes of radio waves from deep space. A single FRB can release as much energy in a thousandth of a second as the Sun does in a day. How can something be so powerful, yet so brief? The answer must involve a "coherent" process. Imagine a crowd of people clapping. If they clap randomly, you hear a steady roar. But if they all clap at the exact same instant, you get a single, tremendously loud bang. The same principle applies to radio waves. If many charged particles emit waves randomly (incoherently), the result is weak. But if they emit their waves in perfect sync (coherently), the waves add up, creating a beam of unimaginable intensity. This simulation demonstrates this exact principle. You can control a group of particles and see how bunching them together into a small, coherent group causes their combined power output to skyrocket, providing a key insight into the physics behind FRBs.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The canvas shows particles moving along a curved path (representing a magnetic field line). Each particle emits a small wave.
+                            <ul>
+                                <li>The waves travel to the "Detector" on the right.</li>
+                                <li>The "Total Wave" at the bottom shows the sum of all the individual waves as they arrive at the detector.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The Key Control:</strong> The most important slider is the **"Bunching Factor"**.
+                            <ul>
+                                <li>When "Bunching Factor" is low, the particles are spread out randomly along the path. Notice that their individual waves arrive at the detector at different times (out of phase). The "Total Wave" is a weak, noisy jumble.</li>
+                                <li>Now, slide the "Bunching Factor" to a high value. The particles are now packed into a tight group. Watch as their waves all arrive at the detector at the same time (in phase). They add up perfectly, and the "Total Wave" becomes a single, enormous pulse.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Metrics and Charts:</strong>
+                            <ul>
+                                <li>The **Power Output** metrics show the power for a single particle, the power for all particles if they were incoherent, and the actual (coherent) power. Watch the "Coherent Power" value explode as you increase the bunching.</li>
+                                <li>The **Power vs. Bunching Chart** plots this relationship, clearly showing the dramatic leap in power as the source becomes coherent.</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h2>Core Theory of Coherent Emission</h2>
+                    <h4>The Brightness Problem</h4>
+                    <p>FRBs are characterized by an extreme "brightness temperature," a way of describing the intensity of a radio source. The brightness temperatures of FRBs can exceed 10<sup>35</sup> K, a value so high it cannot possibly be from a hot, thermal source. Any object that hot would melt into gamma-rays. This implies the emission must be non-thermal and, specifically, **coherent**.</p>
+
+                    <h4>Incoherent vs. Coherent Emission</h4>
+                    <p>Consider a source of <code>N</code> radiating particles.
+                    <ul>
+                        <li><strong>Incoherent Emission:</strong> If the particles are randomly distributed and radiate independently, the phases of their emitted waves are random. When the waves are summed at a detector, the phases cancel out, and the total power is simply the sum of the individual powers.
+                            <p><code>P<sub>incoherent</sub> = N * P<sub>1</sub></code></p>
+                            Where P<sub>1</sub> is the power from a single particle.
+                        </li>
+                        <li><strong>Coherent Emission:</strong> If the particles can be made to radiate in phase, their electric fields add constructively. The total electric field is <code>E<sub>total</sub> = N * E<sub>1</sub></code>. Since power is proportional to the square of the electric field (P ∝ E²), the total power becomes:
+                            <p><code>P<sub>coherent</sub> = (N * E<sub>1</sub>)<sup>2</sup> ∝ N<sup>2</sup> * E<sub>1</sub><sup>2</sup> = N<sup>2</sup> * P<sub>1</sub></code></p>
+                        </li>
+                    </ul>
+                    This transition from a power proportional to <code>N</code> to a power proportional to <code>N<sup>2</sup></code> is the key to explaining the immense luminosity of FRBs. If you have a billion particles (N=10<sup>9</sup>), the coherent power is a billion times greater than the incoherent power. This is the "magic" of coherence.</p>
+
+                    <h4>The Coherence Condition</h4>
+                    <p>To achieve coherence, the particles must be confined to a region smaller than about one wavelength (λ) of the radiation they are emitting. This ensures that all the waves they produce leave the source region with nearly the same phase. For FRBs observed at a frequency of ~1 GHz, the wavelength is λ = c/f ≈ 30 cm. Therefore, a successful model must explain how nature can create dense bunches of charged particles on scales smaller than a meter, all moving relativistically together.</p>
+
+                    <h4>Coherent Curvature Radiation by Bunches</h4>
+                    <p>A leading model for FRBs invokes coherent curvature radiation, which this simulation illustrates. The proposed source is a **magnetar**, a neutron star with a magnetic field a thousand times stronger than a typical pulsar.
+                    <ol>
+                        <li>A disturbance in the magnetar's magnetosphere (perhaps a starquake or magnetic reconnection) creates a dense, outflowing electron-positron pair plasma.</li>
+                        <li>Plasma instabilities within this outflow cause the particles to clump together into charge-separated "bunches."</li>
+                        <li>These bunches, containing trillions of particles, move together relativistically along the curved magnetic field lines.</li>
+                        <li>Because the entire bunch is smaller than the radio wavelength being emitted, all the particles radiate their curvature radiation in phase.</li>
+                        <li>The resulting <code>N<sup>2</sup></code> power amplification produces a beam of radio waves intense enough to be seen across billions of light-years as a Fast Radio Burst.</li>
+                    </ol>
+                    This model elegantly explains the high brightness temperature and the millisecond duration (which corresponds to the light-travel time across the compact emission region).
+                    </p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Number of Particles (N) <span class="value-display" id="n-particles-value">20</span></label>
+                        <input type="range" id="n-particles-slider" min="2" max="50" step="1" value="20">
+                    </div>
+                    <div class="control">
+                        <label>Wavelength (λ) <span class="value-display" id="lambda-value">100</span></p></label>
+                        <input type="range" id="lambda-slider" min="20" max="200" step="5" value="100">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Coherence Control</h3>
+                     <div class="control">
+                        <label>Bunching Factor <span class="value-display" id="bunching-value">0.1</span></label>
+                        <input type="range" id="bunching-slider" min="0" max="1" step="0.01" value="0.1">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Visualization</h3>
+                    <div class="control">
+                        <label>Animation Speed <span class="value-display" id="speed-value">1.0x</span></label>
+                        <input type="range" id="speed-slider" min="0.1" max="5" step="0.1" value="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            powerChartCanvas: document.getElementById('power-chart'),
+            nParticlesSlider: document.getElementById('n-particles-slider'),
+            nParticlesValue: document.getElementById('n-particles-value'),
+            lambdaSlider: document.getElementById('lambda-slider'),
+            lambdaValue: document.getElementById('lambda-value'),
+            bunchingSlider: document.getElementById('bunching-slider'),
+            bunchingValue: document.getElementById('bunching-value'),
+            speedSlider: document.getElementById('speed-slider'),
+            speedValue: document.getElementById('speed-value'),
+        };
+
+        const state = {
+            particles: [],
+            time: 0,
+            config: {
+                nParticles: 20,
+                lambda: 100, // wavelength
+                bunching: 0.1,
+                speed: 1.0,
+                pathRadius: 1000,
+            }
+        };
+
+        const ctx = dom.canvas.getContext('2d');
+        let powerChart;
+
+        function updateConfig() {
+            state.config.nParticles = parseInt(dom.nParticlesSlider.value);
+            state.config.lambda = parseInt(dom.lambdaSlider.value);
+            state.config.bunching = parseFloat(dom.bunchingSlider.value);
+            state.config.speed = parseFloat(dom.speedSlider.value);
+
+            dom.nParticlesValue.textContent = state.config.nParticles;
+            dom.lambdaValue.textContent = state.config.lambda;
+            dom.bunchingValue.textContent = state.config.bunching.toFixed(2);
+            dom.speedValue.textContent = `${state.config.speed.toFixed(1)}x`;
+
+            createParticles();
+        }
+
+        function createParticles() {
+            state.particles = [];
+            const bunchSize = (1 - state.config.bunching) * 300; // 300 is arbitrary spread
+            for (let i = 0; i < state.config.nParticles; i++) {
+                state.particles.push({
+                    id: i,
+                    startOffset: (Math.random() - 0.5) * bunchSize,
+                    phase: Math.random() * 2 * Math.PI,
+                });
+            }
+        }
+
+        function updateMetrics(totalPower) {
+            const P1 = 1.0; // Power of single particle
+            const N = state.config.nParticles;
+            const Pincoherent = N * P1;
+            const Pcoherent_max = N * N * P1;
+
+            dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>Incoherent Power (∝ N)</h4><p>${Pincoherent.toExponential(2)}</p></div>
+                <div class="metric-card"><h4>Simulated Power</h4><p>${totalPower.toExponential(2)}</p></div>
+            `;
+            if (powerChart) {
+                powerChart.update(state.config.bunching, totalPower / Pincoherent);
+            }
+        }
+
+        function draw() {
+            const { width, height } = dom.canvas;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+
+            const R = state.config.pathRadius;
+            const detectorX = width - 50;
+            let totalWave = 0;
+
+            // Draw particles and their waves
+            state.particles.forEach(p => {
+                const particleTime = state.time + p.startOffset;
+                const angle = (particleTime * 0.01 * state.config.speed) % (Math.PI);
+                const x = R * Math.cos(angle + Math.PI/2) + (width/2 - R);
+                const y = R * Math.sin(angle + Math.PI/2) + 50;
+
+                // Draw particle
+                ctx.fillStyle = '#ff3333';
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, 2*Math.PI);
+                ctx.fill();
+
+                // Draw wave from particle to detector
+                const dist = detectorX - x;
+                ctx.strokeStyle = 'rgba(255, 51, 51, 0.3)';
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                for(let wx = x; wx < detectorX; wx++) {
+                    const wavePhase = (wx-x) * 2 * Math.PI / state.config.lambda - state.time * 0.1 * state.config.speed;
+                    ctx.lineTo(wx, y + Math.sin(wavePhase + p.phase) * 10);
+                }
+                ctx.stroke();
+
+                // Add to total wave at detector
+                const finalWavePhase = dist * 2 * Math.PI / state.config.lambda - state.time * 0.1 * state.config.speed;
+                totalWave += Math.sin(finalWavePhase + p.phase);
+            });
+
+            // Draw detector
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(detectorX, 0);
+            ctx.lineTo(detectorX, height);
+            ctx.stroke();
+
+            // Draw total wave
+            ctx.strokeStyle = '#33ff33';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(detectorX, height/2);
+            for(let wy=0; wy < height/2; wy++) {
+                const wavePhase = wy * 0.1;
+                ctx.lineTo(detectorX + Math.sin(wavePhase) * totalWave * 2, height/2 - wy);
+            }
+            ctx.stroke();
+
+            updateMetrics(totalWave * totalWave);
+        }
+
+        function animationLoop() {
+            state.time++;
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        // Simplified Charting Library
+        function createPowerChart(canvas) {
+            const chartCtx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const history = [];
+
+            function draw() {
+                chartCtx.clearRect(0,0,w,h);
+                chartCtx.fillStyle = '#111';
+                chartCtx.fillRect(0,0,w,h);
+
+                if (history.length < 2) return;
+
+                const maxPower = Math.max(...history.map(p => p.power), 1);
+
+                chartCtx.strokeStyle = '#ff3333';
+                chartCtx.lineWidth = 2;
+                chartCtx.beginPath();
+                history.forEach((p, i) => {
+                    const x = p.bunching * w;
+                    const y = h - (p.power / maxPower) * (h-10);
+                    if (i === 0) chartCtx.moveTo(x, y);
+                    else chartCtx.lineTo(x, y);
+                });
+                chartCtx.stroke();
+            }
+
+            return {
+                update: (bunching, power) => {
+                    // Only add a new point if bunching changes significantly
+                    if(history.length === 0 || Math.abs(history[history.length-1].bunching - bunching) > 0.01) {
+                         history.push({ bunching, power });
+                         history.sort((a,b) => a.bunching - b.bunching);
+                    }
+                    draw();
+                },
+                reset: () => { history.length = 0; draw(); }
+            }
+        }
+
+        dom.nParticlesSlider.addEventListener('input', updateConfig);
+        dom.lambdaSlider.addEventListener('input', updateConfig);
+        dom.bunchingSlider.addEventListener('input', updateConfig);
+        dom.speedSlider.addEventListener('input', updateConfig);
+
+        powerChart = createPowerChart(dom.powerChartCanvas);
+        updateConfig();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>
