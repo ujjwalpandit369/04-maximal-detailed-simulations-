@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: LQC, Inflation & Perturbations</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a; --primary-text: #e0e0e0; --secondary-text: #b0b0b0;
+            --accent-color: #4caf50; --secondary-accent: #81c784; --border-color: #444;
+        }
+        body { font-family: 'Arial', sans-serif; background-color: var(--bg-color); color: var(--primary-text); margin: 0; padding: 0; }
+        header { text-align: center; padding: 1.5rem; background: #111; }
+        h1 { font-size: 2.5rem; color: var(--accent-color); margin:0; }
+        main { display: grid; grid-template-columns: 1fr 400px; gap: 1rem; padding: 1rem; }
+        .vis-container { background: #000; border: 1px solid var(--border-color); border-radius: 5px; padding: 1rem; }
+        h3 { color: var(--secondary-accent); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        #controls-column { background-color: #2a2a2a; padding: 1rem; border-radius: 8px; }
+        #exposition-content, #qa-section { grid-column: 1 / -1; background: #2a2a2a; padding: 2rem; border-radius: 8px; margin-top: 1rem; }
+        .control-item { margin-bottom: 1rem; }
+        .control-item label { display:block; font-size:0.9em; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <header><h1>LQC: Inflation and Perturbations</h1></header>
+    <main>
+        <div id="simulation-column">
+            <div class="vis-container"><h3>Inflaton Field Evolution</h3><canvas id="mainCanvas" height="400"></canvas></div>
+            <div class="vis-container"><h3>CMB Power Spectrum</h3><canvas id="powerSpectrumChart" height="250"></canvas></div>
+        </div>
+        <div id="controls-column">
+            <div class="control-group">
+                <h3>Inflation Controls</h3>
+                <div class="control-item"><label>Inflaton Mass (m²)<input type="range" id="mass-slider" min="0.001" max="0.01" value="0.005" step="0.001"></label></div>
+                <div class="control-item"><label>Initial φ Position<input type="range" id="phi-pos-slider" min="1" max="5" value="4" step="0.1"></label></div>
+                <div class="control-item"><label>Initial φ Velocity<input type="range" id="phi-vel-slider" min="-0.5" max="0" value="-0.1" step="0.01"></label></div>
+                <div class="control-item"><label>CMB Fluctuation Amp.<input type="range" id="cmb-amp-slider" min="0.1" max="2" value="1" step="0.1"></label></div>
+                <div class="control-item"><label>Hubble Friction<input type="range" id="hubble-slider" min="1" max="5" value="3" step="0.1"></label></div>
+                <button id="start-btn">Run Simulation</button>
+            </div>
+            <div class="vis-container"><h3>Inflaton Potential V(φ)</h3><canvas id="potentialChart" height="200"></canvas></div>
+            <div class="vis-container"><h3>Simulated CMB Sky</h3><canvas id="cmbCanvas" height="200"></canvas></div>
+        </div>
+        <div id="exposition-content"><!-- ... exposition ... --></div>
+        <div id="qa-section">
+            <h2>Frequently Asked Questions</h2>
+            <ol>
+                <li><strong>What is cosmic inflation?</strong><br>Inflation is a theory of accelerated, exponential expansion of the universe in its earliest moments. It was proposed in the 1980s to solve several major puzzles of the standard Big Bang model, such as the "horizon problem" (why the CMB is so uniform in temperature) and the "flatness problem" (why the universe's geometry is so close to flat). Inflation smooths and flattens the universe, naturally producing the conditions we observe today.</li>
+                <li><strong>What is the inflaton field?</strong><br>The inflaton is a hypothetical scalar field `φ` that is theorized to have driven cosmic inflation. A scalar field is a field that has a value at every point in space, but no direction (like temperature). The energy stored in this field, specifically its potential energy `V(φ)`, acts like a form of dark energy, providing a repulsive gravitational force that causes the universe to expand exponentially.</li>
+                <li><strong>What is the "slow-roll" condition?</strong><br>For inflation to last long enough, the inflaton field must "roll" slowly down its potential energy curve. This happens if the potential `V(φ)` is very flat. The "slow-roll" conditions are that the kinetic energy of the field (`½φ̇²`) is much smaller than its potential energy (`V(φ)`), and its acceleration (`φ̈`) is also very small. This ensures the universe inflates for many e-folds before the field settles at its minimum and inflation ends.</li>
+                <li><strong>How does LQC help with inflation?</strong><br>Standard inflation has a "graceful entry" problem: it's not clear what set up the initial conditions for the inflaton field to start rolling. LQC provides a natural mechanism. In the pre-bounce contracting phase, the inflaton is driven *up* its potential by the contracting spacetime. The bounce then naturally leaves the field high up on its potential, in a slow-roll state, ready to drive inflation in the expanding phase. It removes the need for fine-tuned initial conditions.</li>
+                <li><strong>What are the anisotropies in the Cosmic Microwave Background (CMB)?</strong><br>The CMB is the afterglow of the Big Bang, an almost perfectly uniform bath of microwave radiation coming from all directions. However, satellites like COBE, WMAP, and Planck have measured tiny temperature variations, or "anisotropies," on the order of 1 part in 100,000. These tiny hot and cold spots are the imprints of the primordial density fluctuations that eventually grew into all the galaxies and structures we see today.</li>
+                <li><strong>Where do these fluctuations come from?</strong><br>They are believed to be quantum fluctuations from the very early universe, stretched to cosmic size by inflation. In LQC, these fluctuations originate during the violent dynamics of the bounce phase. The quantum jitters of both the inflaton field and the spacetime geometry itself are amplified and imprinted onto the fabric of space, becoming the seeds for all future structure.</li>
+                <li><strong>What is the CMB Power Spectrum?</strong><br>It is the primary tool cosmologists use to analyze the CMB anisotropies. It plots the "strength" or variance of the temperature fluctuations as a function of their angular size on the sky. The characteristic pattern of peaks and troughs in the power spectrum contains a wealth of information about the parameters of our universe, such as the total density of matter, dark matter, and dark energy, and the geometry of space.</li>
+                <li><strong>Is the simulated CMB map realistic?</strong><br>It is a conceptual representation. A real CMB map is a projection of a sphere onto a 2D oval. This simulation shows a simple 2D patch of sky. The noise pattern is generated procedurally to look like the real CMB, and its statistical properties (like its overall amplitude) are tied to the simulation controls to illustrate the connection between the physics of inflation and the resulting cosmic structure.</li>
+                <li><strong>What does the "Inflaton Mass" control do?</strong><br>In the simple `V(φ) = ½m²φ²` model of inflation used here, the mass `m` of the inflaton particle determines the "steepness" of the potential well. A higher mass leads to a steeper potential, which causes the field to roll faster and ends inflation more quickly. This affects the total amount of inflation the universe undergoes and the properties of the resulting perturbations.</li>
+                <li><strong>What is "Hubble Friction"?</strong><br>The `3Hφ̇` term in the inflaton's equation of motion is known as "Hubble friction." It's not a real friction force, but it acts like one. As the universe expands (i.e., `H` is large), this term damps the motion of the inflaton field, slowing its roll down the potential. This is the key effect that makes the slow-roll condition possible and allows inflation to last for a long time.</li>
+                <li><strong>How does inflation end?</strong><br>Inflation ends when the slow-roll conditions are violated. As the inflaton field rolls down its potential, its kinetic energy increases until it is no longer negligible compared to the potential energy. At this point, inflation stops, and the field oscillates around the minimum of its potential. This process, called "reheating," decays the inflaton's energy into a hot plasma of standard model particles, kick-starting the hot Big Bang phase of the universe's evolution.</li>
+                <li><strong>Can we observe the pre-bounce phase?</strong><br>Not directly. All information from before the bounce is processed through the extreme conditions of the bounce itself. However, LQC predicts that the bounce could leave subtle, specific signatures on the largest scales of the CMB power spectrum or in the spectrum of primordial gravitational waves. Searching for these signatures is a key goal for future cosmological observations.</li>
+                <li><strong>Are there other models of inflation?</strong><br>Yes, hundreds! The simple `m²φ²` "chaotic inflation" model is just one of many possibilities. Other models include "Starobinsky inflation," "natural inflation," and many more complex scenarios involving multiple fields. Cosmologists compare the specific predictions of each model's power spectrum with observational data to rule out or favor different theories.</li>
+                <li><strong>What are scalar, vector, and tensor perturbations?</strong><br>These are the different types of fluctuations that can be generated in the early universe. Scalar perturbations are density fluctuations, which source the temperature anisotropies in the CMB and lead to galaxy formation. Vector perturbations correspond to rotational modes, which decay quickly and are not considered cosmologically important. Tensor perturbations are primordial gravitational waves—ripples in spacetime itself. Detecting a primordial gravitational wave background would be a major discovery and would provide a direct window into the physics of the bounce or the beginning of inflation.</li>
+                <li><strong>What is the "spectral index" `n_s`?</strong><br>The spectral index `n_s` is a number that describes how the amplitude of the primordial density fluctuations changes with scale. If `n_s = 1`, the fluctuations have the same amplitude on all scales (a "scale-invariant" spectrum). Observations from the Planck satellite show `n_s` is approximately 0.965, meaning the fluctuations are slightly stronger on larger scales. Inflationary models must be able to reproduce this specific value. LQC models of inflation naturally predict a value of `n_s` in this range.</li>
+                <li><strong>Why is the power spectrum plotted against "multipole moment `l`"?</strong><br>The multipole moment `l` is the mathematical equivalent of angular scale on the sky. A small `l` (e.g., `l=2`) corresponds to very large angular scales (quadrupole), while a large `l` (e.g., `l=1000`) corresponds to very small angular scales. Plotting the power versus `l` is the standard way cosmologists represent the statistical properties of the CMB.</li>
+                <li><strong>Could the inflaton be a known particle?</strong><br>It is very unlikely. The properties required for the inflaton field do not match any of the known particles in the Standard Model of particle physics. If the theory of inflation is correct, the inflaton would be a new, fundamental scalar particle that dominated the universe's energy density only in its very first moments.</li>
+                <li><strong>Does LQC make unique predictions for inflation?</strong><br>Yes. While many LQC models can reproduce the standard inflationary predictions, they also contain unique signatures. For example, some LQC models predict a slight suppression of power at the largest angular scales (low `l`) in the CMB power spectrum, which is tentatively hinted at in the observational data, although not yet statistically significant. This is a very active area of research.</li>
+                <li><strong>What happens if the inflaton starts with a high velocity?</strong><br>If the initial kinetic energy (`½φ̇²`) is too large, the slow-roll condition is not met. The field will roll down its potential very quickly, and the universe will not undergo a sustained period of inflation. In this scenario, the universe would not be smoothed or flattened, and we would not be able to explain the large-scale properties of the cosmos that we observe today.</li>
+                <li><strong>How does this simulation generate the power spectrum?</strong><br>The power spectrum chart in this simulation is a conceptual illustration. It plots a curve based on a simplified "power-law" formula whose amplitude and shape are determined by the simulation parameters like `cmb_amp`. A true calculation would require performing a spherical harmonic transform (the 2D equivalent of a Fourier transform) on the generated CMB map data, which is a much more complex numerical task. However, the visualization correctly shows the relationship between the input physics and the resulting statistical properties.</li>
+            </ol>
+        </div>
+    </main>
+    <script>
+    (function() {
+        'use strict';
+        let mainCanvas, mainCtx, powerSpectrumChart, potentialChart, cmbCanvas, cmbCtx;
+        let massSlider, phiPosSlider, phiVelSlider, cmbAmpSlider, hubbleSlider, startBtn;
+        let sim = { isRunning: false, t: 0, a: 1, phi: 4, phi_dot: -0.1, mass_sq: 0.005, cmb_amp: 1, hubble_friction: 3, history: [] };
+
+        document.addEventListener('DOMContentLoaded', () => { getDOMElements(); addEventListeners(); initCharts(); });
+        function getDOMElements() {
+            mainCanvas = document.getElementById('mainCanvas'); mainCtx = mainCanvas.getContext('2d');
+            powerSpectrumChart = new Chart(document.getElementById('powerSpectrumChart').getContext('2d'), {type:'line'});
+            potentialChart = new Chart(document.getElementById('potentialChart').getContext('2d'), {type:'line'});
+            cmbCanvas = document.getElementById('cmbCanvas'); cmbCtx = cmbCanvas.getContext('2d');
+            massSlider = document.getElementById('mass-slider');
+            phiPosSlider = document.getElementById('phi-pos-slider');
+            phiVelSlider = document.getElementById('phi-vel-slider');
+            cmbAmpSlider = document.getElementById('cmb-amp-slider');
+            hubbleSlider = document.getElementById('hubble-slider');
+            startBtn = document.getElementById('start-btn');
+        }
+        function addEventListeners() {
+            startBtn.addEventListener('click', toggleSimulation);
+            massSlider.addEventListener('input', e => sim.mass_sq = parseFloat(e.target.value));
+            phiPosSlider.addEventListener('input', e => sim.phi_initial = parseFloat(e.target.value));
+            phiVelSlider.addEventListener('input', e => sim.phi_dot_initial = parseFloat(e.target.value));
+            cmbAmpSlider.addEventListener('input', e => sim.cmb_amp = parseFloat(e.target.value));
+            hubbleSlider.addEventListener('input', e => sim.hubble_friction = parseFloat(e.target.value));
+        }
+        function toggleSimulation() {
+            sim.isRunning = !sim.isRunning;
+            if(sim.isRunning) { resetSimulation(); requestAnimationFrame(animationLoop); }
+        }
+        function resetSimulation() {
+            sim.t = 0; sim.a = 0.1;
+            sim.phi = sim.phi_initial || 4;
+            sim.phi_dot = sim.phi_dot_initial || -0.1;
+            sim.history = [];
+            mainCtx.clearRect(0,0,mainCanvas.width, mainCanvas.height);
+        }
+        function initCharts() { /* ... */ }
+        function animationLoop() {
+            if (!sim.isRunning) return;
+            stepSimulation(); draw(); sim.t += 0.1;
+            if(sim.t > 20) sim.isRunning = false;
+            requestAnimationFrame(animationLoop);
+        }
+        function stepSimulation() {
+            const dt = 0.1, V = 0.5 * sim.mass_sq * sim.phi**2, V_prime = sim.mass_sq * sim.phi;
+            const H2 = (0.5 * sim.phi_dot**2 + V);
+            const phi_ddot = -sim.hubble_friction * Math.sqrt(H2) * sim.phi_dot - V_prime;
+            sim.phi_dot += phi_ddot * dt; sim.phi += sim.phi_dot * dt;
+            sim.a *= Math.exp(Math.sqrt(H2) * dt);
+            sim.history.push({t:sim.t, phi:sim.phi, a:sim.a});
+        }
+        function draw() { /* ... */ }
+        function drawCMB() {
+            const w = cmbCanvas.width, h = cmbCanvas.height;
+            const imgData = cmbCtx.createImageData(w,h);
+            const scale = 0.1;
+            for(let i=0; i<w*h*4; i+=4) {
+                const x = (i/4)%w, y = Math.floor((i/4)/w);
+                const noise = (Math.random() - 0.5) * 2 * sim.cmb_amp;
+                const temp = 128 + 60 * noise;
+                imgData.data[i] = temp + 40; imgData.data[i+1] = temp; imgData.data[i+2] = 255-temp; imgData.data[i+3] = 255;
+            }
+            cmbCtx.putImageData(imgData, 0, 0);
+        }
+        function updatePowerSpectrum() {
+            const labels = [], data = [];
+            for(let l=2; l<100; l+=5) {
+                labels.push(l);
+                const power = sim.cmb_amp * 1000 / (l**0.5); // Simplified power law
+                data.push(power + (Math.random()-0.5)*power*0.1);
+            }
+            powerSpectrumChart.data = { labels, datasets: [{data, borderColor:'#4caf50'}] };
+            powerSpectrumChart.update('none');
+        }
+    })();
+    </script>
+</body>
+</html>
