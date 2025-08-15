@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Magnetized Liner Inertial Fusion (MagLIF)</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #40e0d0; /* Turquoise */
+            --secondary-color: #ff69b4; /* HotPink */
+            --accent-color: #ffff00; /* Yellow */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .chart-container { width: 100%; height: 200px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 10px; border-radius: 8px; border-left: 5px solid var(--secondary-color); text-align: center; }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 0.9em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 1.5em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+        .metric-card .unit { font-size: 0.5em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Magnetized Liner Inertial Fusion (MagLIF)</h1>
+            <p class="subtitle">Squeezing a Magnetized Plasma with a Billion Amperes</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <h2>Fuel State at Stagnation</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+
+                <div class="chart-container" id="temp-chart"></div>
+                <div class="chart-container" id="density-chart"></div>
+                <div class="chart-container" id="bfield-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Magnetized Liner Inertial Fusion, or MagLIF, is a powerful approach to achieving nuclear fusion that combines brute force with a clever magnetic trick. Imagine a hollow metal can, the "liner," filled with a thin, magnetized hydrogen fuel. To start the process, an immense electrical current—greater than all the world's lightning striking at once—is driven through the can. This current generates a colossal magnetic field outside the can that crushes it inwards at incredible speeds. This implosion acts like a giant piston, squeezing the fuel inside. As the fuel is compressed, it gets hotter and denser. The crucial trick is the "seed" magnetic field that was already inside the fuel. As the fuel is squeezed, this magnetic field is also squeezed, becoming immensely powerful. This powerful internal field acts like a magnetic thermos, trapping the heat and preventing the hot fuel from escaping. This combination of raw compression and magnetic insulation allows the fuel to reach the extreme temperatures and densities needed for fusion reactions to begin.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The main window shows a 2D cross-section of the cylindrical MagLIF target.
+                            <ul>
+                                <li>The thick gray ring is the **Liner**.</li>
+                                <li>The inner area is the **Fuel**. Its color represents temperature (blue is cool, yellow/white is hot).</li>
+                                <li>The lines inside the fuel represent the **Magnetic Field**. More lines mean a stronger field.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Starting the Simulation:</strong> Press **"Start Implosion"**. You will see the liner rush inwards, compressing the fuel.</li>
+                        <li><strong>What to Watch:</strong>
+                            <ul>
+                                <li>As the liner implodes, watch the fuel region. It will get smaller, its color will shift from blue to bright yellow, and the magnetic field lines will become densely packed.</li>
+                                <li>The implosion will "bounce" at the point of maximum compression, which is called **stagnation**. This is when the fusion conditions are met.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Controls:</strong>
+                            <ul>
+                                <li><strong>Implosion Velocity:</strong> Controls how fast the liner is crushed. A faster implosion leads to higher temperatures.</li>
+                                <li><strong>Initial B-Field:</strong> Sets the strength of the "seed" magnetic field. A higher initial field results in a much stronger field at stagnation, which is better for insulation.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Charts and Metrics:</strong> The three charts at the bottom plot the Temperature, Density, and Magnetic Field of the fuel over time. You will see all three quantities rise slowly at first and then shoot up dramatically as the liner approaches the center, peaking at stagnation. The metrics above the charts show the final values achieved.</li>
+                    </ol>
+
+                    <h2>Core Theory of MagLIF</h2>
+                    <h4>A Magneto-Inertial Approach</h4>
+                    <p>MagLIF is a prime example of Magneto-Inertial Fusion (MIF), a hybrid approach that sits between traditional ICF and Magnetic Confinement Fusion (MCF).
+                    <ul>
+                        <li>Like ICF, it uses a rapid, powerful implosion ("inertia") to do `PdV` work on the fuel, heating and compressing it.</li>
+                        <li>Like MCF, it uses a magnetic field to insulate the plasma and trap the charged fusion products (alpha particles), reducing energy loss and helping to sustain the reaction.</li>
+                    </ul>
+                    This hybrid approach aims to achieve fusion with less stringent requirements on implosion velocity and pressure than pure ICF.</p>
+
+                    <h4>The Three Stages of MagLIF</h4>
+                    <p>A MagLIF experiment, as performed at facilities like Sandia National Laboratories' Z Machine, proceeds in three steps:
+                    <ol>
+                        <li><strong>Magnetization:</strong> An external coil generates a ~10-30 Tesla axial magnetic field that soaks into the deuterium fuel gas inside the beryllium liner. This is the crucial seed field.</li>
+                        <li><strong>Pre-heating:</strong> A separate laser beam fires down the axis of the cylinder, heating the fuel to a few hundred electronvolts (~1-5 million °C). This pre-heating puts the fuel on a better "adiabat," meaning it will reach higher temperatures for a given amount of compression.</li>
+                        <li><strong>Implosion:</strong> A massive current (~20 million Amperes) is driven axially through the liner. This current generates a powerful azimuthal magnetic field outside the liner. The resulting `J x B` Lorentz force is directed radially inwards, crushing the liner at speeds of ~100 km/s. This is a form of Z-pinch.</li>
+                    </ol>
+                    This simulation focuses on the third stage, visualizing the consequences of the implosion.</p>
+
+                    <h4>Physics of Compression</h4>
+                    <p>As the liner implodes, the fuel inside is compressed. The key physical processes are:
+                    <ul>
+                        <li><strong>Adiabatic Compression:</strong> The imploding liner does `PdV` work on the fuel. For a simple adiabatic process, the temperature scales with volume as <code>T ∝ V<sup>1-γ</sup></code>. For a cylinder, `V ∝ r²`, and for a monatomic gas, `γ=5/3`. This leads to <code>T ∝ (r²)<sup>-2/3</sup> = r<sup>-4/3</sup></code>. The temperature rises sharply as the radius `r` shrinks.</li>
+                        <li><strong>Magnetic Flux Compression:</strong> The seed magnetic field is "frozen" into the conductive plasma. Magnetic flux, `Φ = B⋅A`, is approximately conserved. As the area `A` of the cylinder shrinks (<code>A ∝ r²</code>), the magnetic field strength must increase to compensate: <code>B ∝ 1/A ∝ 1/r²</code>. A modest seed field of 10 T can be compressed to over 10,000 T, a field strength otherwise unattainable in a lab.</li>
+                        <li><strong>Magnetic Insulation:</strong> This ultra-strong compressed field is the key to MagLIF's success. It dramatically reduces thermal conduction losses from the hot fuel to the cold liner walls. The thermal conductivity of a magnetized plasma is suppressed by a factor of `(ω<sub>ce</sub>τ<sub>ei</sub>)²`, where `ω<sub>ce</sub>` is the electron cyclotron frequency (proportional to B). This factor can be very large, effectively acting as a magnetic thermos. The B-field also helps trap the energetic alpha particles produced by fusion, allowing them to deposit their energy and further heat the fuel.</li>
+                    </ul>
+                    At stagnation, the inward kinetic energy of the liner is converted into thermal energy of the fuel, and the plasma reaches fusion-relevant conditions (T > 8 keV, ρ ~ 0.1-1 g/cm³).
+                    </p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Start Implosion</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Implosion Velocity (km/s) <span class="value-display" id="vel-value">100</span></label>
+                        <input type="range" id="vel-slider" min="50" max="200" step="5" value="100">
+                    </div>
+                    <div class="control">
+                        <label>Initial B-Field (T) <span class="value-display" id="bfield-value">15</span></label>
+                        <input type="range" id="bfield-slider" min="1" max="50" step="1" value="15">
+                    </div>
+                    <div class="control">
+                        <label>Initial Fuel Density (mg/cc) <span class="value-display" id="density-value">1.0</span></label>
+                        <input type="range" id="density-slider" min="0.1" max="5.0" step="0.1" value="1.0">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            tempChartCanvas: document.getElementById('temp-chart'),
+            densityChartCanvas: document.getElementById('density-chart'),
+            bfieldChartCanvas: document.getElementById('bfield-chart'),
+            startBtn: document.getElementById('start-button'),
+            velSlider: document.getElementById('vel-slider'), velValue: document.getElementById('vel-value'),
+            bfieldSlider: document.getElementById('bfield-slider'), bfieldValue: document.getElementById('bfield-value'),
+            densitySlider: document.getElementById('density-slider'), densityValue: document.getElementById('density-value'),
+        };
+
+        const state = {
+            isRunning: false, time: 0,
+            liner_r: 0, liner_v: 0,
+            fuel_T: 0, fuel_rho: 0, fuel_B: 0,
+            history: { time: [], temp: [], rho: [], B: [] },
+            config: {}
+        };
+
+        let charts = {};
+
+        function updateConfig() {
+            state.config.velocity = parseFloat(dom.velSlider.value) * 1000; // m/s
+            state.config.b_initial = parseFloat(dom.bfieldSlider.value); // T
+            state.config.rho_initial = parseFloat(dom.densitySlider.value); // mg/cc
+
+            dom.velValue.textContent = (state.config.velocity/1000).toFixed(0);
+            dom.bfieldValue.textContent = state.config.b_initial.toFixed(0);
+            dom.densityValue.textContent = state.config.rho_initial.toFixed(1);
+        }
+
+        function reset() {
+            updateConfig();
+            state.isRunning = false; state.time = 0;
+            state.liner_r0 = 2.5e-3; // 2.5mm initial radius
+            state.liner_r = state.liner_r0;
+            state.liner_v = -state.config.velocity;
+
+            state.fuel_T0 = 200 * 1.16e7; // 200 eV initial temp in K
+            state.fuel_T = state.fuel_T0;
+            state.fuel_rho = state.config.rho_initial;
+            state.fuel_B = state.config.b_initial;
+
+            state.history = { time: [], temp: [], rho: [], B: [] };
+            Object.values(charts).forEach(c => c.reset());
+        }
+
+        function start() { if(!state.isRunning) { reset(); state.isRunning = true; } }
+
+        function update() {
+            if (!state.isRunning) return;
+
+            const dt = 1e-9; // 1 ns timestep
+            state.time += dt;
+
+            const r_old = state.liner_r;
+            state.liner_r += state.liner_v * dt;
+
+            if (state.liner_r < state.liner_r0 / 30) { // Stagnation and bounce
+                state.liner_v *= -0.3;
+            }
+
+            const convergence = (r_old / state.liner_r);
+
+            // Adiabatic compression T ~ V^(1-gamma) ~ (r^2)^(-2/3) ~ r^(-4/3)
+            state.fuel_T = state.fuel_T0 * Math.pow(state.liner_r0 / state.liner_r, 4/3);
+            // Density rho ~ 1/V ~ 1/r^2
+            state.fuel_rho = state.config.rho_initial * Math.pow(state.liner_r0 / state.liner_r, 2);
+            // Flux compression B ~ 1/A ~ 1/r^2
+            state.fuel_B = state.config.b_initial * Math.pow(state.liner_r0 / state.liner_r, 2);
+
+            // Stop after bounce
+            if (state.liner_v > 0 && state.liner_r > state.liner_r0 / 25) {
+                state.isRunning = false;
+                updateMetrics();
+            }
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            const ctx = dom.canvas.getContext('2d');
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+            ctx.save();
+            ctx.translate(w/2, h/2);
+
+            const r_pixel = state.liner_r / state.liner_r0 * (w/2 - 10);
+
+            // Fuel temperature
+            const temp_norm = Math.min(state.fuel_T / (2e3 * 1.16e7), 1.0); // Normalize to 2 keV
+            const hue = 240 - temp_norm * 240; // Blue to Red
+            ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+            ctx.beginPath(); ctx.arc(0, 0, r_pixel, 0, 2*Math.PI); ctx.fill();
+
+            // Magnetic field lines
+            const num_lines = Math.floor(5 + state.fuel_B / 100);
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            for(let i=0; i<num_lines; i++) {
+                const r = (i+1)/(num_lines+1) * r_pixel;
+                ctx.beginPath(); ctx.arc(0,0,r,0,2*Math.PI); ctx.stroke();
+            }
+
+            // Liner
+            ctx.strokeStyle = '#aaa'; ctx.lineWidth = 20;
+            ctx.beginPath(); ctx.arc(0,0,r_pixel + 10, 0, 2*Math.PI); ctx.stroke();
+
+            ctx.restore();
+
+            if (state.isRunning) updateCharts();
+        }
+
+        function updateMetrics() {
+            dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>Temperature</h4><p>${(state.fuel_T/1.16e7/1000).toFixed(2)}<span class="unit"> keV</span></p></div>
+                <div class="metric-card"><h4>Density</h4><p>${state.fuel_rho.toFixed(2)}<span class="unit"> g/cc</span></p></div>
+                <div class="metric-card"><h4>B-Field</h4><p>${(state.fuel_B/1000).toFixed(1)}<span class="unit"> kT</span></p></div>
+                <div class="metric-card"><h4>Convergence</h4><p>${(state.liner_r0/state.liner_r).toFixed(1)}<span class="unit">x</span></p></div>
+            `;
+        }
+
+        function updateCharts() {
+            state.history.time.push(state.time * 1e9); // ns
+            state.history.temp.push(state.fuel_T/1.16e7/1000); // keV
+            state.history.rho.push(state.fuel_rho);
+            state.history.B.push(state.fuel_B);
+
+            charts.temp.update(state.history.time, state.history.temp);
+            charts.rho.update(state.history.time, state.history.rho);
+            charts.B.update(state.history.time, state.history.B);
+        }
+
+        function createChart(canvas, label, color) {
+            const chartCtx = canvas.getContext('2d');
+            let x_data = [], y_data = [];
+            function draw() {
+                const w = canvas.width; const h = canvas.height;
+                chartCtx.clearRect(0,0,w,h); chartCtx.fillStyle = '#111'; chartCtx.fillRect(0,0,w,h);
+                chartCtx.fillStyle = 'white'; chartCtx.fillText(label, 10, 20);
+                if (x_data.length < 2) return;
+                const max_y = Math.max(...y_data, 1);
+                chartCtx.strokeStyle = color; chartCtx.lineWidth = 2; chartCtx.beginPath();
+                for(let i=0; i<x_data.length; i++) {
+                    const x = x_data[i] / x_data[x_data.length-1] * w;
+                    const y = h - (y_data[i] / max_y) * (h-20);
+                    if (i === 0) chartCtx.moveTo(x,y); else chartCtx.lineTo(x,y);
+                }
+                chartCtx.stroke();
+            }
+            return {
+                update: (newX, newY) => { x_data = newX; y_data = newY; draw(); },
+                reset: () => { x_data = []; y_data = []; draw(); }
+            }
+        }
+
+        function animationLoop() {
+            if(state.isRunning) {
+                 for(let i=0; i<10; i++) update(); // 10 steps per frame
+            }
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.startBtn.addEventListener('click', start);
+        [dom.velSlider, dom.bfieldSlider, dom.densitySlider].forEach(s => s.addEventListener('input', updateConfig));
+
+        charts.temp = createChart(dom.tempChartCanvas, 'Temperature (keV)', '#ff69b4');
+        charts.rho = createChart(dom.densityChartCanvas, 'Density (g/cc)', '#40e0d0');
+        charts.B = createChart(dom.bfieldChartCanvas, 'B-Field (T)', '#ffff00');
+        updateConfig();
+        reset();
+        draw();
+        updateMetrics();
+    })();
+    </script>
+</body>
+</html>

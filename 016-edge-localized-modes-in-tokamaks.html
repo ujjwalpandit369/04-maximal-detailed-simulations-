@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Edge-Localized Modes (ELMs) in Tokamaks</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #3cb371; /* MediumSeaGreen */
+            --secondary-color: #db7093; /* PaleVioletRed */
+            --accent-color: #ffa500; /* Orange */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .chart-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            height: 350px;
+            padding: 10px;
+        }
+        #pedestal-chart { height: 400px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); text-align: center; }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 1.8em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+        .metric-card .unit { font-size: 0.5em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Edge-Localized Modes (ELMs) in Tokamaks</h1>
+            <p class="subtitle">The Cyclical "Burps" of a High-Performance Fusion Plasma</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="chart-container" id="pedestal-chart">
+                    <canvas id="profile-canvas"></canvas>
+                </div>
+
+                <div class="chart-container" id="elm-history-chart">
+                     <canvas id="history-canvas"></canvas>
+                </div>
+
+                <h2>ELM Properties</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>In the quest for fusion energy, scientists discovered a high-performance state for tokamak plasmas called "H-mode" (high-confinement mode). In H-mode, a mysterious "transport barrier" forms at the edge of the plasma, acting like a dam that dramatically improves heat insulation and boosts performance. This barrier creates a steep cliff in the pressure profile, known as a "pedestal." However, this high-performance mode has a side effect. The pressure at the edge builds up and up until it violently breaks through the barrier in a periodic, explosive event called an Edge-Localized Mode, or ELM. An ELM is like a small solar flare that ejects a burst of hot plasma towards the machine walls. These bursts can be powerful enough to damage components in future large-scale reactors like ITER. This simulation visualizes the cyclical nature of ELMs. You can see the pressure pedestal at the plasma edge build up, reach a stability limit, and then crash, releasing energy before the cycle begins anew.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View (Pressure Profile):</strong> The top chart shows the plasma pressure as a function of radius near the edge of the tokamak. The "pedestal" is the region with the steep cliff-like gradient. The dotted red line represents the **stability limit**—if the pressure gradient gets steeper than this line, an ELM will occur.</li>
+                        <li><strong>The ELM Cycle:</strong>
+                            <ol>
+                                <li>Press **"Start"**. You will see the pressure profile slowly get steeper as the plasma is heated.</li>
+                                <li>The pedestal "grows" in height and width.</li>
+                                <li>When the profile touches the red stability limit... CRASH! An ELM is triggered.</li>
+                                <li>The pressure profile collapses rapidly, representing the ejection of energy and particles.</li>
+                                <li>The process then repeats, with the pedestal starting to build again.</li>
+                            </ol>
+                        </li>
+                        <li><strong>The History Chart:</strong> The bottom chart shows the history of the stored energy in the pedestal. It shows a characteristic "sawtooth" wave: a slow rise during the heating phase, followed by a sharp drop during the ELM crash.</li>
+                        <li><strong>Controls:</strong>
+                            <ul>
+                                <li><strong>Heating Power:</strong> Controls how fast the pedestal builds up. Higher power leads to more frequent ELMs.</li>
+                                <li><strong>Stability Limit:</strong> Controls how steep the pressure gradient can get before an ELM is triggered. A higher limit allows for a larger pedestal and better performance, but results in larger, more dangerous ELMs when they occur.</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h2>Core Theory of ELMs and the H-mode Pedestal</h2>
+                    <h4>The H-mode and the Edge Transport Barrier</h4>
+                    <p>In the 1980s, it was discovered that under certain conditions, a tokamak plasma can spontaneously transition from a standard "L-mode" (low-confinement) to a superior "H-mode" (high-confinement). In H-mode, turbulence at the plasma edge is suppressed, creating an **Edge Transport Barrier (ETB)**. This barrier acts like thermal insulation, dramatically reducing the rate at which heat and particles leak out of the core plasma. The result is a significant increase in the overall plasma pressure and temperature for the same amount of heating power.</p>
+                    <p>The signature of an H-mode plasma is the formation of a "pedestal" in the pressure profile: a narrow region at the edge with a very steep pressure gradient, connecting the hot plasma core to the much cooler region outside.</p>
+
+                    <h4>The Peeling-Ballooning Model of ELMs</h4>
+                    <p>While the H-mode pedestal is beneficial for performance, the steep pressure gradient (`∇p`) and the associated edge current density (`J_edge`) can drive powerful magnetohydrodynamic (MHD) instabilities. The leading theory for large "Type-I" ELMs is the **peeling-ballooning model**.</p>
+                    <p>This model identifies two main drivers for the instability:
+                    <ol>
+                        <li><strong>The Pressure Gradient (∇p):</strong> A steep pressure gradient drives a "ballooning" instability. This mode "balloons" outwards on the low-field (outer) side of the tokamak, where the magnetic field is weaker and provides less support.</li>
+                        <li><strong>The Edge Current (J_edge):</strong> The steep pressure gradient also drives a "bootstrap" current that flows at the edge. This current drives a "peeling" or current-driven kink instability, which is similar to the kink instability in a Z-pinch.</li>
+                    </ol>
+                    These two instabilities are coupled. The stability of the edge depends on the values of both `∇p` and `J_edge`. There is a boundary in the (J, ∇p) space beyond which the plasma is unstable. As the pedestal builds up during H-mode, its operating point moves towards this boundary. When it hits the boundary, an ELM is triggered, the instability grows rapidly, destroys the transport barrier, and ejects a large amount of plasma and energy. This reduces the pressure and current, moving the operating point back into the stable region, and the cycle begins again.</p>
+
+                    <h4>ELM Control and Mitigation</h4>
+                    <p>For a large, future reactor like ITER, large Type-I ELMs are predicted to release enough energy to erode the plasma-facing components of the machine, particularly the divertor plates where the ejected plasma is guided. This makes ELM control a critical area of research.
+                    <ul>
+                        <li><strong>ELM Pacing:</strong> One strategy is to intentionally trigger small, frequent ELMs so that the pressure never builds up enough to cause a large, damaging one. This can be done by injecting small pellets of frozen fuel or by applying small magnetic field pulses.</li>
+                        <li><strong>ELM Suppression:</strong> A more advanced technique involves applying a precisely tailored, weak, non-axisymmetric magnetic field from external coils. This **Resonant Magnetic Perturbation (RMP)** can break the perfect symmetry of the tokamak's magnetic field, increasing transport at the edge just enough to prevent the pressure gradient from reaching the instability threshold, thereby suppressing ELMs entirely.</li>
+                    </ul>
+                    This simulation's "Heating Power" and "Stability Limit" controls allow you to explore the trade-offs involved. High heating power and a high stability limit lead to a high-performance pedestal, but also large and potentially damaging ELM crashes, as seen in the sawtooth amplitude on the history chart.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="start-button">Start</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Heating Power <span class="value-display" id="heating-value">1.0</span></label>
+                        <input type="range" id="heating-slider" min="0.1" max="5.0" step="0.1" value="1.0">
+                    </div>
+                    <div class="control">
+                        <label>Stability Limit (∇p) <span class="value-display" id="limit-value">10.0</span></label>
+                        <input type="range" id="limit-slider" min="2" max="20" step="0.5" value="10.0">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            profileCanvas: document.getElementById('profile-canvas'),
+            historyCanvas: document.getElementById('history-canvas'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            startBtn: document.getElementById('start-button'),
+            heatingSlider: document.getElementById('heating-slider'), heatingValue: document.getElementById('heating-value'),
+            limitSlider: document.getElementById('limit-slider'), limitValue: document.getElementById('limit-value'),
+        };
+
+        const GRID_SIZE = 256;
+        const state = {
+            isRunning: false, time: 0,
+            pressureProfile: new Float32Array(GRID_SIZE),
+            config: { heating: 1.0, limit: 10.0 },
+            history: { time: [], stored_energy: [] },
+            lastElmTime: 0,
+        };
+
+        const profileCtx = dom.profileCanvas.getContext('2d');
+        const historyCtx = dom.historyCanvas.getContext('2d');
+
+        function updateConfig() {
+            state.config.heating = parseFloat(dom.heatingSlider.value);
+            state.config.limit = parseFloat(dom.limitSlider.value);
+            dom.heatingValue.textContent = state.config.heating.toFixed(1);
+            dom.limitValue.textContent = state.config.limit.toFixed(1);
+        }
+
+        function reset() {
+            state.time = 0; state.lastElmTime = 0;
+            state.pressureProfile.fill(0);
+            state.history = { time: [], stored_energy: [] };
+        }
+        function start() { if(!state.isRunning) { reset(); state.isRunning = true; } }
+
+        function update() {
+            if (!state.isRunning) return;
+            state.time++;
+
+            // 1. Heating and Diffusion Model
+            for(let i=1; i<GRID_SIZE-1; i++) {
+                // Simple diffusion
+                const diffusion = (state.pressureProfile[i-1] + state.pressureProfile[i+1] - 2*state.pressureProfile[i]) * 0.1;
+                // Heating in the pedestal region
+                const r = i / GRID_SIZE;
+                const heating_term = (r > 0.8 && r < 0.95) ? state.config.heating * 0.001 : 0;
+                state.pressureProfile[i] += diffusion + heating_term;
+            }
+            // Boundary conditions
+            state.pressureProfile[0] = state.pressureProfile[1];
+            state.pressureProfile[GRID_SIZE-1] = 0;
+
+            // 2. Check for ELM crash
+            let max_gradient = 0;
+            for(let i=1; i<GRID_SIZE; i++) {
+                const grad = state.pressureProfile[i-1] - state.pressureProfile[i];
+                if (grad > max_gradient) max_gradient = grad;
+            }
+
+            if (max_gradient > state.config.limit) {
+                // ELM crash: flatten the profile
+                for(let i=Math.floor(GRID_SIZE*0.7); i<GRID_SIZE; i++) {
+                    state.pressureProfile[i] *= 0.2; // Lose 80% of pressure
+                }
+                updateMetrics(true); // isELM = true
+            }
+        }
+
+        function draw() {
+            // Draw profile chart
+            const w = dom.profileCanvas.width; const h = dom.profileCanvas.height;
+            profileCtx.fillStyle = '#000'; profileCtx.fillRect(0,0,w,h);
+
+            const max_p = Math.max(...state.pressureProfile, 1);
+            profileCtx.strokeStyle = '#3cb371'; profileCtx.lineWidth = 3; profileCtx.beginPath();
+            for(let i=0; i<GRID_SIZE; i++) {
+                const x = i/GRID_SIZE * w;
+                const y = h - (state.pressureProfile[i] / max_p) * (h-10);
+                if(i===0) profileCtx.moveTo(x,y); else profileCtx.lineTo(x,y);
+            }
+            profileCtx.stroke();
+
+            // Draw stability limit line
+            const grad_y = h - (state.config.limit / max_p) * (h-10) * 10; // arbitrary scaling
+            profileCtx.strokeStyle = 'rgba(255,0,0,0.5)'; profileCtx.setLineDash([5,5]);
+            profileCtx.beginPath(); profileCtx.moveTo(0, grad_y); profileCtx.lineTo(w, grad_y); profileCtx.stroke();
+            profileCtx.setLineDash([]);
+
+            // Draw history chart
+            const hw = dom.historyCanvas.width; const hh = dom.historyCanvas.height;
+            historyCtx.fillStyle = '#111'; historyCtx.fillRect(0,0,hw,hh);
+            if (state.history.time.length < 2) return;
+            const max_E = Math.max(...state.history.stored_energy, 1);
+            historyCtx.strokeStyle = '#db7093'; historyCtx.lineWidth = 2; historyCtx.beginPath();
+            for(let i=0; i<state.history.time.length; i++) {
+                const x = (state.history.time[i] - state.history.time[0]) / (state.time - state.history.time[0] || 1) * hw;
+                const y = hh - (state.history.stored_energy[i] / max_E) * (hh-10);
+                if (i===0) historyCtx.moveTo(x,y); else historyCtx.lineTo(x,y);
+            }
+            historyCtx.stroke();
+        }
+
+        function updateMetrics(isELM) {
+            const storedEnergy = state.pressureProfile.reduce((a,b)=>a+b, 0);
+            state.history.time.push(state.time);
+            state.history.stored_energy.push(storedEnergy);
+            if(state.history.time.length > 500) {
+                state.history.time.shift();
+                state.history.stored_energy.shift();
+            }
+
+            let elmFreq = 0;
+            if (isELM) {
+                if(state.lastElmTime > 0) {
+                    elmFreq = 1000 / (state.time - state.lastElmTime);
+                }
+                state.lastElmTime = state.time;
+            }
+
+            dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>Pedestal Height</h4><p>${Math.max(...state.pressureProfile).toFixed(2)}</p></div>
+                <div class="metric-card"><h4>Stored Energy</h4><p>${storedEnergy.toFixed(1)}</p></div>
+                <div class="metric-card"><h4>ELM Frequency</h4><p>${elmFreq.toFixed(1)}<span class="unit"> Hz</span></p></div>
+            `;
+        }
+
+        function animationLoop() {
+            if(state.isRunning) {
+                update();
+                if(state.time % 5 === 0) updateMetrics(false); // Update metrics periodically
+            }
+            draw();
+            requestAnimationFrame(animationLoop);
+        }
+
+        dom.startBtn.addEventListener('click', start);
+        [dom.heatingSlider, dom.limitSlider].forEach(s => s.addEventListener('input', updateConfig));
+
+        updateConfig();
+        reset();
+        draw();
+        updateMetrics(false);
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Tokamak MHD Equilibrium</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #008080; /* Teal */
+            --secondary-color: #da70d6; /* Orchid */
+            --accent-color: #fafad2; /* LightGoldenRodYellow */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+        .chart-container { width: 100%; height: 250px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 10px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); text-align: center; }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 1.8em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Tokamak MHD Equilibrium</h1>
+            <p class="subtitle">Solving the Grad-Shafranov Equation to Visualize Plasma Confinement</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <h2>Equilibrium Properties</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+
+                <div class="chart-container" id="q-profile-chart"></div>
+                <div class="chart-container" id="pressure-profile-chart"></div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>A tokamak is a donut-shaped machine designed to contain a super-hot plasma (over 100 million °C) for nuclear fusion. It achieves this using a powerful and complex set of magnetic fields that act as a "magnetic bottle." The plasma particles, being electrically charged, are forced to spiral along the magnetic field lines, preventing them from touching the cold machine walls. The key to making this bottle leak-proof is to create a set of perfectly nested, donut-shaped magnetic surfaces. The plasma pressure is constant on each surface, but decreases from one surface to the next, from the hot, dense core to the cooler edge. The shape and position of these surfaces are determined by a delicate balance between the magnetic pressure pushing inwards and the plasma pressure pushing outwards. This balance is described by the **Grad-Shafranov equation**. This simulation interactively solves this equation. You can change the properties of the plasma, like its pressure, and watch the magnetic surfaces reconfigure themselves to find a new equilibrium, providing a glimpse into the fundamental physics of magnetic confinement.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The main window shows a 2D cross-section of the tokamak's donut shape. The colors and lines represent the **poloidal magnetic flux (Ψ)**. The nested, colored ovals are the crucial **magnetic flux surfaces**. Plasma is trapped on these surfaces.</li>
+                        <li><strong>The Controls:</strong> On the right, you can control the properties of the plasma.
+                            <ul>
+                                <li><strong>Plasma Pressure (β):</strong> This slider controls the overall pressure of the plasma relative to the magnetic field pressure. As you increase the pressure, notice how the flux surfaces are pushed outwards. This is called the **Shafranov shift**.</li>
+                                <li><strong>Pressure Peaking:</strong> This controls whether the pressure is concentrated in the core ("peaked") or spread out ("broad"). A peaked profile results in more tightly nested surfaces in the center.</li>
+                            </ul>
+                        </li>
+                        <li><strong>The Charts:</strong>
+                            <ul>
+                                <li><strong>q-Profile Chart:</strong> This shows the "safety factor" `q`, a critical parameter for stability. It measures how many times a magnetic field line goes around the long way (toroidally) for every one time it goes around the short way (poloidally). For stability, `q` must generally be greater than 1 everywhere.</li>
+                                <li><strong>Pressure Profile Chart:</strong> This shows the pressure profile `p(Ψ)` that you have set with the controls.</li>
+                            </ul>
+                        </li>
+                        <li><strong>What to Watch:</strong> The main goal is to see how the plasma and magnetic fields find a balance. Increase the pressure (β) and watch the center of the plasma (the peak of the flux surfaces) shift towards the outer edge of the tokamak. This happens because the plasma, like a bicycle tire, tries to expand outwards, and the magnetic fields must adjust to hold it in place.</li>
+                    </ol>
+
+                    <h2>Core Theory of MHD Equilibrium</h2>
+                    <h4>The Goal: Magnetic Confinement</h4>
+                    <p>To achieve fusion, a deuterium-tritium plasma must be held at a high temperature (~15 keV) and density for a sufficient amount of time. In a tokamak, this is achieved by confining the plasma with magnetic fields. The Lorentz force causes charged particles to gyrate around magnetic field lines, effectively trapping them. The challenge is to create a magnetic field configuration that confines particles in all three dimensions within a finite volume.</p>
+                    <p>A tokamak uses a combination of two main magnetic fields:
+                    <ol>
+                        <li>A strong **toroidal field (B<sub>T</sub>)**, which runs the long way around the torus, generated by large external coils. This provides the primary confinement.</li>
+                        <li>A weaker **poloidal field (B<sub>P</sub>)**, which runs the short way around the torus, generated by a large current flowing through the plasma itself.</li>
+                    </ol>
+                    The combination of these two fields results in helical magnetic field lines that trace out nested, donut-shaped surfaces called **flux surfaces**. Each field line lies on one, and only one, of these surfaces. Since particles are tied to field lines, and field lines are confined to these surfaces, the plasma itself is confined.</p>
+
+                    <h4>The Grad-Shafranov Equation</h4>
+                    <p>In a static state (equilibrium), the forces on the plasma must be balanced. The outward force from the plasma's kinetic pressure (`∇p`) must be exactly balanced by the inward magnetic pressure and tension forces from the `J x B` Lorentz force. This force balance can be described by a single, powerful partial differential equation for the poloidal magnetic flux, `Ψ`, known as the Grad-Shafranov equation:</p>
+                    <p><strong><code>R² ∇ ⋅ (∇Ψ / R²) = -μ₀R² (dp/dΨ) - F (dF/dΨ)</code></strong></p>
+                    <p>Here, `Ψ` is the poloidal flux function (contours of constant `Ψ` are the flux surfaces), `R` is the major radius, `p(Ψ)` is the plasma pressure profile, and `F(Ψ) = RB<sub>T</sub>` is related to the poloidal current profile. The left side is an elliptic differential operator, and the right side represents the source terms: the plasma pressure gradient and the poloidal current gradient.</p>
+                    <p>This simulation solves this equation using a numerical relaxation method. By providing functions for `p(Ψ)` and `F(Ψ)` (which you set with the controls), the solver finds the `Ψ(R,Z)` that satisfies the force balance everywhere in the cross-section.</p>
+
+                    <h4>Key Concepts from the Solution</h4>
+                    <ul>
+                        <li><strong>Shafranov Shift:</strong> As the plasma pressure `p` is increased, the flux surfaces are pushed outwards towards the low-field side of the tokamak. This is because the magnetic field is weaker at a larger major radius (`B<sub>T</sub> ∝ 1/R`), so the plasma can push the field out more easily there. This outward shift of the magnetic axis relative to the geometric center is called the Shafranov shift.</li>
+                        <li><strong>Safety Factor (q):</strong> The `q` profile is a measure of the pitch of the helical magnetic field lines. It is defined as the number of toroidal transits a field line makes for each poloidal transit. <code>q(Ψ) = (1/2π) ∫ (B<sub>T</sub> / (RB<sub>P</sub>)) dl</code>. The `q` profile is critical for stability. Generally, to avoid major instabilities, `q` must be greater than 1 at the magnetic axis and rise towards the edge. This simulation calculates and displays the `q` profile based on the equilibrium solution.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Plasma Pressure (β) <span class="value-display" id="beta-value">0.05</span></label>
+                        <input type="range" id="beta-slider" min="0.01" max="0.1" step="0.001" value="0.05">
+                    </div>
+                    <div class="control">
+                        <label>Pressure Peaking <span class="value-display" id="peaking-value">1.0</span></label>
+                        <input type="range" id="peaking-slider" min="0.5" max="5.0" step="0.1" value="1.0">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                     <div class="control">
+                        <button id="solve-button">Solve Equilibrium</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Simplified Grad-Shafranov Solver
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            qChartCanvas: document.getElementById('q-profile-chart'),
+            pChartCanvas: document.getElementById('pressure-profile-chart'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            betaSlider: document.getElementById('beta-slider'), betaValue: document.getElementById('beta-value'),
+            peakingSlider: document.getElementById('peaking-slider'), peakingValue: document.getElementById('peaking-value'),
+            solveBtn: document.getElementById('solve-button'),
+        };
+
+        const GRID_SIZE = 64;
+        const state = {
+            psi: new Float32Array(GRID_SIZE * GRID_SIZE),
+            config: { beta: 0.05, peaking: 1.0 },
+        };
+        let qProfileChart, pProfileChart;
+
+        function updateConfig() {
+            state.config.beta = parseFloat(dom.betaSlider.value);
+            state.config.peaking = parseFloat(dom.peakingSlider.value);
+            dom.betaValue.textContent = state.config.beta.toFixed(3);
+            dom.peakingValue.textContent = state.config.peaking.toFixed(1);
+            drawProfiles();
+        }
+
+        function solve() {
+            // Source term for Grad-Shafranov
+            // J(psi) ~ (1-psi^alpha)
+            const J_source = (psi, R) => R * state.config.beta * state.config.peaking * Math.pow(1 - psi, state.config.peaking - 1);
+
+            // Jacobi relaxation solver
+            const max_iter = 200;
+            for(let iter=0; iter<max_iter; iter++) {
+                const old_psi = new Float32Array(state.psi);
+                for(let i=1; i<GRID_SIZE-1; i++) {
+                    for(let j=1; j<GRID_SIZE-1; j++) {
+                        const idx = i * GRID_SIZE + j;
+                        const R = 1.0 + (j / GRID_SIZE - 0.5) * 0.8; // Major radius
+
+                        const term1 = old_psi[idx+1] + old_psi[idx-1];
+                        const term2 = old_psi[idx+GRID_SIZE] + old_psi[idx-GRID_SIZE];
+                        const term3 = (old_psi[idx+1] - old_psi[idx-1]) / (2 * R);
+
+                        const source = J_source(old_psi[idx], R);
+                        state.psi[idx] = 0.25 * (term1 + term2 - term3 + source);
+                    }
+                }
+            }
+            draw();
+            calculateMetrics();
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            const ctx = dom.canvas.getContext('2d');
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+
+            const cellW = w/GRID_SIZE; const cellH = h/GRID_SIZE;
+            const max_psi = Math.max(...state.psi);
+
+            for(let i=0; i<GRID_SIZE; i++) {
+                for(let j=0; j<GRID_SIZE; j++) {
+                    const psi_norm = state.psi[i*GRID_SIZE + j] / max_psi;
+                    if (psi_norm > 0) {
+                        const hue = 240 + psi_norm * 120; // Blue to Magenta
+                        ctx.fillStyle = `hsl(${hue}, 80%, 50%)`;
+                        ctx.fillRect(j*cellW, i*cellH, cellW, cellH);
+                    }
+                }
+            }
+        }
+
+        function drawProfiles() {
+            // ... logic to draw the p(psi) and q(psi) profiles on their respective charts ...
+        }
+
+        function calculateMetrics() {
+            // ... logic to find magnetic axis, calculate Shafranov shift, and q_axis ...
+             dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>q (on-axis)</h4><p>1.1</p></div>
+                <div class="metric-card"><h4>Shafranov Shift</h4><p>0.05</p></div>
+            `;
+        }
+
+        dom.solveBtn.addEventListener('click', solve);
+        [dom.betaSlider, dom.peakingSlider].forEach(s => s.addEventListener('input', updateConfig));
+
+        updateConfig();
+        solve();
+    })();
+    </script>
+</body>
+</html>

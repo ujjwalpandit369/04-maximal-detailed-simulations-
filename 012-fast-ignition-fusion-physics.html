@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Fast Ignition Fusion Physics</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #ff6347; /* Tomato */
+            --secondary-color: #4682b4; /* SteelBlue */
+            --accent-color: #32cd32; /* LimeGreen */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+        }
+        #simulationCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+        .chart-container { width: 100%; height: 300px; background-color: #111; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); margin-top: 20px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); }
+        .control input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #444; border-radius: 5px; outline: none; }
+        .control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; box-shadow: 0 0 5px var(--primary-color); }
+        .control button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; width: 100%; text-align: center; }
+        .control button:hover { filter: brightness(1.2); box-shadow: 0 0 8px var(--primary-color); }
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .metric-card { background-color: var(--control-bg); padding: 15px; border-radius: 8px; border-left: 5px solid var(--secondary-color); text-align: center; }
+        .metric-card h4 { margin: 0 0 10px 0; font-size: 1em; color: var(--secondary-color); }
+        .metric-card p { margin: 0; font-size: 1.8em; font-weight: bold; color: #fff; font-family: var(--font-mono); }
+        .metric-card .unit { font-size: 0.5em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Fast Ignition Fusion Physics</h1>
+            <p class="subtitle">A Two-Step Approach to Inertial Confinement Fusion: Compress, then Ignite</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+
+                <h2>Hot Spot Properties</h2>
+                <div class="metrics-grid" id="metrics-grid"></div>
+
+                <div class="chart-container" id="temp-chart">
+                    <canvas id="temp-chart-canvas"></canvas>
+                </div>
+
+                <div class="content-column">
+                    <h2>Overview for Lay Readers</h2>
+                    <p>Inertial Confinement Fusion (ICF) aims to replicate the power of the sun by compressing and heating a tiny fuel pellet until it undergoes nuclear fusion. The traditional method is like squeezing a water balloon from all sides at once, hoping the center gets hot enough to ignite. This requires incredible precision. "Fast Ignition" is a clever alternative that separates the process into two steps. First, lasers compress the fuel to an extremely high density, but keep it relatively cool. Second, a separate, ultra-powerful, ultra-short "ignitor" laser pulse drills through the compressed fuel and delivers a massive burst of energy to a tiny spot, heating it to ignition temperatures of over 50 million degrees Celsius. This "hot spot" then acts like a spark plug, setting off a wave of fusion reactions that burns through the rest of the dense fuel. This simulation visualizes that second, critical step. You can see the ignitor beam (modeled as energetic particles) plowing into the dense fuel core and depositing its energy to create the hot spot.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>The Main View:</strong> The main window is a heatmap showing a 2D slice of the compressed fuel core. The color represents the temperature, from cold (dark blue) to extremely hot (bright yellow/white).</li>
+                        <li><strong>Starting the Simulation:</strong> Press the **"Fire Ignitor Beam"** button to start. You will see a stream of particles (representing the ignitor beam) entering from the left.</li>
+                        <li><strong>The Hot Spot:</strong> Watch as the particles travel into the dense fuel. They slow down and deposit their energy, creating a channel of warm material that ends in a bright, intensely hot spot. This is the "spark plug" for the fusion reaction.</li>
+                        <li><strong>Controls:</strong>
+                            <ul>
+                                <li><strong>Beam Energy:</strong> Controls how energetic the particles in the ignitor beam are. Higher energy particles will penetrate deeper into the fuel before depositing their energy. Try a low energy and see the hot spot form near the surface, then try a high energy to see it form deeper inside.</li>
+                                <li><strong>Core Density:</strong> Controls how dense the compressed fuel is. A denser core will stop the beam particles more quickly, causing the hot spot to form at a shallower depth.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Metrics and Chart:</strong> The **"Hot Spot Properties"** show the maximum temperature reached and the total energy delivered to the fuel. The **"Temperature vs. Time"** chart plots this, showing the rapid heating as the ignitor pulse arrives.</li>
+                    </ol>
+
+                    <h2>Core Theory of Fast Ignition</h2>
+                    <h4>Separating Compression and Ignition</h4>
+                    <p>In conventional Inertial Confinement Fusion (ICF), a single set of laser pulses must both compress the fuel and heat its central core to ignition conditions simultaneously. This "central hot-spot" approach requires extremely high pressures (>100 Gbar) and highly symmetric implosions to work, which has proven very challenging.</p>
+                    <p>Fast Ignition (FI), proposed by Max Tabak et al. in 1994, decouples these two tasks.
+                    <ol>
+                        <li><strong>Compression Stage:</strong> Relatively low-cost, long-pulse lasers compress a fuel capsule to a very high density (e.g., 300-1000 g/cm³), but without creating a hot spot. This is energetically cheaper and less sensitive to implosion instabilities than the central hot-spot method. The result is a large, dense, but relatively cold fuel assembly.</li>
+                        <li><strong>Ignition Stage:</strong> After peak compression, a second, ultra-intense, ultra-short (petawatt-class) laser pulse is fired at the compressed core. This ignitor pulse doesn't heat the core directly. Instead, it generates a beam of relativistic electrons (or protons) at the edge of the core. This energetic particle beam then propagates into the dense fuel.</li>
+                    </ol>
+                    The key advantage is that the energy required to ignite a small, pre-compressed hot spot is significantly less than the energy required to create a central hot spot from scratch during the implosion itself.</p>
+
+                    <h4>Energy Deposition and Hot Spot Formation</h4>
+                    <p>The ignitor beam, composed of MeV-scale electrons, propagates into the dense plasma core. These energetic particles interact with the cold background electrons and ions of the fuel, primarily through Coulomb collisions. This interaction causes the beam particles to lose energy, a process described by the **stopping power (dE/dx)** of the plasma. The lost energy is transferred to the background plasma, rapidly heating it.</p>
+                    <p>The stopping power of a plasma for an energetic electron is a complex function, but it generally scales as: <code>dE/dx ∝ ρ/E</code>, where `ρ` is the plasma density and `E` is the kinetic energy of the beam electron. This means that slower particles lose their energy more rapidly. As the beam electrons travel into the core and slow down, their rate of energy deposition increases, leading to a sharp peak in heating at the end of their range. This creates the localized, high-temperature (T > 10 keV) **hot spot**. </p>
+                    <p>For ignition to occur, this hot spot must be large enough and hot enough that the energy produced by fusion reactions within it (primarily alpha particles from D-T reactions) is greater than the energy lost through radiation and thermal conduction. If this condition is met, the alpha particles will deposit their energy in the surrounding cold fuel, launching a self-sustaining **burn wave** that consumes the entire fuel assembly, releasing enormous amounts of energy.</p>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls & Parameters</h2>
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="control"><button id="fire-button">Fire Ignitor Beam</button></div>
+                    <div class="control"><button id="reset-button">Reset</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Physical Parameters</h3>
+                    <div class="control">
+                        <label>Beam Energy (MeV) <span class="value-display" id="energy-value">2.0</span></label>
+                        <input type="range" id="energy-slider" min="0.5" max="5.0" step="0.1" value="2.0">
+                    </div>
+                    <div class="control">
+                        <label>Core Density (g/cm³) <span class="value-display" id="density-value">300</span></label>
+                        <input type="range" id="density-slider" min="100" max="1000" step="10" value="300">
+                    </div>
+                    <div class="control">
+                        <label>Beam Divergence (°) <span class="value-display" id="div-value">10</span></label>
+                        <input type="range" id="div-slider" min="0" max="45" step="1" value="10">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const dom = {
+            canvas: document.getElementById('simulationCanvas'),
+            chartCanvas: document.getElementById('temp-chart-canvas'),
+            metricsGrid: document.getElementById('metrics-grid'),
+            fireBtn: document.getElementById('fire-button'),
+            resetBtn: document.getElementById('reset-button'),
+            energySlider: document.getElementById('energy-slider'), energyValue: document.getElementById('energy-value'),
+            densitySlider: document.getElementById('density-slider'), densityValue: document.getElementById('density-value'),
+            divSlider: document.getElementById('div-slider'), divValue: document.getElementById('div-value'),
+        };
+
+        const state = {
+            particles: [], isRunning: false, time: 0,
+            config: { beamEnergy: 2.0, coreDensity: 300, divergence: 10 },
+            history: { time: [], temp: [] }
+        };
+        const GRID_SIZE = 128;
+        let temperatureGrid = new Float32Array(GRID_SIZE * GRID_SIZE);
+        let chart;
+
+        function updateConfig() {
+            state.config.beamEnergy = parseFloat(dom.energySlider.value);
+            state.config.coreDensity = parseFloat(dom.densitySlider.value);
+            state.config.divergence = parseFloat(dom.divSlider.value) * Math.PI / 180;
+            dom.energyValue.textContent = state.config.beamEnergy.toFixed(1);
+            dom.densityValue.textContent = state.config.coreDensity.toFixed(0);
+            dom.divValue.textContent = parseFloat(dom.divSlider.value).toFixed(0);
+        }
+
+        function reset() {
+            state.isRunning = false; state.time = 0; state.particles = [];
+            temperatureGrid.fill(0);
+            state.history = { time: [], temp: [] };
+            if(chart) chart.reset();
+            draw();
+        }
+
+        function fire() {
+            reset();
+            state.isRunning = true;
+            for(let i=0; i<100; i++) {
+                const angle = (Math.random() - 0.5) * state.config.divergence;
+                state.particles.push({
+                    x: 0, y: dom.canvas.height/2 + (Math.random()-0.5)*20,
+                    vx: Math.cos(angle), vy: Math.sin(angle),
+                    energy: state.config.beamEnergy // MeV
+                });
+            }
+        }
+
+        function update() {
+            if (!state.isRunning) return;
+            state.time++;
+
+            const speed = 5;
+            state.particles.forEach(p => {
+                if (p.energy <= 0) return;
+                p.x += p.vx * speed;
+                p.y += p.vy * speed;
+
+                const gridX = Math.floor(p.x / dom.canvas.width * GRID_SIZE);
+                const gridY = Math.floor(p.y / dom.canvas.height * GRID_SIZE);
+                if (gridX < 0 || gridX >= GRID_SIZE || gridY < 0 || gridY >= GRID_SIZE) {
+                    p.energy = 0; return;
+                }
+
+                // dE/dx ~ rho/E
+                const dE = 0.01 * (state.config.coreDensity / 100) / (p.energy + 0.1);
+                p.energy -= dE;
+                temperatureGrid[gridY * GRID_SIZE + gridX] += dE * 100;
+            });
+
+            if (state.particles.every(p => p.energy <= 0)) state.isRunning = false;
+        }
+
+        function draw() {
+            const w = dom.canvas.width; const h = dom.canvas.height;
+            const ctx = dom.canvas.getContext('2d');
+
+            // Draw temperature heatmap
+            const cellW = w / GRID_SIZE; const cellH = h / GRID_SIZE;
+            let maxTemp = 0;
+            for(let y=0; y<GRID_SIZE; y++) {
+                for(let x=0; x<GRID_SIZE; x++) {
+                    const temp = temperatureGrid[y * GRID_SIZE + x];
+                    if (temp > maxTemp) maxTemp = temp;
+                    if (temp > 0.1) {
+                         const hue = 60 - Math.min(temp / 10, 1) * 60; // Yellow to Red
+                         ctx.fillStyle = `hsla(${hue}, 100%, 50%, ${Math.min(temp/5, 1)})`;
+                         ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
+                    }
+                }
+            }
+
+            // Draw particles
+            ctx.fillStyle = 'white';
+            state.particles.forEach(p => {
+                if(p.energy > 0) ctx.fillRect(p.x, p.y, 2, 2);
+            });
+
+            // Update metrics and chart
+            const energyDeposited = temperatureGrid.reduce((a,b) => a+b, 0) / 100;
+             dom.metricsGrid.innerHTML = `
+                <div class="metric-card"><h4>Max Temperature</h4><p>${(maxTemp * 0.1).toFixed(2)}<span class="unit"> keV</span></p></div>
+                <div class="metric-card"><h4>Energy Coupled</h4><p>${(energyDeposited / state.config.beamEnergy).toFixed(2)}<span class="unit"> %</span></p></div>
+            `;
+            state.history.time.push(state.time);
+            state.history.temp.push(maxTemp * 0.1);
+            if(chart) chart.update(state.history);
+        }
+
+        function animationLoop() {
+            if(state.isRunning) {
+                update();
+                draw();
+            }
+            requestAnimationFrame(animationLoop);
+        }
+
+        function createChart(canvas) {
+            const chartCtx = canvas.getContext('2d');
+            let history = {};
+            function draw() {
+                const w = canvas.width; const h = canvas.height;
+                chartCtx.clearRect(0,0,w,h); chartCtx.fillStyle = '#111'; chartCtx.fillRect(0,0,w,h);
+                if (!history.time || history.time.length < 2) return;
+                const max_T = Math.max(...history.temp, 1);
+                chartCtx.strokeStyle = '#ff6347'; chartCtx.lineWidth = 2; chartCtx.beginPath();
+                for(let i=0; i<history.time.length; i++) {
+                    const x = history.time[i] / state.time * w;
+                    const y = h - (history.temp[i] / max_T) * (h-10);
+                    if (i === 0) chartCtx.moveTo(x,y); else chartCtx.lineTo(x,y);
+                }
+                chartCtx.stroke();
+            }
+            return {
+                update: (newData) => { history = newData; draw(); },
+                reset: () => { history = {}; draw(); }
+            }
+        }
+
+        dom.fireBtn.addEventListener('click', fire);
+        dom.resetBtn.addEventListener('click', reset);
+        [dom.energySlider, dom.densitySlider, dom.divSlider].forEach(s => s.addEventListener('input', updateConfig));
+
+        chart = createChart(dom.chartCanvas);
+        updateConfig();
+        reset();
+        animationLoop();
+    })();
+    </script>
+</body>
+</html>
