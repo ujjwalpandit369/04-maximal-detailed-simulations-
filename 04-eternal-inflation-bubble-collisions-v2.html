@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation: Bubble Collisions and CMB Signatures (v2)</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #c0392b;
+            --secondary-color: #27ae60;
+            --accent-color: #f39c12;
+            --border-color: #444;
+            --panel-bg-color: #2a2a2a;
+            --control-bg-color: #333;
+            --font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-family); line-height: 1.6; margin: 0; padding: 0; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); }
+        h1 { color: var(--header-color); font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-bottom: 15px; }
+        main { display: grid; grid-template-columns: 1fr 400px; gap: 20px; margin-top: 20px; }
+        .simulation-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .controls-column { background-color: var(--panel-bg-color); padding: 15px; border-radius: 8px; height: fit-content; }
+        .panel { background-color: var(--panel-bg-color); padding: 20px; border-radius: 8px; }
+        .panel h2, .controls-column h2 { color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+        canvas { width: 100%; height: auto; background-color: #000; border-radius: 8px; aspect-ratio: 1; }
+        .control-group { margin-bottom: 20px; }
+        .control-group h3 { color: var(--accent-color); font-size: 1.1em; margin-bottom: 10px; }
+        .control { margin-bottom: 15px; }
+        .control label { display: block; font-size: 0.9em; margin-bottom: 5px; }
+        .control input { width: 100%; }
+        .control-readout { font-size: 0.9em; color: #ccc; }
+        .exposition { grid-column: 1 / -1; }
+        button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { filter: brightness(1.2); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Bubble Collisions and CMB Signatures (v2)</h1>
+            <p class="subtitle">A robust simulation of "cosmic bruises" from a multiverse next door.</p>
+        </header>
+
+        <main>
+            <div class="simulation-column">
+                <div class="panel">
+                    <h2>Multiverse View: Bubble Collision</h2>
+                    <canvas id="collision-canvas"></canvas>
+                </div>
+                <div class="panel">
+                    <h2>Observer's Sky: The CMB Signature</h2>
+                    <canvas id="cmb-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="controls-column">
+                <h2>Controls</h2>
+                <div class="control-group">
+                    <h3>Simulation</h3>
+                    <button id="start-stop-btn">Pause</button>
+                    <button id="reset-btn">Restart</button>
+                </div>
+                <div class="control-group">
+                    <h3>Collision Parameters</h3>
+                    <div class="control">
+                        <label for="bubble-separation">Bubble Separation</label>
+                        <input type="range" id="bubble-separation" min="2.1" max="10" step="0.1" value="4">
+                        <span class="control-readout" id="bubble-separation-readout">4.0</span>
+                    </div>
+                    <div class="control">
+                        <label for="nucleation-delay">Nucleation Time Delay</label>
+                        <input type="range" id="nucleation-delay" min="0" max="2" step="0.1" value="0.5">
+                        <span class="control-readout" id="nucleation-delay-readout">0.5</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Metrics</h3>
+                    <div class="control-readout">Simulation Time: <span id="metric-time">0.00</span></div>
+                    <div class="control-readout">Collision Status: <span id="metric-status">Pending</span></div>
+                    <div class="control-readout">CMB Signature Size: <span id="metric-disk-size">N/A</span></div>
+                </div>
+            </div>
+
+            <div class="exposition container">
+                 <!-- Exposition -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+        // --- STATE & CONFIG ---
+        let state = {};
+        let simRunning = true;
+        let cmbNoisePattern = null;
+
+        // --- DOM ELEMENTS ---
+        let collisionCanvas, collisionCtx, cmbCanvas, cmbCtx;
+        let controls = {};
+        let metrics = {};
+
+        // --- GEOMETRY & PHYSICS ---
+        function initialize() {
+            const separation = parseFloat(controls.separation.value);
+            const delay = parseFloat(controls.delay.value);
+
+            state = {
+                time: 0,
+                c: 1, // speed of light, also expansion speed
+                bubble1: { x: -separation / 2, y: 0, t0: 0 },
+                bubble2: { x: separation / 2, y: 0, t0: delay },
+                collision: { occurred: false, signature: null }
+            };
+            generateCMBNoise();
+        }
+
+        function updateSimulation(dt) {
+            if (!simRunning) return;
+            state.time += dt;
+
+            // Check for collision if it hasn't happened yet
+            if (!state.collision.occurred) {
+                const r1 = (state.time - state.bubble1.t0) * state.c;
+                const r2 = (state.time - state.bubble2.t0) * state.c;
+                const dist = Math.abs(state.bubble1.x - state.bubble2.x);
+
+                if (r1 > 0 && r2 > 0 && r1 + r2 >= dist) {
+                    state.collision.occurred = true;
+
+                    // --- Simplified Signature Calculation ---
+                    // This is the core of the robust redesign. Instead of complex projections,
+                    // we create a plausible signature based directly on the 2D collision geometry.
+
+                    // The "strength" of the collision depends on how "head-on" it was.
+                    // We can model this as being inversely proportional to the separation.
+                    const collisionStrength = 1 / dist;
+
+                    // The apparent size of the disk on the sky also depends on the distance.
+                    const signatureRadius = 200 * collisionStrength;
+
+                    // The temperature fluctuation can also depend on the strength.
+                    // We'll make it a cold spot, as is often theorized.
+                    const signatureTemp = -100 * collisionStrength;
+
+                    state.collision.signature = {
+                        radius: signatureRadius,
+                        temp: signatureTemp,
+                    };
+                }
+            }
+        }
+
+        // --- RENDERING ---
+        function generateCMBNoise() {
+            const w = cmbCanvas.width;
+            const h = cmbCanvas.height;
+            const imageData = cmbCtx.createImageData(w, h);
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                const noise = Math.random() * 25;
+                // A blue-ish noise background
+                imageData.data[i] = 60 + noise;      // R
+                imageData.data[i+1] = 90 + noise;    // G
+                imageData.data[i+2] = 180 + noise*2; // B
+                imageData.data[i+3] = 255;           // A
+            }
+            cmbNoisePattern = imageData;
+        }
+
+        function draw() {
+            requestAnimationFrame(draw);
+            updateSimulation(1/60.0);
+
+            drawCollisionView();
+            drawCMBView();
+            updateMetricsUI();
+        }
+
+        function drawCollisionView() {
+            const w = collisionCanvas.width;
+            const h = collisionCanvas.height;
+            const scale = w / 15; // Set a fixed viewing area
+            const cx = w/2;
+            const cy = h/2;
+
+            collisionCtx.fillStyle = '#000';
+            collisionCtx.fillRect(0, 0, w, h);
+
+            // Draw bubble 1
+            const b1 = state.bubble1;
+            const r1 = (state.time - b1.t0) * state.c;
+            if (r1 > 0) {
+                collisionCtx.strokeStyle = 'cyan';
+                collisionCtx.lineWidth = 2;
+                collisionCtx.beginPath();
+                collisionCtx.arc(cx + b1.x * scale, cy + b1.y * scale, r1 * scale, 0, 2 * Math.PI);
+                collisionCtx.stroke();
+            }
+
+            // Draw bubble 2
+            const b2 = state.bubble2;
+            const r2 = (state.time - b2.t0) * state.c;
+            if (r2 > 0) {
+                collisionCtx.strokeStyle = 'magenta';
+                collisionCtx.lineWidth = 2;
+                collisionCtx.beginPath();
+                collisionCtx.arc(cx + b2.x * scale, cy + b2.y * scale, r2 * scale, 0, 2 * Math.PI);
+                collisionCtx.stroke();
+            }
+        }
+
+        function drawCMBView() {
+            if (!cmbNoisePattern) return;
+            cmbCtx.putImageData(cmbNoisePattern, 0, 0);
+
+            // If a collision has occurred, draw the signature.
+            if (state.collision.signature) {
+                const w = cmbCanvas.width;
+                const h = cmbCanvas.height;
+                const sig = state.collision.signature;
+
+                // The signature is always drawn in the center of the right half of the sky,
+                // representing the direction of the collision. This is the core simplification.
+                const bruise_x = w * 0.75;
+                const bruise_y = h / 2;
+
+                // The color depends on the temperature fluctuation.
+                // Negative temp = cold spot (blue), Positive = hot spot (red).
+                const temp = sig.temp;
+                const alpha = Math.min(1, Math.abs(temp) / 50);
+                const color = temp < 0 ? `rgba(0, 100, 255, ${alpha})` : `rgba(255, 100, 0, ${alpha})`;
+
+                cmbCtx.fillStyle = color;
+                cmbCtx.beginPath();
+                cmbCtx.arc(bruise_x, bruise_y, sig.radius, 0, 2 * Math.PI);
+                cmbCtx.fill();
+            }
+        }
+
+        function updateMetricsUI() {
+            metrics.time.textContent = state.time.toFixed(2);
+            metrics.status.textContent = state.collision.occurred ? 'Collision!' : 'Pending';
+            metrics.diskSize.textContent = state.collision.signature ? `${state.collision.signature.radius.toFixed(1)} px` : 'N/A';
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            collisionCanvas = document.getElementById('collision-canvas');
+            collisionCtx = collisionCanvas.getContext('2d');
+            cmbCanvas = document.getElementById('cmb-canvas');
+            cmbCtx = cmbCanvas.getContext('2d');
+
+            controls.separation = document.getElementById('bubble-separation');
+            controls.delay = document.getElementById('nucleation-delay');
+
+            metrics.time = document.getElementById('metric-time');
+            metrics.status = document.getElementById('metric-status');
+            metrics.diskSize = document.getElementById('metric-disk-size');
+
+            document.getElementById('reset-btn').addEventListener('click', initialize);
+            document.getElementById('start-stop-btn').addEventListener('click', () => { simRunning = !simRunning; });
+
+            initialize();
+            draw();
+        });
+    })();
+    </script>
+</body>
+</html>
