@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation: D-Brane Decay via Tachyon Condensation</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #9c27b0; /* Purple for D-branes/string theory */
+            --secondary-color: #e74c3c;
+            --accent-color: #f1c40f;
+            --border-color: #444;
+            --panel-bg-color: #2a2a2a;
+            --control-bg-color: #333;
+            --font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-family); line-height: 1.6; margin: 0; padding: 0; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); }
+        h1 { color: var(--header-color); font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-bottom: 15px; }
+        main { display: grid; grid-template-columns: 1fr 400px; gap: 20px; margin-top: 20px; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { background-color: var(--panel-bg-color); padding: 15px; border-radius: 8px; height: fit-content; }
+        .panel { background-color: var(--panel-bg-color); padding: 20px; border-radius: 8px; }
+        .panel h2, .controls-column h2 { color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+        canvas { width: 100%; height: auto; background-color: #000; border-radius: 8px; }
+        #main-canvas { aspect-ratio: 16/9; }
+        #energy-chart { aspect-ratio: 16/5; }
+        .control-group { margin-bottom: 20px; }
+        .control-group h3 { color: var(--accent-color); font-size: 1.1em; margin-bottom: 10px; }
+        .control { margin-bottom: 15px; }
+        .control label { display: block; font-size: 0.9em; margin-bottom: 5px; }
+        .control input { width: 100%; }
+        .control-readout { font-size: 0.9em; color: #ccc; }
+        .exposition { grid-column: 1 / -1; }
+        button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>D-Brane Decay via Tachyon Condensation</h1>
+            <p class="subtitle">A simulation of an unstable object in string theory dissolving into nothing.</p>
+        </header>
+
+        <main>
+            <div class="simulation-column">
+                <div class="panel">
+                    <h2>D-Brane View</h2>
+                    <canvas id="main-canvas"></canvas>
+                </div>
+                <div class="panel">
+                    <h2>Brane Tension (Energy) vs. Time</h2>
+                    <canvas id="energy-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="controls-column">
+                <h2>Controls</h2>
+                <div class="control-group">
+                    <h3>Simulation</h3>
+                    <button id="start-stop-btn">Pause</button>
+                    <button id="reset-btn">Start Decay</button>
+                </div>
+                <div class="control-group">
+                    <h3>Decay Parameters</h3>
+                    <div class="control">
+                        <label for="alpha">Instability (α)</label>
+                        <input type="range" id="alpha" min="0.1" max="5.0" step="0.1" value="2.0">
+                        <span class="control-readout">2.0</span>
+                    </div>
+                     <div class="control">
+                        <label for="friction">Friction</label>
+                        <input type="range" id="friction" min="0.01" max="0.5" step="0.01" value="0.1">
+                        <span class="control-readout">0.10</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="exposition container">
+                 <!-- Exposition -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+        // --- STATE & CONFIG ---
+        let state = {};
+        let simRunning = true;
+        let history = { time: [], energy: [] };
+        const MAX_HISTORY = 300;
+
+        // --- DOM ELEMENTS ---
+        let mainCanvas, mainCtx, energyChart, energyCtx;
+        let controls = {};
+
+        // --- MATH & PHYSICS (reusing stable code) ---
+        function potentialV(phi) {
+            const alpha = parseFloat(controls.alpha.value);
+            const beta = 1.0; // Keep beta fixed for simplicity
+            return -alpha * phi * phi + beta * Math.pow(phi, 4);
+        }
+
+        function potentialV_prime(phi) {
+            const alpha = parseFloat(controls.alpha.value);
+            const beta = 1.0;
+            return -2 * alpha * phi + 4 * beta * Math.pow(phi, 3);
+        }
+
+        // --- SIMULATION LOGIC ---
+        function initialize() {
+            state = {
+                time: 0,
+                phi: 0.01,
+                phi_velocity: 0,
+                maxEnergy: potentialV(0),
+            };
+            history = { time: [], energy: [] };
+            simRunning = true;
+        }
+
+        function updateSimulation(dt) {
+            if (!simRunning) return;
+            state.time += dt;
+
+            const force = -potentialV_prime(state.phi);
+            const acceleration = force;
+            state.phi_velocity += acceleration * dt;
+            const friction = parseFloat(controls.friction.value);
+            state.phi_velocity *= (1 - friction * dt);
+            state.phi += state.phi_velocity * dt;
+
+            // Update history for chart
+            const potentialEnergy = potentialV(state.phi);
+            const kineticEnergy = 0.5 * state.phi_velocity**2;
+            const totalEnergy = potentialEnergy + kineticEnergy;
+
+            if (history.time.length > MAX_HISTORY) {
+                history.time.shift(); history.energy.shift();
+            }
+            history.time.push(state.time);
+            history.energy.push(totalEnergy);
+        }
+
+        // --- RENDERING ---
+        function draw() {
+            requestAnimationFrame(draw);
+            updateSimulation(1/60.0);
+
+            drawBraneView();
+            drawChart(energyCtx, history.time, history.energy, 'Brane Tension (Energy)', '#f1c40f');
+        }
+
+        function drawBraneView() {
+            const w = mainCanvas.width;
+            const h = mainCanvas.height;
+            mainCtx.fillStyle = '#000';
+            mainCtx.fillRect(0, 0, w, h);
+
+            const energy = history.energy.length > 0 ? history.energy[history.energy.length - 1] : state.maxEnergy;
+            const energyFraction = Math.max(0, Math.min(1, energy / state.maxEnergy));
+
+            // --- Draw the D-brane as a 2D plane with perspective ---
+            // The opacity is directly tied to the energy of the tachyon field.
+            mainCtx.fillStyle = `rgba(156, 39, 176, ${energyFraction * 0.8})`;
+            mainCtx.strokeStyle = `rgba(255, 255, 255, ${energyFraction})`;
+            mainCtx.lineWidth = 2;
+
+            const perspective = 0.3;
+            const y_top = h * 0.2;
+            const y_bottom = h * 0.8;
+
+            mainCtx.beginPath();
+            mainCtx.moveTo(0, y_top);
+            mainCtx.lineTo(w * perspective, y_bottom);
+            mainCtx.lineTo(w * (1-perspective), y_bottom);
+            mainCtx.lineTo(w, y_top);
+            mainCtx.closePath();
+
+            mainCtx.fill();
+            mainCtx.stroke();
+        }
+
+        function drawChart(ctx, x_data, y_data, label, color) {
+            // (Identical robust chart drawing function)
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0,0,w,h);
+            if (x_data.length < 2) return;
+            const max_y = Math.max(...y_data) * 1.1 || 1;
+            const min_y = Math.min(...y_data);
+            const min_x = x_data[0];
+            const max_x = x_data[x_data.length-1];
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < x_data.length; i++) {
+                const x = (x_data[i] - min_x) / (max_x - min_x) * w;
+                const y = h - ((y_data[i] - min_y) / (max_y - min_y)) * h * 0.9 - h*0.05;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        // --- INITIALIZATION & EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            mainCanvas = document.getElementById('main-canvas');
+            mainCtx = mainCanvas.getContext('2d');
+            energyChart = document.getElementById('energy-chart');
+            energyCtx = energyChart.getContext('2d');
+
+            controls.alpha = document.getElementById('alpha');
+            controls.friction = document.getElementById('friction');
+
+            document.getElementById('reset-btn').addEventListener('click', initialize);
+            document.getElementById('start-stop-btn').addEventListener('click', () => { simRunning = !simRunning; });
+
+            [controls.alpha, controls.friction].forEach(slider => {
+                slider.addEventListener('input', (e) => {
+                    document.querySelector(`#${e.target.id} ~ .control-readout`).textContent = e.target.value;
+                });
+            });
+
+            initialize();
+            draw();
+        });
+    })();
+    </script>
+</body>
+</html>

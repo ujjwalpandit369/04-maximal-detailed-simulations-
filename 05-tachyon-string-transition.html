@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulation: Brane Collisions & The Ekpyrotic Universe</title>
+    <title>Simulation: Open-to-Closed String Transition</title>
     <style>
         :root {
             --bg-color: #1a1a1a;
             --text-color: #e0e0e0;
             --header-color: #ffffff;
-            --primary-color: #e91e63; /* Pink/Red for collisions */
-            --secondary-color: #00bcd4;
-            --accent-color: #ffc107;
+            --primary-color: #9c27b0; /* Purple for D-branes/string theory */
+            --secondary-color: #00bcd4; /* Cyan for strings */
+            --accent-color: #ffeb3b;
             --border-color: #444;
             --panel-bg-color: #2a2a2a;
             --control-bg-color: #333;
@@ -42,8 +42,8 @@
 <body>
     <div class="container">
         <header>
-            <h1>Brane Collisions & The Ekpyrotic Universe</h1>
-            <p class="subtitle">A simulation of a cyclic universe model where the Big Bang is a collision.</p>
+            <h1>Open-to-Closed String Transition</h1>
+            <p class="subtitle">A conceptual animation of D-brane decay and string conversion.</p>
         </header>
 
         <main>
@@ -57,21 +57,20 @@
                 <h2>Controls</h2>
                 <div class="control-group">
                     <h3>Simulation</h3>
-                    <button id="start-stop-btn">Pause</button>
-                    <button id="reset-btn">Reset Cycle</button>
+                    <button id="decay-btn">Start Brane Decay</button>
+                    <button id="reset-btn">Reset</button>
                 </div>
                 <div class="control-group">
-                    <h3>Cycle Parameters</h3>
+                    <h3>Parameters</h3>
                     <div class="control">
-                        <label for="speed">Brane Velocity</label>
-                        <input type="range" id="speed" min="10" max="100" step="5" value="30">
-                        <span class="control-readout" id="speed-readout">30</span>
+                        <label for="num-strings">Number of Strings</label>
+                        <input type="range" id="num-strings" min="5" max="50" step="1" value="20">
+                        <span class="control-readout" id="num-strings-readout">20</span>
                     </div>
                 </div>
                  <div class="control-group">
                     <h3>Metrics</h3>
-                    <div class="control-readout">Cycle Phase: <span id="metric-phase">Approaching</span></div>
-                    <div class="control-readout">Brane Separation: <span id="metric-separation">...</span></div>
+                    <div class="control-readout">Phase: <span id="metric-phase">Stable</span></div>
                 </div>
             </div>
 
@@ -86,8 +85,7 @@
         'use strict';
         // --- STATE & CONFIG ---
         let state = {};
-        let simRunning = true;
-        const MAX_SEPARATION = 0.8; // As a fraction of canvas height
+        const DECAY_DURATION = 3.0; // in seconds
 
         // --- DOM ELEMENTS ---
         let canvas, ctx;
@@ -96,48 +94,57 @@
 
         // --- SIMULATION LOGIC ---
         function initialize() {
-            const h = canvas.height;
+            const numStrings = parseInt(controls.numStrings.value);
             state = {
                 time: 0,
-                phase: 'approaching', // approaching, collided, receding
-                brane1_y: h/2 - (h * MAX_SEPARATION / 2),
-                brane2_y: h/2 + (h * MAX_SEPARATION / 2),
-                velocity: parseFloat(controls.speed.value),
-                collisionEffect: null,
+                phase: 'stable', // stable, decaying, decayed
+                decayStartTime: -1,
+                strings: [],
             };
-            simRunning = true;
+
+            const brane_y = canvas.height / 2;
+            for (let i = 0; i < numStrings; i++) {
+                state.strings.push({
+                    x: (canvas.width / (numStrings + 1)) * (i + 1),
+                    y: brane_y,
+                    type: 'open',
+                    vx: 0, vy: 0, // For motion after becoming closed
+                    size: 20 + Math.random() * 30,
+                });
+            }
+        }
+
+        function startDecay() {
+            if (state.phase === 'stable') {
+                state.phase = 'decaying';
+                state.decayStartTime = state.time;
+            }
         }
 
         function updateSimulation(dt) {
-            if (!simRunning) return;
             state.time += dt;
 
-            const speed = state.velocity * dt;
-
-            if (state.phase === 'approaching') {
-                state.brane1_y += speed;
-                state.brane2_y -= speed;
-                if (state.brane1_y >= state.brane2_y) {
-                    state.phase = 'collided';
-                    state.brane1_y = state.brane2_y = canvas.height / 2; // Snap to center
-                    // Create a collision effect object
-                    state.collisionEffect = {
-                        creationTime: state.time,
-                        duration: 1.0, // 1 second flash
-                    };
+            if (state.phase === 'decaying') {
+                if (state.time > state.decayStartTime + DECAY_DURATION) {
+                    state.phase = 'decayed';
+                    // Transition all open strings to closed strings
+                    state.strings.forEach(s => {
+                        if (s.type === 'open') {
+                            s.type = 'closed';
+                            // Give them a random velocity
+                            const angle = Math.random() * 2 * Math.PI;
+                            const speed = 20 + Math.random() * 30;
+                            s.vx = Math.cos(angle) * speed;
+                            s.vy = Math.sin(angle) * speed;
+                        }
+                    });
                 }
-            } else if (state.phase === 'collided') {
-                if (state.time > state.collisionEffect.creationTime + state.collisionEffect.duration) {
-                    state.phase = 'receding';
-                    state.collisionEffect = null;
-                }
-            } else if (state.phase === 'receding') {
-                state.brane1_y -= speed;
-                state.brane2_y += speed;
-                if (state.brane1_y <= canvas.height/2 - (canvas.height * MAX_SEPARATION / 2)) {
-                    // End of cycle, restart
-                    state.phase = 'approaching';
-                }
+            } else if (state.phase === 'decayed') {
+                // Move the closed strings
+                state.strings.forEach(s => {
+                    s.x += s.vx * dt;
+                    s.y += s.vy * dt;
+                });
             }
         }
 
@@ -151,59 +158,59 @@
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, w, h);
 
-            drawBranes();
-            drawCollision();
+            drawBrane();
+            drawStrings();
             updateMetricsUI();
         }
 
-        function drawBranes() {
-            const w = canvas.width;
-            ctx.lineWidth = 4;
-
-            // Brane 1
-            ctx.strokeStyle = '#00bcd4';
-            ctx.beginPath();
-            ctx.moveTo(0, state.brane1_y);
-            ctx.lineTo(w, state.brane1_y);
-            ctx.stroke();
-
-            // Brane 2
-            ctx.strokeStyle = '#8bc34a';
-            ctx.beginPath();
-            ctx.moveTo(0, state.brane2_y);
-            ctx.lineTo(w, state.brane2_y);
-            ctx.stroke();
-        }
-
-        function drawCollision() {
-            if (state.phase !== 'collided' || !state.collisionEffect) return;
-
+        function drawBrane() {
             const w = canvas.width;
             const h = canvas.height;
-            const effectAge = state.time - state.collisionEffect.creationTime;
-            const effectProgress = effectAge / state.collisionEffect.duration;
+            const brane_y = h / 2;
 
-            // A simple expanding and fading flash
-            const maxRadius = w / 2;
-            const radius = maxRadius * effectProgress;
-            const alpha = 1.0 - effectProgress;
+            let alpha = 1.0;
+            if (state.phase === 'decaying') {
+                const decayProgress = (state.time - state.decayStartTime) / DECAY_DURATION;
+                alpha = 1.0 - decayProgress;
+            } else if (state.phase === 'decayed') {
+                alpha = 0;
+            }
 
-            const grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, radius);
-            grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
-            grad.addColorStop(0.5, `rgba(255, 255, 0, ${alpha * 0.5})`);
-            grad.addColorStop(1, `rgba(255, 150, 0, 0)`);
+            if (alpha > 0) {
+                ctx.strokeStyle = `rgba(156, 39, 176, ${alpha})`;
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(0, brane_y);
+                ctx.lineTo(w, brane_y);
+                ctx.stroke();
+            }
+        }
 
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(w/2, h/2, radius, 0, 2 * Math.PI);
-            ctx.fill();
+        function drawStrings() {
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--secondary-color');
+            ctx.lineWidth = 2;
+
+            state.strings.forEach(s => {
+                if (s.type === 'open') {
+                    // Draw a U-shape attached to the brane
+                    ctx.beginPath();
+                    ctx.moveTo(s.x - 10, s.y);
+                    ctx.lineTo(s.x - 10, s.y - s.size);
+                    ctx.arc(s.x, s.y - s.size, 10, Math.PI, 0);
+                    ctx.lineTo(s.x + 10, s.y);
+                    ctx.stroke();
+                } else {
+                    // Draw a circle (closed string)
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.size / 3, 0, 2 * Math.PI);
+                    ctx.stroke();
+                }
+            });
         }
 
         function updateMetricsUI() {
             metrics.phase.textContent = state.phase.charAt(0).toUpperCase() + state.phase.slice(1);
-            const separation = Math.abs(state.brane1_y - state.brane2_y);
-            metrics.separation.textContent = separation.toFixed(1) + ' px';
-            document.getElementById('speed-readout').textContent = controls.speed.value;
+            document.getElementById('num-strings-readout').textContent = controls.numStrings.value;
         }
 
         // --- INITIALIZATION ---
@@ -213,17 +220,17 @@
             canvas.width = canvas.clientWidth;
             canvas.height = canvas.clientHeight;
 
-            controls.speed = document.getElementById('speed');
+            controls.numStrings = document.getElementById('num-strings');
             metrics.phase = document.getElementById('metric-phase');
-            metrics.separation = document.getElementById('metric-separation');
 
+            document.getElementById('decay-btn').addEventListener('click', startDecay);
             document.getElementById('reset-btn').addEventListener('click', initialize);
-            document.getElementById('start-stop-btn').addEventListener('click', () => { simRunning = !simRunning; });
+            controls.numStrings.addEventListener('input', initialize);
 
             window.addEventListener('resize', () => {
                 canvas.width = canvas.clientWidth;
                 canvas.height = canvas.clientHeight;
-                initialize(); // Reset on resize to handle new dimensions
+                initialize();
             });
 
             initialize();

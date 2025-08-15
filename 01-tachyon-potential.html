@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation: The Tachyonic Potential</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #e74c3c; /* Red for tachyons/instability */
+            --secondary-color: #3498db;
+            --accent-color: #f1c40f;
+            --border-color: #444;
+            --panel-bg-color: #2a2a2a;
+            --control-bg-color: #333;
+            --log-bg-color: #000;
+            --log-text-color: #0f0;
+            --font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-family); line-height: 1.6; margin: 0; padding: 0; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); }
+        h1 { color: var(--header-color); font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-bottom: 15px; }
+        main { display: grid; grid-template-columns: 1fr 400px; gap: 20px; margin-top: 20px; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { background-color: var(--panel-bg-color); padding: 15px; border-radius: 8px; height: fit-content; }
+        .panel { background-color: var(--panel-bg-color); padding: 20px; border-radius: 8px; }
+        .panel h2, .controls-column h2 { color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+        canvas { width: 100%; height: auto; background-color: #000; border-radius: 8px; aspect-ratio: 16/9; }
+        .control-group { margin-bottom: 20px; }
+        .control-group h3 { color: var(--accent-color); font-size: 1.1em; margin-bottom: 10px; }
+        .control { margin-bottom: 15px; }
+        .control label { display: block; font-size: 0.9em; margin-bottom: 5px; }
+        .control input { width: 100%; }
+        .control-readout { font-size: 0.9em; color: #ccc; }
+        .exposition { grid-column: 1 / -1; }
+        button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .dev-log { background-color: var(--log-bg-color); color: var(--log-text-color); font-family: var(--font-mono); font-size: 0.8em; height: 150px; overflow-y: scroll; padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>The Tachyonic Potential</h1>
+            <p class="subtitle">Visualizing the instability that drives tachyon condensation.</p>
+        </header>
+
+        <main>
+            <div class="simulation-column">
+                <div class="panel">
+                    <canvas id="main-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="controls-column">
+                <h2>Controls</h2>
+                <div class="control-group">
+                    <h3>Simulation</h3>
+                    <button id="start-stop-btn">Pause</button>
+                    <button id="reset-btn">Perturb Field</button>
+                </div>
+                <div class="control-group">
+                    <h3>Potential V(φ) = -αφ² + βφ⁴</h3>
+                    <div class="control">
+                        <label for="alpha">α (Instability Term)</label>
+                        <input type="range" id="alpha" min="0.1" max="5.0" step="0.1" value="2.0">
+                        <span class="control-readout" id="alpha-readout">2.0</span>
+                    </div>
+                    <div class="control">
+                        <label for="beta">β (Stabilizing Term)</label>
+                        <input type="range" id="beta" min="0.1" max="2.0" step="0.1" value="1.0">
+                        <span class="control-readout" id="beta-readout">1.0</span>
+                    </div>
+                     <div class="control">
+                        <label for="friction">Friction</label>
+                        <input type="range" id="friction" min="0.01" max="0.5" step="0.01" value="0.05">
+                        <span class="control-readout" id="friction-readout">0.05</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Developer Log</h3>
+                    <div id="dev-log" class="dev-log"></div>
+                </div>
+            </div>
+
+            <div class="exposition container">
+                 <!-- Exposition -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+        // --- STATE & CONFIG ---
+        let state = {};
+        let simRunning = true;
+        let logBuffer = [];
+        const PHI_MAX = 2.0;
+
+        // --- DOM ELEMENTS ---
+        let canvas, ctx, devLog;
+        let controls = {};
+
+        // --- MATH & PHYSICS ---
+        function potentialV(phi) {
+            const alpha = parseFloat(controls.alpha.value);
+            const beta = parseFloat(controls.beta.value);
+            return -alpha * phi * phi + beta * Math.pow(phi, 4);
+        }
+
+        function potentialV_prime(phi) {
+            const alpha = parseFloat(controls.alpha.value);
+            const beta = parseFloat(controls.beta.value);
+            return -2 * alpha * phi + 4 * beta * Math.pow(phi, 3);
+        }
+
+        // --- SIMULATION LOGIC ---
+        function log(message) {
+            if (logBuffer.length > 20) logBuffer.shift();
+            logBuffer.push(`[${state.time.toFixed(2)}s] ${message}`);
+            devLog.innerHTML = logBuffer.join('<br>');
+            devLog.scrollTop = devLog.scrollHeight;
+        }
+
+        function initialize() {
+            log('Initializing simulation...');
+            state = {
+                time: 0,
+                phi: 0.01, // Start with a small perturbation from the unstable peak
+                phi_velocity: 0,
+                lastLogTime: -1,
+            };
+            log(`Field perturbed to φ = ${state.phi.toFixed(3)}`);
+        }
+
+        function updateSimulation(dt) {
+            if (!simRunning) return;
+            state.time += dt;
+
+            // --- Simple Euler integrator for the equation of motion ---
+            // F = -dV/dφ
+            const force = -potentialV_prime(state.phi);
+
+            // a = F/m (assume mass m=1)
+            const acceleration = force;
+
+            // v_new = v_old + a*dt
+            state.phi_velocity += acceleration * dt;
+
+            // Apply friction
+            const friction = parseFloat(controls.friction.value);
+            state.phi_velocity *= (1 - friction * dt);
+
+            // x_new = x_old + v*dt
+            state.phi += state.phi_velocity * dt;
+
+            // Log status periodically
+            if (state.time - state.lastLogTime > 0.25) {
+                const energy = potentialV(state.phi) + 0.5 * state.phi_velocity**2;
+                log(`φ=${state.phi.toFixed(2)}, V=${potentialV(state.phi).toFixed(2)}, E=${energy.toFixed(2)}`);
+                state.lastLogTime = state.time;
+            }
+        }
+
+        // --- RENDERING ---
+        function draw() {
+            requestAnimationFrame(draw);
+            updateSimulation(1/60.0);
+
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+
+            drawAxes();
+            drawPotentialCurve();
+            drawFieldState();
+        }
+
+        function drawAxes() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const origin = { x: w / 2, y: h * 0.8 };
+
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.5;
+
+            // X-axis (phi)
+            ctx.beginPath();
+            ctx.moveTo(0, origin.y);
+            ctx.lineTo(w, origin.y);
+            ctx.stroke();
+
+            // Y-axis (V(phi))
+            ctx.beginPath();
+            ctx.moveTo(origin.x, 0);
+            ctx.lineTo(origin.x, h);
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+        }
+
+        function drawPotentialCurve() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const origin = { x: w / 2, y: h * 0.8 };
+
+            // Determine y-scale based on the depth of the potential well
+            const alpha = parseFloat(controls.alpha.value);
+            const beta = parseFloat(controls.beta.value);
+            const V_min = potentialV(Math.sqrt(alpha / (2*beta)));
+            const y_scale = (h * 0.6) / Math.abs(V_min);
+
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i <= w; i++) {
+                const x_canvas = i;
+                const phi = (x_canvas - origin.x) / (w/2) * PHI_MAX;
+                const v = potentialV(phi);
+                const y_canvas = origin.y - v * y_scale;
+
+                if (i === 0) ctx.moveTo(x_canvas, y_canvas);
+                else ctx.lineTo(x_canvas, y_canvas);
+            }
+            ctx.stroke();
+        }
+
+        function drawFieldState() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const origin = { x: w / 2, y: h * 0.8 };
+
+            const alpha = parseFloat(controls.alpha.value);
+            const beta = parseFloat(controls.beta.value);
+            const V_min = potentialV(Math.sqrt(alpha / (2*beta)));
+            const y_scale = (h * 0.6) / Math.abs(V_min);
+
+            const ball_x = origin.x + state.phi * (w/2) / PHI_MAX;
+            const ball_y = origin.y - potentialV(state.phi) * y_scale;
+
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent-color');
+            ctx.beginPath();
+            ctx.arc(ball_x, ball_y, 8, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        // --- INITIALIZATION & EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            canvas = document.getElementById('main-canvas');
+            ctx = canvas.getContext('2d');
+            devLog = document.getElementById('dev-log');
+
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+
+            controls.alpha = document.getElementById('alpha');
+            controls.beta = document.getElementById('beta');
+            controls.friction = document.getElementById('friction');
+
+            document.getElementById('start-stop-btn').addEventListener('click', () => { simRunning = !simRunning; });
+            document.getElementById('reset-btn').addEventListener('click', initialize);
+
+            [controls.alpha, controls.beta, controls.friction].forEach(slider => {
+                slider.addEventListener('input', () => {
+                    document.getElementById(`${slider.id}-readout`).textContent = slider.value;
+                });
+            });
+
+            window.addEventListener('resize', () => {
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+            });
+
+            initialize();
+            draw();
+        });
+    })();
+    </script>
+</body>
+</html>

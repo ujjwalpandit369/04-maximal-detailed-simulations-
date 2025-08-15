@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation: Homogeneous Tachyon Condensation</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #e74c3c;
+            --secondary-color: #3498db;
+            --accent-color: #f1c40f;
+            --border-color: #444;
+            --panel-bg-color: #2a2a2a;
+            --control-bg-color: #333;
+            --font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-family); line-height: 1.6; margin: 0; padding: 0; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); }
+        h1 { color: var(--header-color); font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-bottom: 15px; }
+        main { display: grid; grid-template-columns: 1fr 400px; gap: 20px; margin-top: 20px; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { background-color: var(--panel-bg-color); padding: 15px; border-radius: 8px; height: fit-content; }
+        .panel { background-color: var(--panel-bg-color); padding: 20px; border-radius: 8px; }
+        .panel h2, .controls-column h2 { color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+        canvas { width: 100%; height: auto; background-color: #000; border-radius: 8px; }
+        #main-canvas { aspect-ratio: 16/9; }
+        .charts-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .chart-canvas { aspect-ratio: 16/10; }
+        .control-group { margin-bottom: 20px; }
+        .control-group h3 { color: var(--accent-color); font-size: 1.1em; margin-bottom: 10px; }
+        .control { margin-bottom: 15px; }
+        .control label { display: block; font-size: 0.9em; margin-bottom: 5px; }
+        .control input { width: 100%; }
+        .control-readout { font-size: 0.9em; color: #ccc; }
+        .exposition { grid-column: 1 / -1; }
+        button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Homogeneous Tachyon Condensation</h1>
+            <p class="subtitle">Visualizing the decay of tachyonic energy over time.</p>
+        </header>
+
+        <main>
+            <div class="simulation-column">
+                <div class="panel">
+                    <h2>Energy Density of Tachyon Field</h2>
+                    <canvas id="main-canvas"></canvas>
+                </div>
+                <div class="panel charts-container">
+                    <div>
+                        <h3>Field Value φ(t)</h3>
+                        <canvas id="phi-chart" class="chart-canvas"></canvas>
+                    </div>
+                    <div>
+                        <h3>Energy Density ρ(t)</h3>
+                        <canvas id="energy-chart" class="chart-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-column">
+                <h2>Controls</h2>
+                <div class="control-group">
+                    <h3>Simulation</h3>
+                    <button id="start-stop-btn">Pause</button>
+                    <button id="reset-btn">Start Condensation</button>
+                </div>
+                <div class="control-group">
+                    <h3>Potential V(φ) = -αφ² + βφ⁴</h3>
+                    <div class="control">
+                        <label for="alpha">α (Instability Term)</label>
+                        <input type="range" id="alpha" min="0.1" max="5.0" step="0.1" value="2.0">
+                        <span class="control-readout">2.0</span>
+                    </div>
+                    <div class="control">
+                        <label for="beta">β (Stabilizing Term)</label>
+                        <input type="range" id="beta" min="0.1" max="2.0" step="0.1" value="1.0">
+                        <span class="control-readout">1.0</span>
+                    </div>
+                     <div class="control">
+                        <label for="friction">Friction</label>
+                        <input type="range" id="friction" min="0.01" max="0.5" step="0.01" value="0.1">
+                        <span class="control-readout">0.10</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="exposition container">
+                 <!-- Exposition -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+        // --- STATE & CONFIG ---
+        let state = {};
+        let simRunning = true;
+        let history = { time: [], phi: [], energy: [] };
+        const MAX_HISTORY = 300;
+
+        // --- DOM ELEMENTS ---
+        let mainCanvas, mainCtx, phiChart, phiCtx, energyChart, energyCtx;
+        let controls = {};
+
+        // --- MATH & PHYSICS (reusing from previous simulation for consistency) ---
+        function potentialV(phi) {
+            const alpha = parseFloat(controls.alpha.value);
+            const beta = parseFloat(controls.beta.value);
+            return -alpha * phi * phi + beta * Math.pow(phi, 4);
+        }
+
+        function potentialV_prime(phi) {
+            const alpha = parseFloat(controls.alpha.value);
+            const beta = parseFloat(controls.beta.value);
+            return -2 * alpha * phi + 4 * beta * Math.pow(phi, 3);
+        }
+
+        // --- SIMULATION LOGIC ---
+        function initialize() {
+            state = {
+                time: 0,
+                phi: 0.01,
+                phi_velocity: 0,
+            };
+            history = { time: [], phi: [], energy: [] };
+            simRunning = true;
+        }
+
+        function updateSimulation(dt) {
+            if (!simRunning) return;
+            state.time += dt;
+
+            const force = -potentialV_prime(state.phi);
+            const acceleration = force;
+            state.phi_velocity += acceleration * dt;
+            const friction = parseFloat(controls.friction.value);
+            state.phi_velocity *= (1 - friction * dt);
+            state.phi += state.phi_velocity * dt;
+
+            // Update history for charts
+            if (history.time.length > MAX_HISTORY) {
+                history.time.shift(); history.phi.shift(); history.energy.shift();
+            }
+            const potentialEnergy = potentialV(state.phi);
+            const kineticEnergy = 0.5 * state.phi_velocity**2;
+            history.time.push(state.time);
+            history.phi.push(state.phi);
+            history.energy.push(potentialEnergy + kineticEnergy);
+        }
+
+        // --- RENDERING ---
+        function draw() {
+            requestAnimationFrame(draw);
+            updateSimulation(1/60.0);
+
+            drawMainView();
+            drawChart(phiCtx, history.time, history.phi, 'Field Value (φ)', '#3498db');
+            drawChart(energyCtx, history.time, history.energy, 'Energy Density (ρ)', '#f1c40f');
+        }
+
+        function drawMainView() {
+            const w = mainCanvas.width;
+            const h = mainCanvas.height;
+
+            const energy = history.energy.length > 0 ? history.energy[history.energy.length - 1] : 0;
+            const maxEnergy = potentialV(0); // Energy at the peak
+            const energyFraction = Math.max(0, Math.min(1, energy / maxEnergy));
+
+            // Map energy to a brightness value
+            const lightness = 10 + energyFraction * 40; // from 10% to 50%
+            mainCtx.fillStyle = `hsl(30, 80%, ${lightness}%)`;
+            mainCtx.fillRect(0, 0, w, h);
+
+            mainCtx.fillStyle = 'white';
+            mainCtx.font = '24px Arial';
+            mainCtx.textAlign = 'center';
+            mainCtx.fillText(`Energy Density: ${energy.toFixed(2)}`, w/2, h/2);
+        }
+
+        function drawChart(ctx, x_data, y_data, label, color) {
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0,0,w,h);
+            if (x_data.length < 2) return;
+
+            const max_y = Math.max(...y_data.map(Math.abs)) * 1.1 || 1;
+            const min_x = x_data[0];
+            const max_x = x_data[x_data.length-1];
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < x_data.length; i++) {
+                const x = (x_data[i] - min_x) / (max_x - min_x) * w;
+                const y = h/2 - (y_data[i] / max_y) * h * 0.45;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        // --- INITIALIZATION & EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            mainCanvas = document.getElementById('main-canvas');
+            mainCtx = mainCanvas.getContext('2d');
+            phiChart = document.getElementById('phi-chart');
+            phiCtx = phiChart.getContext('2d');
+            energyChart = document.getElementById('energy-chart');
+            energyCtx = energyChart.getContext('2d');
+
+            controls.alpha = document.getElementById('alpha');
+            controls.beta = document.getElementById('beta');
+            controls.friction = document.getElementById('friction');
+
+            document.getElementById('reset-btn').addEventListener('click', initialize);
+            document.getElementById('start-stop-btn').addEventListener('click', () => { simRunning = !simRunning; });
+
+            [controls.alpha, controls.beta, controls.friction].forEach(slider => {
+                slider.addEventListener('input', (e) => {
+                    document.querySelector(`#${e.target.id}-readout`).textContent = e.target.value;
+                });
+            });
+
+            initialize();
+            draw();
+        });
+    })();
+    </script>
+</body>
+</html>
