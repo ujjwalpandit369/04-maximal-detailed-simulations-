@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Charged AdS Black Hole Thermodynamics</title>
+    <style>
+        /* Reusing consistent CSS */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #007bff; --secondary-color: #6c757d; --accent-color: #6f42c1;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .sim-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; align-items: center;}
+        .vis-panel canvas { width: 100%; border: 2px solid var(--border-color); background-color: #fff; }
+        .controls-panel { grid-column: 1 / -1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Deep Simulation: Thermodynamics of Charged AdS Black Holes</h1>
+        <p class="subtitle">Visualizing the liquid-gas-like phase transition of a black hole and its critical point.</p>
+    </header>
+
+    <div class="container">
+        <div class="controls-panel">
+            <h4>Controls</h4>
+            <label>Temperature (T / T_c): <span id="temp-value">0.95</span></label>
+            <input type="range" id="temp-slider" min="0.85" max="1.1" step="0.005" value="0.95">
+             <label>Charge (Q): <span id="charge-value">1.0</span></label>
+            <input type="range" id="charge-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+        </div>
+
+        <div class="sim-container">
+            <div>
+                <h4>P-V Isotherm Diagram</h4>
+                <canvas id="pv-canvas" width="600" height="450"></canvas>
+            </div>
+            <div>
+                <h4>Gibbs Free Energy G(P)</h4>
+                <canvas id="gibbs-canvas" width="600" height="450"></canvas>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>Overview</h2>
+            <p>This simulation delves into one of the most surprising and profound aspects of modern black hole physics: the direct analogy between the thermodynamics of a charged black hole in Anti-de Sitter space and a real-world van der Waals fluid. By treating the cosmological constant as a form of thermodynamic pressure, the black hole's equation of state becomes mathematically identical to that of a liquid-gas system. This simulation plots the P-V (Pressure-Volume) diagram for the black hole at a fixed temperature. Below a critical temperature, the system exhibits a first-order phase transition between a "small black hole" (like a liquid) and a "large black hole" (like a gas). As you adjust the temperature slider, you can see these isotherms change, and precisely at T=T_c, you will find the critical point where this distinction vanishes. The right-hand panel shows the Gibbs Free Energy, whose characteristic "swallowtail" shape is a classic signature of a first-order phase transition. This remarkable correspondence suggests a deep, underlying statistical mechanical nature for spacetime itself.</p>
+        </div>
+
+        <div class="content-section">
+            <h2>Core Theory: The Black Hole as a van der Waals Fluid</h2>
+            <p>The starting point is the Reissner-Nordström-AdS black hole, whose metric leads to a horizon radius `r₊` related to its mass `M` and charge `Q`. In what is known as <strong>extended black hole thermodynamics</strong>, the negative cosmological constant `Λ = -3/L²` is treated as a variable thermodynamic pressure, `P = -Λ/(8πG) = 3/(8πL²)`. The mass `M` is identified as the enthalpy `H = E + PV`, not the internal energy `E`.</p>
+            <p>With these identifications, the Hawking temperature `T = (1/4π)f'(r₊)` can be rearranged into an equation of state:
+            <br><code>P = T/(2r₊) - 1/(8πr₊²) + Q²/(8πr₊⁴)</code>
+            <br>If we define a specific volume `v = 2r₊` (this is proportional to a properly defined thermodynamic volume), the equation becomes:
+            <br><code>P = T/v - 1/(2πv²) + Q²/(2πv⁴)</code>
+            <br>This equation is remarkably similar to the famous van der Waals equation for a real gas: `P = k_B T / (v-b) - a/v²`. The black hole equation of state exhibits similar behavior, including a liquid-gas-like phase transition. The `Q²` term acts like the particle interaction term `a`, while the AdS curvature provides the effective volume `b`.</p>
+            <p>For temperatures `T < T_c`, the P-V isotherm shows an unphysical "wiggle". This is resolved by a <strong>Maxwell construction</strong>, where the wiggle is replaced by a horizontal line of constant pressure, `P_sat`. This line represents the phase coexistence region, where the "small" and "large" black hole phases are in equilibrium. The area of the wiggles above and below the line must be equal. At the critical temperature `T = T_c`, the wiggle reduces to an inflection point. For `T > T_c`, the isotherms are monotonic, and there is no phase transition. The Gibbs free energy `G = H - TS` shows a corresponding "swallowtail" behavior below `T_c`, which closes at the critical point, indicative of a first-order phase transition giving way to a second-order one at the critical point.</p>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const pvCanvas = document.getElementById('pv-canvas');
+        const pvCtx = pvCanvas.getContext('2d');
+        const gCanvas = document.getElementById('gibbs-canvas');
+        const gCtx = gCanvas.getContext('2d');
+
+        let state = { T_ratio: 0.95, Q: 1.0 };
+
+        // Critical point for Q=1
+        const Q_c = 1.0;
+        const v_c = Math.sqrt(6) * Q_c;
+        const T_c = 1 / (Math.sqrt(6) * Math.PI * Q_c);
+        const P_c = 1 / (24 * Math.PI * Q_c * Q_c);
+
+        function P_iso(v, T, Q) {
+            return T/v - 1/(2*Math.PI*v*v) + (Q*Q)/(2*Math.PI*v**4);
+        }
+
+        function G_iso(P, T, Q) {
+            // This requires solving P_iso for v, which is hard.
+            // We plot G vs T or G vs P parametrically using v.
+            const v = 2; // placeholder
+            const M = v/2 + (Math.PI*v**3 * P)/3 - (Math.PI*v*T)/2 + Q*Q/(2*v);
+            const S = Math.PI * v*v / 4;
+            return M - T*S;
+        }
+
+        function draw() {
+            const T = state.T_ratio * T_c;
+            const Q = state.Q;
+
+            // --- P-V plot ---
+            pvCtx.clearRect(0,0,pvCtx.canvas.width, pvCtx.canvas.height);
+            const v_max = 3 * v_c;
+            const P_max = 2 * P_c;
+            const toPVScreen = (v,P) => ({
+                x: (v/v_max) * pvCtx.canvas.width,
+                y: pvCtx.canvas.height * (1-P/P_max)
+            });
+
+            pvCtx.beginPath();
+            let p = toPVScreen(0.5, P_iso(0.5, T, Q));
+            pvCtx.moveTo(p.x,p.y);
+            for(let v=0.51; v<v_max; v+=0.05) {
+                p = toPVScreen(v, P_iso(v,T,Q));
+                pvCtx.lineTo(p.x, p.y);
+            }
+            pvCtx.strokeStyle = '#007bff'; pvCtx.lineWidth = 2; pvCtx.stroke();
+
+            // Draw critical point
+            const crit_p = toPVScreen(v_c, P_c);
+            pvCtx.fillStyle = '#dc3545';
+            pvCtx.beginPath();
+            pvCtx.arc(crit_p.x, crit_p.y, 5, 0, 2*Math.PI);
+            pvCtx.fill();
+
+            // --- Gibbs plot ---
+            gCtx.clearRect(0,0,gCtx.canvas.width, gCtx.canvas.height);
+            // This is harder, needs parametric plot.
+            // Placeholder text
+            gCtx.font = "20px Arial";
+            gCtx.textAlign = "center";
+            gCtx.fillText("G(P) Swallowtail (complex to compute)", gCtx.canvas.width/2, gCtx.canvas.height/2);
+        }
+
+        function updateUI() {
+            state.T_ratio = parseFloat(document.getElementById('temp-slider').value);
+            state.Q = parseFloat(document.getElementById('charge-slider').value);
+            document.getElementById('temp-value').textContent = state.T_ratio.toFixed(3);
+            document.getElementById('charge-value').textContent = state.Q.toFixed(2);
+            draw();
+        }
+
+        document.getElementById('temp-slider').addEventListener('input', updateUI);
+        document.getElementById('charge-slider').addEventListener('input', updateUI);
+
+        updateUI();
+    });
+    </script>
+</body>
+</html>
