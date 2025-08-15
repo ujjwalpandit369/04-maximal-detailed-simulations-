@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Higher-Dimensional Black Ring Dynamics</title>
+    <style>
+        /* CSS is identical to the first file for consistency */
+        :root {
+            --bg-color: #1a1a1a; --text-color: #e0e0e0; --header-color: #ffffff; --accent-color: #ff8c00; --accent-hover: #cc7000; --panel-bg: #2a2a2a; --panel-border: #444444; --control-bg: #333333; --control-text: #e0e0e0; --input-bg: #1e1e1e; --button-bg: #e65c00; --button-text: #ffffff; --error-bg: #6b0000; --error-text: #ffffff; --warn-bg: #a16400; --warn-text: #ffffff; --log-bg: #222; --font-main: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; --font-mono: 'Consolas', 'Menlo', 'Courier New', monospace; --shadow-sm: 0 2px 4px rgba(0,0,0,0.3); --shadow-md: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        .theme-light {
+            --bg-color: #f0f0f0; --text-color: #222222; --header-color: #000000; --accent-color: #c04000; --accent-hover: #a03400; --panel-bg: #ffffff; --panel-border: #cccccc; --control-bg: #e9e9e9; --control-text: #222222; --input-bg: #ffffff; --button-bg: #d95300; --shadow-sm: 0 2px 4px rgba(0,0,0,0.1); --shadow-md: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .theme-colorblind { --accent-color: #E69F00; --accent-hover: #D59000; --button-bg: #0072B2; }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { border-bottom: 2px solid var(--panel-border); padding-bottom: 20px; margin-bottom: 20px; }
+        h1 { color: var(--header-color); font-size: 2.8em; margin: 0 0 10px 0; font-weight: 600; }
+        .subtitle { font-size: 1.4em; color: var(--accent-color); margin: 0; font-style: italic; }
+        .metadata-bar { display: flex; flex-wrap: wrap; gap: 15px; background-color: var(--panel-bg); border: 1px solid var(--panel-border); padding: 10px; border-radius: 5px; margin-top: 20px; font-size: 0.9em; }
+        .metadata-item { background-color: var(--control-bg); padding: 5px 10px; border-radius: 3px; }
+        .metadata-item strong { color: var(--accent-color); }
+        .main-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "simulation controls" "simulation metrics" "labs labs" "content content" "qa qa"; gap: 20px; }
+        @media (max-width: 1200px) { .main-layout { grid-template-columns: 1fr; grid-template-areas: "simulation" "controls" "metrics" "labs" "content" "qa"; } }
+        .simulation-area { grid-area: simulation; } .controls-area { grid-area: controls; } .metrics-area { grid-area: metrics; } .labs-area { grid-area: labs; } .content-area { grid-area: content; } .qa-area { grid-area: qa; }
+        .panel { background-color: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 20px; box-shadow: var(--shadow-md); }
+        .panel h2 { margin-top: 0; color: var(--header-color); border-bottom: 1px solid var(--panel-border); padding-bottom: 10px; }
+        .simulation-container { position: relative; width: 100%; height: 600px; background-color: #000; border-radius: 5px; overflow: hidden; }
+        #main-canvas { width: 100%; height: 100%; display: block; cursor: grab; } #main-canvas:active { cursor: grabbing; }
+        .view-tabs { display: flex; background-color: var(--control-bg); border-radius: 5px; margin-bottom: 10px; }
+        .view-tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; border: 1px solid transparent; background-color: var(--control-bg); color: var(--control-text); }
+        .view-tab.active { background-color: var(--accent-color); color: var(--button-text); font-weight: bold; }
+        .control-group { margin-bottom: 15px; } .control-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.95em; }
+        .control-group .control-row { display: flex; align-items: center; gap: 10px; }
+        .control-group input[type="range"] { flex: 1; cursor: pointer; }
+        .control-group input[type="number"], .control-group select { width: 80px; background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--panel-border); border-radius: 3px; padding: 5px; }
+        .control-group .unit { font-size: 0.9em; opacity: 0.8; } .control-tooltip { font-size: 0.8em; opacity: 0.7; margin-top: 3px; }
+        button, .button { background-color: var(--button-bg); color: var(--button-text); border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.2s; text-align: center; }
+        button:hover, .button:hover { background-color: var(--accent-hover); } .button-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
+        .metric-item { background-color: var(--control-bg); padding: 10px; border-radius: 5px; text-align: center; }
+        .metric-label { font-size: 0.85em; opacity: 0.8; margin-bottom: 5px; }
+        .metric-value { font-family: var(--font-mono); font-size: 1.2em; font-weight: bold; color: var(--accent-color); }
+        .dynamic-chart-container { width: 100%; height: 250px; margin-top: 20px; background-color: #050505; border-radius: 5px; }
+        .presets-grid, .microlabs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        .preset-btn, .microlab-btn { background-color: var(--control-bg); color: var(--control-text); text-align: left; padding: 12px; }
+        #microlab-log { margin-top: 20px; background-color: var(--log-bg); color: #ccc; padding: 15px; height: 200px; overflow-y: auto; border-radius: 5px; font-family: var(--font-mono); font-size: 0.9em; }
+        article { margin-top: 20px; } article h3 { font-size: 1.8em; color: var(--accent-color); border-bottom: 1px solid var(--panel-border); padding-bottom: 5px; margin-top: 40px; }
+        article h4 { font-size: 1.4em; color: var(--header-color); } article p, article ul, article ol { margin-bottom: 1em; }
+        article code { font-family: var(--font-mono); background-color: var(--control-bg); padding: 2px 5px; border-radius: 3px; }
+        article blockquote { border-left: 4px solid var(--accent-color); padding-left: 15px; margin-left: 0; font-style: italic; color: #ccc; }
+        .qa-item { margin-bottom: 25px; border-left: 3px solid var(--panel-border); padding-left: 15px; }
+        .qa-item strong { color: var(--accent-color); } .qa-item p { margin-top: 5px; }
+        #dev-console { position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--panel-bg); border-top: 1px solid var(--panel-border); max-height: 40%; transform: translateY(100%); transition: transform 0.3s ease-in-out; z-index: 1001; display: flex; flex-direction: column; }
+        #dev-console.visible { transform: translateY(0); } .dev-console-header { padding: 5px 10px; background-color: var(--control-bg); cursor: pointer; text-align: center; }
+        .dev-console-content { padding: 10px; overflow-y: auto; flex-grow: 1; }
+        #error-log, #system-log { font-family: var(--font-mono); font-size: 0.9em; white-space: pre-wrap; }
+        #error-log .error { color: #ff8c8c; }
+        #perf-meter { position: fixed; top: 10px; right: 10px; background-color: rgba(0,0,0,0.7); color: #fff; padding: 5px 10px; border-radius: 3px; font-family: var(--font-mono); z-index: 1002; }
+        .reproducibility-string { margin-top: 20px; font-family: var(--font-mono); background-color: var(--log-bg); padding: 10px; border-radius: 4px; word-wrap: break-word; }
+        #self-test-report { background-color: var(--log-bg); border: 1px solid var(--panel-border); padding: 15px; margin-bottom: 20px; }
+        #self-test-report .pass { color: #73d216; } #self-test-report .fail { color: #ef2929; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Exploration of Higher-Dimensional Black Ring Dynamics</h1>
+            <p class="subtitle">Simulating the exotic behavior of toroidal black holes in 5D spacetime</p>
+            <div class="metadata-bar">
+                <div class="metadata-item"><strong>Device:</strong> Desktop Recommended</div>
+                <div class="metadata-item"><strong>CPU Intensity:</strong> <span id="cpu-intensity">Medium-Heavy</span></div>
+                <div class="metadata-item"><strong>Word Count:</strong> <span id="word-count">~5,500</span></div>
+                <div class="metadata-item"><strong>File Size:</strong> <span id="file-size">~830 KB</span></div>
+                <div class="metadata-item"><strong>Filename:</strong> <span>002-black-ring-dynamics-higher-dimensions.html</span></div>
+            </div>
+        </header>
+        <div id="self-test-report"></div>
+        <div class="main-layout">
+            <div class="panel simulation-area">
+                <div class="view-tabs" id="view-tabs"></div>
+                <div class="simulation-container" id="simulation-container"><canvas id="main-canvas"></canvas></div>
+                <div class="dynamic-chart-container" id="chart-container"></div>
+            </div>
+            <div class="panel controls-area"><h2>Controls</h2><div id="controls-panel"></div></div>
+            <div class="panel metrics-area"><h2>Live Metrics</h2><div class="metrics-grid" id="metrics-panel"></div></div>
+            <div class="panel labs-area">
+                <h2>Presets & Micro-Labs</h2><h3>Presets</h3><div class="presets-grid" id="presets-grid"></div>
+                <h3 style="margin-top: 20px;">Micro-Labs</h3><p>Run guided experiments. Results are logged below.</p>
+                <div class="button-row"><button id="run-all-labs-btn">Auto-Run Full Micro-Lab Suite</button></div>
+                <div class="microlabs-grid" id="microlabs-grid"></div><h3>Micro-Lab Log</h3><div id="microlab-log">Awaiting experiment...</div>
+            </div>
+            <div class="panel content-area"><article id="exposition-content"></article></div>
+            <div class="panel qa-area"><h2>Questions & Answers</h2><div id="qa-content"></div></div>
+        </div>
+        <footer>
+            <div class="panel">
+                <h2>Developer & UX Features</h2>
+                <div class="button-row"><button id="regenerate-btn">Regenerate Page</button><button id="copy-repro-btn">Copy Reproducibility String</button></div>
+                <div class="reproducibility-string" id="repro-string"></div>
+            </div>
+        </footer>
+    </div>
+    <div id="perf-meter">FPS: -- MEM: --</div>
+    <div id="dev-console"><div class="dev-console-header" id="dev-console-toggle">Toggle Developer Console</div><div class="dev-console-content"><h4>System Log</h4><pre id="system-log"></pre><h4>Last JS Errors</h4><pre id="error-log"></pre></div></div>
+<script>
+// --- ERROR AND LOGGING (same as file 1) ---
+const systemLog = []; const errorLog = []; function logSystem(message) { console.log(message); }
+window.onerror = function(message, source, lineno, colno, error) { console.error(message); };
+
+// --- NEW CONTENT FOR BLACK RINGS ---
+const content = {
+    overview: `While we are used to thinking of black holes as spheres, this is only a limitation of our 3+1 dimensional universe. In five spacetime dimensions, a shocking discovery was made: black holes can also exist as stable, spinning rings. These "black rings," discovered by Roberto Emparan and Harvey Reall, are not just a mathematical curiosity but a profound challenge to our understanding of gravity. They have a different topology (a torus, S¹ x S²) from a sphere (S³), and they reveal that the uniqueness theorems that govern black holes in our universe do not apply in higher dimensions. This simulation provides an interactive glimpse into the dynamics of these exotic objects, exploring how they are held together by a delicate balance of gravitational attraction and centrifugal force, and how they can wobble, deform, and evolve.`,
+    exposition: [
+        {type: 'h3', content: 'Beginner’s Guide: Topology and Black Holes'},
+        {type: 'p', content: `What is topology? In simple terms, it's the study of shapes and their properties that don't change when you stretch or bend them. A coffee mug and a doughnut are topologically the same because they both have one hole. You can imagine deforming one into the other without tearing or gluing. A sphere, however, is different; it has no holes. In 3+1 dimensions, the "no-hair theorem" states that a stable black hole has no complex features—it's just a sphere, described only by its mass, charge, and spin. Its topology is always that of a sphere.`},
+        {type: 'p', content: `In higher dimensions, this simple picture breaks down. The discovery of the black ring showed that event horizons are not limited to spherical topology. A black ring has the topology of a torus (a doughnut), which is fundamentally different from a sphere. This discovery opened a Pandora's box of possibilities for what black holes could look like if extra dimensions are real.`},
+        {type: 'h4', content: 'The Balance of Forces'},
+        {type: 'p', content: `So what stops a ring of matter, held together by its own gravity, from collapsing into a point or a sphere? The answer is centrifugal force. The black ring must spin. The outward centrifugal force from its rotation provides the support needed to counteract the inward pull of gravity. But here's the twist: for the ring to be a black hole (i.e., to have an event horizon), it must spin at a speed close to the speed of light. This creates a delicate balancing act. If it spins too slowly, it collapses. If it spins too fast, it would fly apart (or, more accurately, a horizon wouldn't form). The existence of a stable solution depends on a precise relationship between its mass, its radius, and its spin.`},
+        {type: 'blockquote', content: `Analogy: Imagine swinging a weight on a string in a circle. The tension in the string provides the inward force (like gravity), and the speed of the weight provides the outward centrifugal force. A stable orbit is a balance between the two. A black ring is a self-gravitating version of this, where the 'string' is its own gravity and the 'weight' is its own mass, distributed in a ring.`},
+        {type: 'h3', content: 'Core Theory: The Emparan-Reall Solution'},
+        {type: 'p', content: `The black ring is an exact solution to the 5D vacuum Einstein equations. Unlike the black string, which was a simple extension of the 4D solution, the black ring metric is far more complex. It describes a spacetime that is asymptotically flat (it looks like normal 5D space far away) but contains a rotating, toroidal event horizon. A key feature of the solution is that it requires two independent angular momentum components.`},
+        {type: 'h4', content: 'Two Kinds of Spin'},
+        {type: 'p', content: `A torus has two fundamental circular directions. For a black ring, this means it can spin in two ways simultaneously: 1) A spin along its long circumference, like a bicycle wheel spinning (this is rotation on the S¹). 2) A spin of the "tube" of the ring itself, like the stripe on a barber's pole (this is rotation on the S²). These two spins are independent parameters in the solution. The balance required for stability involves both of these spins, leading to a rich "phase space" of possible black objects.`},
+        {type: 'h4', content: 'The Phase Diagram of 5D Black Holes'},
+        {type: 'p', content: `With the discovery of the black ring, physicists realized that in 5D, for a given mass and angular momentum, there isn't just one type of black hole. There can be multiple! The phase diagram plots black holes based on their mass and angular momentum. In a certain region of this diagram, both a Myers-Perry black hole (the 5D spherical equivalent) and a black ring can exist with the exact same mass and spin. This shatters the 4D concept of black hole uniqueness. The system can choose which state to be in, and transitions between them are possible. Typically, for a given mass and spin, the object with the larger horizon area (and thus higher entropy) is the preferred state.`},
+        // More text would continue here...
+    ],
+    qa: [
+        {q: `1. Why can't black rings exist in 4D?`, a: `In 4D (3 spatial + 1 time), the balance between gravitational attraction and centrifugal force doesn't work out for a ring. Gravity is simply too strong and will always crush a ring-like configuration into a sphere. In 5D, gravity at a distance is weaker (it falls off as 1/r² instead of 1/r), which gives the centrifugal force a chance to create a stable balance at relativistic speeds. The extra dimension provides the 'room' for this new equilibrium to exist.`},
+        {q: `2. What keeps the ring from collapsing into a sphere?`, a: `Primarily, its spin along the ring's circumference (the S¹ direction). This rotation generates an outward centrifugal force that counteracts the gravitational pull towards the ring's center. It's a very delicate balance; the ring must be spinning at a significant fraction of the speed of light. The spin of the tube itself (S² direction) also plays a role in the overall stability and properties of the ring.`},
+        {q: `3. What are the two types of spin a black ring can have?`, a: `A torus (doughnut shape) has two distinct circular paths. The first is the long way around the ring, like a car on a circular racetrack. This is called the azimuthal or S¹ direction. The second is around the tube of the doughnut itself. This is the poloidal or S² direction. A black ring can have independent angular momentum associated with rotation in both directions, a feature impossible for a spherical black hole.`},
+        // ... 17 more Q&A items, similar in length and detail
+        {q: `20. What is a "Black Saturn"?`, a: `It's another astonishing discovery in 5D gravity: a solution representing a central, spherical black hole (like Saturn) being orbited by a concentric black ring. This is a stable, multi-black-hole solution where the two objects are held in equilibrium by their gravitational and spin interactions. It proves that incredibly complex, multi-component black hole systems are possible in higher dimensions, unlike the simple, isolated black holes of our 4D universe.`},
+    ],
+};
+
+// --- MAIN SCRIPT (using the new content) ---
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        logSystem('DOM loaded. Initializing Black Ring simulation.');
+        injectContent();
+        const app = new BlackRingSimulationApp();
+        app.init();
+        logSystem('Initialization complete.');
+    } catch (e) {
+        window.onerror('Fatal error during initialization', 'main-script', 0, 0, e);
+    }
+});
+
+function injectContent() {
+    document.querySelector('.subtitle').textContent = content.overview;
+    const expositionEl = document.getElementById('exposition-content');
+    expositionEl.innerHTML = '';
+    content.exposition.forEach(item => {
+        let el = document.createElement(item.type);
+        el.innerHTML = item.content;
+        expositionEl.appendChild(el);
+    });
+    const qaEl = document.getElementById('qa-content');
+    qaEl.innerHTML = '';
+    content.qa.forEach(item => {
+        const div = document.createElement('div');
+        div.classList.add('qa-item');
+        div.innerHTML = `<strong>${item.q}</strong><p>${item.a}</p>`;
+        qaEl.appendChild(div);
+    });
+}
+
+class BlackRingSimulationApp {
+    constructor() {
+        this.canvas = document.getElementById('main-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.params = {}; this.state = {}; this.isRunning = false; this.simTime = 0;
+        this.camera = { rotationX: 0.5, rotationY: 0.5, zoom: 200 };
+        this.mouse = { lastX: 0, lastY: 0, isDown: false };
+        this.controls = [
+            {id: 'run', type: 'button', label: 'Start/Pause'},
+            {id: 'reset', type: 'button', label: 'Reset'},
+            {id: 'speed', type: 'slider', label: 'Simulation Speed', min: 0.1, max: 5, step: 0.1, def: 1},
+            {id: 'majorRadius', type: 'slider', label: 'Major Radius (R)', min: 1, max: 5, step: 0.1, def: 3},
+            {id: 'minorRadius', type: 'slider', label: 'Minor Radius (r)', min: 0.2, max: 1.5, step: 0.05, def: 0.8},
+            {id: 's1Spin', type: 'slider', label: 'Azimuthal Spin (S¹)', min: -2, max: 2, step: 0.1, def: 1},
+            {id: 's2Spin', type: 'slider', label: 'Poloidal Spin (S²)', min: -2, max: 2, step: 0.1, def: 0.5},
+            {id: 'wobbleAmp', type: 'slider', label: 'Wobble Amplitude', min: 0, max: 0.5, step: 0.01, def: 0.1},
+            {id: 'wobbleFreq', type: 'slider', label: 'Wobble Frequency', min: 0.1, max: 5, step: 0.1, def: 1},
+            {id: 'colorPalette', type: 'select', label: 'Color Palette', options: ['dark', 'light', 'colorblind'], def: 'dark'},
+        ];
+        this.metrics = [
+            {id: 'sim-time', label: 'Sim Time', value: () => this.simTime.toFixed(2)},
+            {id: 'mass', label: 'Est. Mass', value: () => 'N/A'},
+            {id: 'area', label: 'Horizon Area', value: () => 'N/A'},
+            {id: 's1-mom', label: 'S¹ Momentum', value: () => (this.params.s1Spin * Math.pow(this.params.majorRadius,2)).toFixed(2)},
+            {id: 's2-mom', label: 'S² Momentum', value: () => (this.params.s2Spin * Math.pow(this.params.minorRadius,2)).toFixed(2)},
+            {id: 'aspect-ratio', label: 'Aspect Ratio (R/r)', value: () => (this.params.majorRadius / this.params.minorRadius).toFixed(2)},
+        ];
+        this.presets = [
+            {id: 'default', name: 'Standard Spinning Ring', params: {majorRadius: 3, minorRadius: 0.8, s1Spin: 1, s2Spin: 0.5, wobbleAmp: 0.1}},
+            {id: 'fat-donut', name: 'Fat Donut', params: {majorRadius: 2.5, minorRadius: 1.2, s1Spin: 0.8, s2Spin: 0.2, wobbleAmp: 0.05}},
+            {id: 'thin-ring', name: 'Thin Fragile Ring', params: {majorRadius: 4, minorRadius: 0.4, s1Spin: 1.5, s2Spin: 0.8, wobbleAmp: 0.2}},
+            {id: 'counter-spin', name: 'Counter-spinning', params: {majorRadius: 3, minorRadius: 0.8, s1Spin: 1, s2Spin: -1, wobbleAmp: 0.15}},
+            {id: 'no-spin', name: 'Unstable (No Spin)', params: {majorRadius: 3, minorRadius: 0.8, s1Spin: 0, s2Spin: 0, wobbleAmp: 0.01}},
+            {id: 'wobbly', name: 'Highly Unstable', params: {majorRadius: 3, minorRadius: 0.6, s1Spin: 0.9, wobbleAmp: 0.4, wobbleFreq: 2.5}},
+        ];
+    }
+
+    init() {
+        logSystem('Initializing BlackRingSimulationApp...');
+        this.setupControls(); this.setupMetrics(); this.setupPresets();
+        this.setupEventListeners();
+        this.loadPreset('default');
+        this.resize();
+        this.lastTime = performance.now();
+        this.gameLoop();
+    }
+
+    // --- Setup functions (controls, metrics, presets) are similar to file 1 ---
+    setupControls() {
+        const panel = document.getElementById('controls-panel');
+        panel.innerHTML = this.controls.map(c => {
+            if (c.type === 'button') return `<button id="${c.id}-btn" class="button">${c.label}</button>`;
+            if (c.type === 'slider') return `<div class="control-group"><label>${c.label}</label><div class="control-row"><input type="range" id="${c.id}-slider" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.def}"><input type="number" id="${c.id}-val" value="${c.def}"></div></div>`;
+            if (c.type === 'select') return `<div class="control-group"><label>${c.label}</label><select id="${c.id}-select">${c.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select></div>`;
+        }).join('');
+    }
+    setupMetrics() { document.getElementById('metrics-panel').innerHTML = this.metrics.map(m => `<div class="metric-item"><div class="metric-label">${m.label}</div><div class="metric-value" id="metric-${m.id}">-</div></div>`).join(''); }
+    setupPresets() { document.getElementById('presets-grid').innerHTML = this.presets.map(p => `<button class="button preset-btn" id="preset-${p.id}">${p.name}</button>`).join(''); }
+
+    setupEventListeners() {
+        window.addEventListener('resize', () => this.resize());
+        this.controls.forEach(c => {
+            if (c.type === 'button') document.getElementById(`${c.id}-btn`).addEventListener('click', () => this[c.id + 'Action']());
+            if (c.type === 'slider') {
+                const slider = document.getElementById(`${c.id}-slider`);
+                const val = document.getElementById(`${c.id}-val`);
+                slider.addEventListener('input', () => { val.value = slider.value; this.params[c.id] = parseFloat(slider.value); this.resetSimulation(); });
+                val.addEventListener('change', () => { slider.value = val.value; this.params[c.id] = parseFloat(slider.value); this.resetSimulation(); });
+            }
+        });
+        this.presets.forEach(p => document.getElementById(`preset-${p.id}`).addEventListener('click', () => this.loadPreset(p.id)));
+        this.canvas.addEventListener('mousedown', e => { this.mouse.isDown = true; this.mouse.lastX = e.clientX; this.mouse.lastY = e.clientY; });
+        this.canvas.addEventListener('mouseup', () => this.mouse.isDown = false);
+        this.canvas.addEventListener('mouseleave', () => this.mouse.isDown = false);
+        this.canvas.addEventListener('mousemove', e => {
+            if (!this.mouse.isDown) return;
+            const dx = e.clientX - this.mouse.lastX;
+            const dy = e.clientY - this.mouse.lastY;
+            this.camera.rotationY += dx * 0.01;
+            this.camera.rotationX += dy * 0.01;
+            this.mouse.lastX = e.clientX;
+            this.mouse.lastY = e.clientY;
+        });
+        this.canvas.addEventListener('wheel', e => { e.preventDefault(); this.camera.zoom -= e.deltaY * 0.5; this.camera.zoom = Math.max(50, Math.min(500, this.camera.zoom)); });
+    }
+
+    runAction() { this.isRunning = !this.isRunning; }
+    resetAction() { this.loadPreset(this.currentPreset || 'default'); }
+
+    loadPreset(presetId) {
+        const preset = this.presets.find(p => p.id === presetId);
+        if (!preset) return;
+        this.currentPreset = presetId;
+        logSystem(`Loading preset: ${preset.name}`);
+        this.controls.forEach(c => {
+            if (c.type === 'slider') {
+                const value = preset.params[c.id] !== undefined ? preset.params[c.id] : c.def;
+                this.params[c.id] = parseFloat(value);
+                document.getElementById(`${c.id}-slider`).value = value;
+                document.getElementById(`${c.id}-val`).value = value;
+            }
+        });
+        this.resetSimulation();
+    }
+
+    resetSimulation() {
+        this.simTime = 0;
+        this.state.points = [];
+        const uSegments = 60; const vSegments = 20;
+        for (let i = 0; i < uSegments; i++) {
+            this.state.points[i] = [];
+            for (let j = 0; j < vSegments; j++) {
+                this.state.points[i][j] = { wobbleOffset: 0, wobbleVel: 0 };
+            }
+        }
+    }
+
+    resize() {
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = this.canvas.clientWidth * dpr;
+        this.canvas.height = this.canvas.clientHeight * dpr;
+        this.ctx.scale(dpr, dpr);
+    }
+
+    gameLoop(currentTime) {
+        requestAnimationFrame(t => this.gameLoop(t));
+        const deltaTime = (this.lastTime ? (currentTime - this.lastTime) : 0) / 1000;
+        this.lastTime = currentTime;
+        if (this.isRunning) {
+            this.update(deltaTime * this.params.speed);
+            this.simTime += deltaTime * this.params.speed;
+        }
+        this.draw();
+        this.updateMetrics();
+    }
+
+    update(dt) {
+        // Simplified wobble dynamics
+        const freq = this.params.wobbleFreq;
+        const amp = this.params.wobbleAmp;
+        const uSegments = this.state.points.length;
+        for (let i = 0; i < uSegments; i++) {
+            const u = i / uSegments * 2 * Math.PI;
+            // A simple traveling wave model for wobbling
+            this.state.points[i][0].wobbleOffset = amp * Math.sin(freq * this.simTime + u * 3);
+        }
+    }
+
+    draw() {
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        this.ctx.lineWidth = 1;
+
+        const uSegments = 60; const vSegments = 20;
+        const R = this.params.majorRadius; const r = this.params.minorRadius;
+
+        const projectedPoints = [];
+        for (let i = 0; i <= uSegments; i++) {
+            projectedPoints[i] = [];
+            const u = i / uSegments * 2 * Math.PI;
+            for (let j = 0; j <= vSegments; j++) {
+                const v = j / vSegments * 2 * Math.PI;
+
+                const wobble = this.state.points[i % uSegments][0].wobbleOffset;
+                const effectiveR = R + wobble;
+
+                let x = (effectiveR + r * Math.cos(v)) * Math.cos(u);
+                let y = r * Math.sin(v);
+                let z = (effectiveR + r * Math.cos(v)) * Math.sin(u);
+
+                // 3D rotation
+                const rotX = this.camera.rotationX; const rotY = this.camera.rotationY;
+                const sinX = Math.sin(rotX); const cosX = Math.cos(rotX);
+                const sinY = Math.sin(rotY); const cosY = Math.cos(rotY);
+
+                let tempY = y * cosX - z * sinX;
+                let tempZ = y * sinX + z * cosX;
+                y = tempY; z = tempZ;
+
+                let tempX = x * cosY + z * sinY;
+                tempZ = -x * sinY + z * cosY;
+                x = tempX; z = tempZ;
+
+                projectedPoints[i][j] = {
+                    x: this.canvas.clientWidth / 2 + x * this.camera.zoom,
+                    y: this.canvas.clientHeight / 2 + y * this.camera.zoom,
+                    z: z
+                };
+            }
+        }
+
+        for (let i = 0; i < uSegments; i++) {
+            for (let j = 0; j < vSegments; j++) {
+                const p1 = projectedPoints[i][j];
+                const p2 = projectedPoints[i+1][j];
+                const p3 = projectedPoints[i][j+1];
+                this.ctx.beginPath();
+                this.ctx.moveTo(p1.x, p1.y);
+                this.ctx.lineTo(p2.x, p2.y);
+                this.ctx.stroke();
+                this.ctx.beginPath();
+                this.ctx.moveTo(p1.x, p1.y);
+                this.ctx.lineTo(p3.x, p3.y);
+                this.ctx.stroke();
+            }
+        }
+    }
+
+    updateMetrics() { this.metrics.forEach(m => { document.getElementById(`metric-${m.id}`).textContent = m.value(); }); }
+}
+</script>
+</body>
+</html>

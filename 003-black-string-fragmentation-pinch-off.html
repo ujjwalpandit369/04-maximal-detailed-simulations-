@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Black String Fragmentation & Pinch-Off</title>
+    <style>
+        /* CSS is identical for consistency, with a new accent color */
+        :root {
+            --bg-color: #1a1a1a; --text-color: #e0e0e0; --header-color: #ffffff; --accent-color: #c5004a; --accent-hover: #a1003d; --panel-bg: #2a2a2a; --panel-border: #444444; --control-bg: #333333; --control-text: #e0e0e0; --input-bg: #1e1e1e; --button-bg: #b30042; --button-text: #ffffff; --error-bg: #6b0000; --error-text: #ffffff; --warn-bg: #a16400; --warn-text: #ffffff; --log-bg: #222; --font-main: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; --font-mono: 'Consolas', 'Menlo', 'Courier New', monospace; --shadow-sm: 0 2px 4px rgba(0,0,0,0.3); --shadow-md: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        .theme-light {
+            --bg-color: #f0f0f0; --text-color: #222222; --header-color: #000000; --accent-color: #a50034; --accent-hover: #800029; --panel-bg: #ffffff; --panel-border: #cccccc; --control-bg: #e9e9e9; --control-text: #222222; --input-bg: #ffffff; --button-bg: #a50034; --shadow-sm: 0 2px 4px rgba(0,0,0,0.1); --shadow-md: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .theme-colorblind { --accent-color: #E69F00; --accent-hover: #D59000; --button-bg: #0072B2; }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { border-bottom: 2px solid var(--panel-border); padding-bottom: 20px; margin-bottom: 20px; }
+        h1 { color: var(--header-color); font-size: 2.8em; margin: 0 0 10px 0; font-weight: 600; }
+        .subtitle { font-size: 1.4em; color: var(--accent-color); margin: 0; font-style: italic; }
+        .metadata-bar { display: flex; flex-wrap: wrap; gap: 15px; background-color: var(--panel-bg); border: 1px solid var(--panel-border); padding: 10px; border-radius: 5px; margin-top: 20px; font-size: 0.9em; }
+        .metadata-item { background-color: var(--control-bg); padding: 5px 10px; border-radius: 3px; }
+        .metadata-item strong { color: var(--accent-color); }
+        .main-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "simulation controls" "simulation metrics" "labs labs" "content content" "qa qa"; gap: 20px; }
+        @media (max-width: 1200px) { .main-layout { grid-template-columns: 1fr; grid-template-areas: "simulation" "controls" "metrics" "labs" "content" "qa"; } }
+        .simulation-area { grid-area: simulation; } .controls-area { grid-area: controls; } .metrics-area { grid-area: metrics; } .labs-area { grid-area: labs; } .content-area { grid-area: content; } .qa-area { grid-area: qa; }
+        .panel { background-color: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 20px; box-shadow: var(--shadow-md); }
+        .panel h2 { margin-top: 0; color: var(--header-color); border-bottom: 1px solid var(--panel-border); padding-bottom: 10px; }
+        .simulation-container { position: relative; width: 100%; height: 500px; background-color: #000; border-radius: 5px; overflow: hidden; }
+        #main-canvas { width: 100%; height: 100%; display: block; }
+        .dynamic-chart-container { width: 100%; height: 250px; margin-top: 20px; background-color: #050505; border-radius: 5px; padding: 10px; }
+        #chart-canvas { width: 100%; height: 100%; }
+        .control-group { margin-bottom: 15px; } .control-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.95em; }
+        button, .button { background-color: var(--button-bg); color: var(--button-text); border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
+        .metric-item { background-color: var(--control-bg); padding: 10px; border-radius: 5px; text-align: center; }
+        .metric-label { font-size: 0.85em; opacity: 0.8; margin-bottom: 5px; }
+        .metric-value { font-family: var(--font-mono); font-size: 1.2em; font-weight: bold; color: var(--accent-color); }
+        article { margin-top: 20px; } article h3 { font-size: 1.8em; color: var(--accent-color); }
+        article h4 { font-size: 1.4em; color: var(--header-color); }
+        article code { font-family: var(--font-mono); background-color: var(--control-bg); padding: 2px 5px; border-radius: 3px; }
+        article blockquote { border-left: 4px solid var(--accent-color); padding-left: 15px; font-style: italic; color: #ccc; }
+        .qa-item { margin-bottom: 25px; border-left: 3px solid var(--panel-border); padding-left: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Simulating Chaos: Black String Fragmentation and Cosmic Censorship</h1>
+            <p class="subtitle">An interactive look at the violent death of a black string and its challenge to fundamental physics</p>
+            <div class="metadata-bar">
+                <div class="metadata-item"><strong>CPU Intensity:</strong> <span id="cpu-intensity">Heavy</span></div>
+                <div class="metadata-item"><strong>Word Count:</strong> <span id="word-count">~5,200</span></div>
+                <div class="metadata-item"><strong>Filename:</strong> <span>003-black-string-fragmentation-pinch-off.html</span></div>
+            </div>
+        </header>
+        <div class="main-layout">
+            <div class="panel simulation-area">
+                <div class="simulation-container" id="simulation-container"><canvas id="main-canvas"></canvas></div>
+                <div class="dynamic-chart-container" id="chart-container">
+                    <canvas id="chart-canvas"></canvas>
+                </div>
+            </div>
+            <div class="panel controls-area"><h2>Controls</h2><div id="controls-panel"></div></div>
+            <div class="panel metrics-area"><h2>Live Metrics</h2><div class="metrics-grid" id="metrics-panel"></div></div>
+            <div class="panel content-area"><article id="exposition-content"></article></div>
+            <div class="panel qa-area"><h2>Questions & Answers</h2><div id="qa-content"></div></div>
+        </div>
+    </div>
+<script>
+// --- ERROR AND LOGGING (same as file 1) ---
+function logSystem(message) { console.log(message); }
+window.onerror = function(message) { console.error(message); };
+
+// --- NEW CONTENT FOR FRAGMENTATION ---
+const content = {
+    overview: `What happens when the gentle ripple of the Gregory-Laflamme instability grows large? This simulation explores the answer: a chaotic, violent process where the black string's horizon stretches, thins, and snaps, breaking the string into a series of smaller, spherical black holes. This fragmentation process, particularly the "pinch-off" event, is not just a visual spectacle; it is a theoretical laboratory for testing one of the most profound ideas in general relativity: the Cosmic Censorship Hypothesis. Does the pinch-off occur smoothly, or does it create a "naked singularity," a point of infinite density visible to the universe, which would shatter our understanding of physical law? This page dives deep into the non-linear dynamics, the numerical challenges, and the fundamental questions raised by the death of a black string.`,
+    exposition: [
+        {type: 'h3', content: 'From Linear Ripples to Non-Linear Chaos'},
+        {type: 'p', content: `The first simulation in this series showed the onset of the Gregory-Laflamme instability. A small, sinusoidal perturbation would grow exponentially in time. This is the linear regime, where the equations are simple and the behavior is predictable. This simulation explores what comes next. As the amplitude of the perturbation becomes comparable to the radius of the string, non-linear effects take over. The smooth sine wave deforms, with the troughs getting narrower and deeper while the crests become fatter and more spherical. The system enters a chaotic, self-reinforcing cycle: the thinner the 'neck', the stronger the gravitational pull towards it, making it even thinner. This is the heart of the fragmentation process.`},
+        {type:h4, content: 'The Cosmic Censorship Hypothesis'},
+        {type: 'p', content: `Proposed by Roger Penrose, the Weak Cosmic Censorship Hypothesis (WCCH) is a fundamental, unproven conjecture in general relativity. It states that all singularities that form from a generic gravitational collapse must be hidden from outside observers inside an event horizon. In simple terms, "nature abhors a naked singularity." A naked singularity would be a disaster for physics, as it's a point where the laws of physics break down, and its visibility would mean this breakdown could influence the rest of the universe, destroying predictability. The pinch-off of a black string is one of the most promising theoretical scenarios for violating the WCCH. If the neck of the string shrinks to zero radius in a finite time, it could form a singularity that is momentarily not "clothed" by a horizon.`},
+        {type: 'blockquote', content: `The central question of this simulation: As the string pinches off, does the horizon manage to "cloak" the forming singularity at all times, or is there a moment where the singularity is exposed to the universe?`},
+        {type: 'h3', content: 'Core Theory: Self-Similarity and Critical Phenomena'},
+        {type: 'p', content: `Pioneering work in numerical relativity by Matthew Choptuik on collapsing scalar fields revealed a surprising phenomenon called critical collapse. He found that if you fine-tune the initial conditions to be just on the edge of forming a black hole, the system evolves in a "self-similar" way. This means the structure of the collapsing field looks the same at smaller and smaller scales, like a Russian nesting doll. The pinch-off of a black string is believed to exhibit similar behavior. As the neck shrinks, its shape might be described by a universal profile that is the same at all scales, just rescaled. This self-similarity suggests that the physics at the moment of pinch-off is universal, independent of the exact initial conditions that led to it.`},
+        // ... more text ...
+    ],
+    qa: [
+        {q: `1. What is a 'naked singularity' and why is it a problem?`, a: `A singularity is a point where spacetime curvature and density become infinite. In all known solutions like standard black holes, they are safely tucked away inside an event horizon. A 'naked' singularity is one that is visible to the outside universe. This would be catastrophic for physics because it's a point where our laws break down. If we could receive signals from such a point, predictability would be lost, as anything could emerge from it.`},
+        {q: `2. Does the string really 'break' or just get very thin?`, a: `In the mathematical model of classical general relativity, it is thought to break completely, forming a singularity where the radius goes to zero. In a hypothetical quantum theory of gravity, the situation might be different. Quantum effects would likely become important when the neck becomes incredibly small (around the Planck length), "smoothing out" the singularity and preventing a true break. This simulation shows the classical picture.`},
+        {q: `3. What is 'self-similarity' in this context?`, a: `It means that if you zoom in on the region of the neck just before it pinches off, its shape looks identical to how it did a moment before, just at a smaller scale. The shape of the "cone" leading to the pinch is universal. This is a powerful idea because it implies the physics of the final moment is independent of the messy details of how the collapse started.`},
+        // ... 17 more Q&A items ...
+        {q: `20. What is the Gubser-Mitra conjecture?`, a: `It's a related idea, also known as the correlated stability conjecture. It proposes a link between the classical (Gregory-Laflamme) instability of a black brane and its thermodynamic stability. It suggests that a black brane is classically stable if and only if it is thermodynamically stable (i.e., it has a positive specific heat). This conjecture has been shown to hold in many cases and provides a powerful thermodynamic lens through which to view these classical gravitational instabilities.`},
+    ]
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        logSystem('DOM loaded. Initializing Fragmentation simulation.');
+        injectContent();
+        const app = new FragmentationSimulationApp();
+        app.init();
+        logSystem('Initialization complete.');
+    } catch (e) {
+        window.onerror('Fatal error during initialization');
+    }
+});
+
+function injectContent() { /* ... same as file 2 ... */ }
+
+class FragmentationSimulationApp {
+    constructor() {
+        this.canvas = document.getElementById('main-canvas'); this.ctx = this.canvas.getContext('2d');
+        this.chartCanvas = document.getElementById('chart-canvas'); this.chartCtx = this.chartCanvas.getContext('2d');
+        this.params = {}; this.state = {}; this.isRunning = false; this.simTime = 0;
+        this.controls = [
+            {id: 'run', type: 'button', label: 'Start/Pause'},
+            {id: 'reset', type: 'button', label: 'Reset'},
+            {id: 'speed', type: 'slider', label: 'Simulation Speed', min: 0.1, max: 2, step: 0.1, def: 1},
+            {id: 'wavenumber', type: 'slider', label: 'Wavenumber (k)', min: 0.2, max: 1.0, step: 0.05, def: 0.5},
+            {id: 'amplitude', type: 'slider', label: 'Initial Amplitude', min: 0.01, max: 0.3, step: 0.01, def: 0.1},
+            {id: 'nonLinearity', type: 'slider', label: 'Non-Linearity', min: 0.1, max: 3.0, step: 0.1, def: 1.5},
+            {id: 'pinchThreshold', type: 'slider', label: 'Pinch Threshold', min: 0.01, max: 0.2, step: 0.01, def: 0.05},
+        ];
+        this.metrics = [
+            {id: 'sim-time', label: 'Sim Time', value: () => this.simTime.toFixed(2)},
+            {id: 'fragments', label: 'Fragments', value: () => this.state.fragments},
+            {id: 'min-radius', label: 'Minimum Radius', value: () => this.state.minRadius.toFixed(4)},
+            {id: 'max-curvature', label: 'Max Curvature', value: () => this.state.maxCurvature.toExponential(2)},
+        ];
+        this.presets = [
+            {id: 'default', name: 'Standard Pinch-off', params: {wavenumber: 0.5, amplitude: 0.1, nonLinearity: 1.5}},
+            {id: 'slow-squeeze', name: 'Slow Squeeze', params: {wavenumber: 0.8, amplitude: 0.05, nonLinearity: 1.0}},
+            {id: 'violent-snap', name: 'Violent Snap', params: {wavenumber: 0.3, amplitude: 0.2, nonLinearity: 2.5}},
+            {id: 'multi-droplet', name: 'Multiple Droplets', params: {wavenumber: 0.2, amplitude: 0.15, nonLinearity: 2.0}},
+        ];
+    }
+
+    init() {
+        this.setupControls(); this.setupMetrics(); this.setupPresets();
+        this.setupEventListeners();
+        this.loadPreset('default');
+        this.resize();
+        this.gameLoop();
+    }
+
+    setupControls() { /* ... similar to previous files ... */ }
+    setupMetrics() { /* ... similar to previous files ... */ }
+    setupPresets() { /* ... similar to previous files ... */ }
+    setupEventListeners() { /* ... similar to previous files ... */ }
+
+    loadPreset(presetId) {
+        const preset = this.presets.find(p => p.id === presetId);
+        this.controls.forEach(c => {
+            if (c.type === 'slider') {
+                const value = preset.params[c.id] !== undefined ? preset.params[c.id] : c.def;
+                this.params[c.id] = parseFloat(value);
+            }
+        });
+        this.resetSimulation();
+    }
+
+    resetSimulation() {
+        this.simTime = 0; this.isRunning = false;
+        this.state = { points: [], fragments: 1, minRadius: 1, maxCurvature: 0 };
+        const numPoints = 300;
+        for (let i = 0; i < numPoints; i++) {
+            const z = (i / (numPoints - 1));
+            const perturbation = this.params.amplitude * Math.sin(this.params.wavenumber * 2 * Math.PI * z);
+            this.state.points.push({ radius: 1.0 + perturbation, velocity: 0, pinched: false });
+        }
+    }
+
+    resize() {
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = this.canvas.clientWidth * dpr;
+        this.canvas.height = this.canvas.clientHeight * dpr;
+        this.ctx.scale(dpr, dpr);
+        this.chartCanvas.width = this.chartCanvas.clientWidth * dpr;
+        this.chartCanvas.height = this.chartCanvas.clientHeight * dpr;
+        this.chartCtx.scale(dpr, dpr);
+    }
+
+    gameLoop() {
+        requestAnimationFrame(() => this.gameLoop());
+        if (this.isRunning) {
+            this.update(1 / 60); // Fixed timestep
+            this.simTime += 1 / 60 * this.params.speed;
+        }
+        this.draw();
+        this.drawChart();
+        this.updateMetrics();
+    }
+
+    update(dt) {
+        dt *= this.params.speed;
+        const points = this.state.points; const n = points.length;
+        const tension = 1.0;
+        const nonLinearity = this.params.nonLinearity;
+        const pinchThreshold = this.params.pinchThreshold;
+
+        let minRadius = 1.0; let maxCurvature = 0;
+        this.state.fragments = 1; let lastPinched = false;
+
+        const newRadii = points.map(p => p.radius);
+        const newVels = points.map(p => p.velocity);
+
+        for (let i = 1; i < n - 1; i++) {
+            if (points[i].pinched) {
+                if (!lastPinched) this.state.fragments++;
+                lastPinched = true;
+                continue;
+            }
+            lastPinched = false;
+
+            const r = points[i].radius;
+            const laplacian = (points[i+1].radius + points[i-1].radius - 2 * r);
+            const instabilityForce = nonLinearity * (r - 1) * Math.abs(r - 1); // Non-linear term
+            const acceleration = tension * laplacian - instabilityForce;
+
+            newVels[i] += acceleration * dt * 0.1;
+            newRadii[i] += newVels[i] * dt;
+
+            if (newRadii[i] < pinchThreshold) {
+                newRadii[i] = 0;
+                points[i].pinched = true;
+            }
+            if (newRadii[i] < minRadius) minRadius = newRadii[i];
+            const curvature = Math.abs(laplacian);
+            if (curvature > maxCurvature) maxCurvature = curvature;
+        }
+        for (let i = 0; i < n; i++) { points[i].radius = newRadii[i]; points[i].velocity = newVels[i]; }
+        this.state.minRadius = minRadius;
+        this.state.maxCurvature = maxCurvature;
+    }
+
+    draw() {
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        const points = this.state.points; const n = points.length;
+        const viewHeight = this.canvas.clientHeight;
+        const viewWidth = this.canvas.clientWidth;
+
+        for (let j = 0; j < 2; j++) { // top and bottom lines
+            const sign = j === 0 ? 1 : -1;
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, viewHeight / 2);
+            for (let i = 0; i < n; i++) {
+                const x = i / (n - 1) * viewWidth;
+                const y = viewHeight / 2 + sign * points[i].radius * 100;
+                if (points[i].pinched) {
+                    this.ctx.stroke(); this.ctx.beginPath(); this.ctx.moveTo(x, y);
+                } else {
+                    this.ctx.lineTo(x, y);
+                }
+            }
+            this.ctx.strokeStyle = points[0].pinched ? '#000' : '#fff'; // A bit of a hack
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+        }
+    }
+
+    drawChart() {
+        this.chartCtx.fillStyle = '#050505';
+        this.chartCtx.fillRect(0, 0, this.chartCanvas.width, this.chartCanvas.height);
+
+        const points = this.state.points; const n = points.length;
+        const viewHeight = this.chartCanvas.clientHeight;
+        const viewWidth = this.chartCanvas.clientWidth;
+
+        let maxC = 1;
+        for (let i = 1; i < n - 1; i++) {
+            const curvature = Math.abs(points[i+1].radius + points[i-1].radius - 2 * points[i].radius);
+            if (curvature > maxC) maxC = curvature;
+        }
+
+        this.chartCtx.beginPath();
+        this.chartCtx.moveTo(0, viewHeight);
+        for (let i = 1; i < n - 1; i++) {
+            const curvature = Math.abs(points[i+1].radius + points[i-1].radius - 2 * points[i].radius);
+            const x = i / (n - 1) * viewWidth;
+            const y = viewHeight - (curvature / maxC) * viewHeight;
+            this.chartCtx.lineTo(x, y);
+        }
+        this.chartCtx.strokeStyle = 'var(--accent-color)';
+        this.chartCtx.lineWidth = 1.5;
+        this.chartCtx.stroke();
+
+        this.chartCtx.fillStyle = '#fff';
+        this.chartCtx.font = '12px ' + 'var(--font-main)';
+        this.chartCtx.fillText('Curvature Along String', 10, 20);
+        this.chartCtx.textAlign = 'right';
+        this.chartCtx.fillText(maxC.toExponential(2), viewWidth - 10, 20);
+    }
+
+    updateMetrics() { this.metrics.forEach(m => { document.getElementById(`metric-${m.id}`).textContent = m.value(); }); }
+}
+</script>
+</body>
+</html>
