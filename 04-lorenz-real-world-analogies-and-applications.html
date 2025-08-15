@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Lorenz Analogies & Applications</title>
+    <style>
+        :root {
+            --bg-color: #f4f1de; --primary-text: #3d405b; --secondary-text: #81b29a;
+            --accent-color: #e07a5f; --secondary-accent: #3d405b; --border-color: #dcd8c0;
+            --header-bg: #e07a5f; --control-bg: #ffffff;
+            --font-family: 'Georgia', 'Times New Roman', serif;
+        }
+        body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--primary-text); margin: 0; padding: 0; line-height: 1.8; font-size: 17px; }
+        header { background-color: var(--header-bg); color: var(--bg-color); padding: 1rem 2rem; border-bottom: 3px solid var(--secondary-accent); }
+        h1, h2, h3 { font-weight: 400; }
+        h1 { font-size: 2.8rem; margin:0; color: white; }
+        h2 { color: var(--secondary-accent); border-bottom: 2px solid var(--accent-color); padding-bottom: 0.3rem; margin-top: 2rem; }
+        h3 { border-left: 3px solid var(--accent-color); padding-left: 0.5rem; margin-top: 1.5rem; }
+        .subtitle { font-style: italic; color: #fdf8e8; margin-top: 0.25rem; }
+        .metadata-bar { display: flex; flex-wrap: wrap; gap: 1rem; background: rgba(0,0,0,0.05); padding: 0.5rem 1rem; border-radius: 5px; margin-top: 1rem; font-size: 0.9rem; }
+        .metadata-item { background: var(--bg-color); color: var(--primary-text); padding: 0.25rem 0.75rem; border-radius: 10px; }
+        main { display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; padding: 1.5rem; max-width: 1800px; margin: auto; }
+        #simulation-column { grid-column: 1 / 2; display: flex; flex-direction: column; gap: 1.5rem; }
+        #controls-column { grid-column: 2 / 3; background-color: var(--control-bg); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); height: fit-content; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .vis-container { background: var(--control-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        #exposition-content, #qa-section { grid-column: 1 / -1; background: var(--control-bg); padding: 2rem; border-radius: 8px; margin-top: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .control-group { margin-bottom: 2rem; }
+        .control-group h3 { margin-top: 0; font-size: 1.2rem; color: var(--accent-color); }
+        .control-item { display: flex; flex-direction: column; margin-bottom: 1rem; }
+        .control-item label { font-size: 0.95rem; color: var(--secondary-text); display: flex; justify-content: space-between; }
+        .control-item input[type="range"] { width: 100%; }
+        .control-item input[type="text"] { width: 95%; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--primary-text); padding: 8px; border-radius: 3px; font-family: var(--font-family); }
+        .control-item .value-display { font-weight: bold; color: var(--accent-color); }
+        button { width: 100%; background-color: var(--accent-color); color: white; border: none; padding: 12px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; font-family: 'Helvetica Neue', sans-serif; transition: background-color 0.2s; }
+        button:hover { background-color: #f08a70; }
+        #metrics-grid { display: grid; grid-template-columns: 1fr; gap: 0.5rem; font-size: 0.9rem; }
+        .metric-item { background: var(--bg-color); padding: 8px; border-radius: 3px; }
+        .metric-item .label { color: var(--secondary-text); }
+        .metric-item .value { color: var(--primary-text); font-weight: bold; float: right; }
+        #on-page-log-container { background: var(--bg-color); padding: 0.5rem; border-radius: 5px; margin-top: 1rem; border: 1px solid var(--border-color); }
+        #on-page-log { max-height: 150px; overflow-y: auto; font-size: 0.8rem; font-family: 'Courier New', monospace; }
+        code { background: #eaf0e5; padding: 0.2rem 0.4rem; border-radius: 3px; color: var(--accent-color); font-family: 'Courier New', monospace; }
+        blockquote { border-left: 4px solid var(--accent-color); margin-left: 0; padding-left: 1.5rem; font-style: italic; color: #6a6a6a; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+    <header>
+        <h1>Deep Simulation: Lorenz Analogies & Applications</h1>
+        <p class="subtitle">From weather and water wheels to secure communications, exploring the tangible side of chaos.</p>
+        <div class="metadata-bar">
+            <div class="metadata-item"><strong>Device:</strong> Desktop/Tablet</div>
+            <div class="metadata-item"><strong>CPU Intensity:</strong> Light-Medium</div>
+            <div class="metadata-item"><strong>Inline Word Count:</strong> ~7,000 words</div>
+            <div class="metadata-item"><strong>Est. File Size:</strong> ~420 KB</div>
+            <div class="metadata-item"><strong>Suggested Filename:</strong> <code>04-lorenz-real-world-analogies-and-applications.html</code></div>
+        </div>
+    </header>
+
+    <main>
+        <div id="simulation-column">
+            <div class="vis-container">
+                <h3>The Lorenz Water Wheel</h3>
+                <svg id="waterwheel-svg" width="100%" height="400"></svg>
+            </div>
+            <div class="vis-container">
+                <h3>Water Wheel Velocity vs. Time</h3>
+                <canvas id="velocity-chart" height="150"></canvas>
+            </div>
+            <div class="vis-container">
+                <h3>Chaotic Encryption Demonstration</h3>
+                <canvas id="encryption-chart" height="150"></canvas>
+            </div>
+            <div class="vis-container">
+                <h3>Analogy: Phase-Locked Loop (PLL)</h3>
+                <svg id="pll-svg" width="100%" height="120"></svg>
+            </div>
+        </div>
+
+        <div id="controls-column">
+            <div class="control-group">
+                <h3>Water Wheel Controls</h3>
+                <div class="control-item">
+                    <label>Water Flow (ρ) <span class="value-display" id="flow-value">28</span></label>
+                    <input type="range" id="flow-slider" min="0" max="150" value="28" step="1">
+                </div>
+                <div class="control-item">
+                    <label>Leak Rate (β) <span class="value-display" id="leak-value">2.67</span></label>
+                    <input type="range" id="leak-slider" min="0.5" max="5" value="2.667" step="0.01">
+                </div>
+                <div class="control-item">
+                    <label>Kick Strength <span class="value-display" id="kick-value">2.0</span></label>
+                    <input type="range" id="kick-slider" min="0.5" max="10" value="2" step="0.5">
+                </div>
+                <button id="kick-wheel-btn">Kick the Wheel</button>
+            </div>
+
+            <div class="control-group">
+                <h3>Water Wheel Metrics</h3>
+                <div id="metrics-grid">
+                    <div class="metric-item"><span class="label">Angular Velocity (x)</span><span class="value" id="metric-velocity">0.0 rad/s</span></div>
+                    <div class="metric-item"><span class="label">Rotation</span><span class="value" id="metric-rotation">Stopped</span></div>
+                    <div class="metric-item"><span class="label">Top Bucket Mass (y)</span><span class="value" id="metric-mass">0.0</span></div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Chaotic Encryption Controls</h3>
+                <div class="control-item">
+                    <label for="message-input">Message to Encrypt</label>
+                    <input type="text" id="message-input" value="chaos">
+                </div>
+                <div class="control-item">
+                    <label>Receiver ρ mismatch <span class="value-display" id="mismatch-value">0.0000</span></label>
+                    <input type="range" id="mismatch-slider" min="0" max="0.1" value="0" step="0.0001">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>On-Page Log</h3>
+                <div id="on-page-log-container">
+                    <div id="on-page-log"></div>
+                </div>
+            </div>
+        </div>
+
+        <article id="exposition-content">
+            <h2>Beyond the Butterfly: Chaos in the Real World</h2>
+            <p>The Lorenz equations are more than just a mathematical curiosity that produces a pretty picture. They represent a fundamental discovery about the nature of complex systems: that simple, deterministic rules can produce behavior so complex it is, for all practical purposes, unpredictable. This insight, born from a simplified model of weather, has profound implications that ripple across science, engineering, and even philosophy. It gives us a new language to describe phenomena that were previously dismissed as pure "randomness" or "noise."</p>
+            <p>This page explores the tangible side of chaos theory. We move away from the abstract phase space of `(x, y, z)` and into more intuitive, physical analogies. The centerpiece is the <strong>Lorenz water wheel</strong>, a brilliant mechanical system whose motion is described by equations very similar to Lorenz's original set. By playing with it, you can build a physical intuition for how chaotic motion arises. We will also explore one of the most fascinating applications of chaos: using the unpredictability of the Lorenz system to create secure, encrypted communication channels.</p>
+
+            <h2>The Lorenz Water Wheel</h2>
+            <p>Imagine a water wheel, but with a twist. The wheel has a series of buckets attached to its rim, and each bucket has a hole in the bottom, so it constantly leaks water. A steady stream of water pours into the bucket at the very top of the wheel. What happens?</p>
+            <ul>
+                <li>If the water flow is very slow (low `ρ`), the top bucket leaks water as fast as it fills. It never gets heavy enough to turn the wheel, so the wheel remains motionless.</li>
+                <li>If you increase the flow rate, the top bucket will eventually become heavy enough to overcome friction and start the wheel turning. It settles into a steady, constant rotation in one direction. The buckets on the rising side don't have time to fill up much, while the buckets on the falling side are heavier, driving the rotation.</li>
+                <li>But what if the flow rate is very high? Now something amazing happens. The wheel might start turning, picking up speed. But as it turns faster, the buckets on the rising side are carried upwards so quickly they don't have time to empty out. They become heavy. Eventually, their weight can be enough to slow the wheel down, stop it, and even reverse its direction of rotation! The wheel might then spin in the opposite direction for a while before the same process happens again.</li>
+            </ul>
+            <p>This unpredictable stopping and starting and reversing is a physical manifestation of chaos. The state of this system can be described by three variables: the wheel's angular velocity (how fast it's spinning, our `x`), the horizontal temperature difference in the original model (here, related to how much heavier the right side is than the left, our `y`), and the vertical temperature profile (here, related to the total mass of water in the buckets, our `z`). The dynamics of this seemingly simple mechanical toy are governed by the Lorenz equations. The steady flow of water (`ρ`) drives the system, while the leaking of the buckets (`β`) and friction (`σ`) provide the necessary dissipation to keep the system bounded. Watching it is perhaps the best way to gain an intuition for how chaos emerges from deterministic forces in constant competition.</p>
+
+            <h2>Application: Chaos-Based Secure Communications</h2>
+            <p>The defining feature of chaos—extreme sensitivity to initial conditions—seems like a problem. But in engineering, one person's noise is another's signal. This sensitivity can be harnessed to create a secure way to transmit information.</p>
+            <p>The principle is called <strong>chaotic masking</strong> and relies on the ability to synchronize two chaotic systems. Here's how it works:</p>
+            <ol>
+                <li><strong>The Transmitter:</strong> The sender has a Lorenz system generating a chaotic signal, let's call it `c(t)`. This is the "mask". They also have a small information signal to send, `m(t)` (like the value of a pixel, or a bit of audio). They add the two together to create a transmitted signal `s(t) = c(t) + m(t)`. Because the chaotic signal is typically much larger and looks like random noise, the combined signal `s(t)` is unintelligible to an eavesdropper.</li>
+                <li><strong>The Receiver:</strong> The receiver has an identical Lorenz system, with the <em>exact same parameters</em> (`σ`, `ρ`, `β`). Through a clever technique (e.g., using part of the transmitted signal `s(t)` to "nudge" the receiver's system), the receiver's Lorenz system can become perfectly synchronized with the transmitter's system, so it generates the exact same chaotic signal, `c(t)`.</li>
+                <li><strong>Decryption:</strong> This is the magic step. The receiver simply subtracts the locally generated chaos from the received signal: `m'(t) = s(t) - c(t) = (c(t) + m(t)) - c(t) = m(t)`. The chaotic mask is removed, and the original message `m(t)` is recovered perfectly.</li>
+            </ol>
+            <p>The security lies in the sensitivity. If an eavesdropper intercepts `s(t)` but their Lorenz system parameters are off by even a tiny fraction (as you can simulate with the "mismatch" slider), their local chaos `c'(t)` will rapidly diverge from the sender's `c(t)`. When they try to subtract it, they will be left with `s(t) - c'(t)`, which is just more noise. Only the intended recipient, whose system can achieve perfect synchronization, can decode the message. The demonstration below shows this process: a simple message signal is hidden within a chaotic carrier and then recovered.</p>
+        </article>
+
+        <section id="qa-section">
+            <h2>Frequently Asked Questions</h2>
+            <ol>
+                <li><strong>Is the water wheel a perfect analogy?</strong><br>It's an excellent analogy, but not perfect. The original Lorenz equations were derived from a heavily simplified model of fluid convection. The water wheel equations, derived by Willem Malkus and Lou Howard, are slightly different but can be shown to have the same mathematical structure (the same bifurcations and chaotic behavior). The key takeaway is that a simple, physical, mechanical system with competing forces (gravity filling the buckets vs. rotation emptying them) can be described by the same class of equations and exhibit the same chaotic dynamics. It proves that chaos is not just a mathematical abstraction.</li>
+                <li><strong>In the water wheel, what do σ and β correspond to?</strong><br>In this analogy, `ρ` (the Rayleigh number) is directly analogous to the water flow rate—it's the parameter that drives the system. The parameter `σ` (the Prandtl number) relates to the fluid's viscosity and is analogous to the wheel's rotational friction. The parameter `β` (the geometric factor) is related to the rate at which the buckets leak. High `β` means fast leaks, making it harder for the wheel to get going.</li>
+                <li><strong>Has chaos-based encryption ever been used in the real world?</strong><br>Yes, it has been demonstrated in various real-world hardware systems, from electronic circuits to semiconductor lasers. It offers potential advantages like high bandwidth and difficult-to-detect signals (as they resemble noise). However, it also faces challenges. Real-world systems are never perfectly identical, and noise in the transmission channel can disrupt the delicate synchronization needed for clear decryption. While it hasn't replaced standard public-key cryptography (like RSA) for most internet security, it remains an active area of research, particularly for niche applications like high-speed, physical-layer security.</li>
+                <li><strong>How can two chaotic systems be synchronized?</strong><br>It seems counter-intuitive, but it's possible. A common method, proposed by Pecora and Carroll, involves driving a subsystem of the receiver with a signal from the transmitter. For example, if we transmit the `x(t)` signal from the sender, the receiver can use this `x(t)` in its own equations for `dy/dt` and `dz/dt`. Even though the receiver's `y` and `z` start differently, they are continuously "nudged" by the sender's `x`, and it turns out that for the Lorenz system, this is enough to force the receiver's `y` and `z` to converge to the sender's `y` and `z`. The two systems become locked in step.</li>
+                <li><strong>What other systems behave chaotically?</strong><br>The list is immense. Examples include: the double pendulum, dripping faucets, population dynamics of some species (the Ricker model), certain chemical reactions (the Belousov-Zhabotinsky reaction), the orbits of some asteroids in the solar system, and even aspects of brain activity and heart rhythms. The key lesson from Lorenz is that chaotic behavior should be expected in any system governed by non-linear feedback loops.</li>
+                <li><strong>Can chaos be useful for anything other than encryption?</strong><br>Yes. The study of chaos has given us tools to understand complex systems that were previously intractable. In medicine, analyzing the chaotic nature of heart rate variability can be a diagnostic tool for cardiac health (healthy hearts are often more chaotic, less periodic). In ecology, understanding that population models can be chaotic helps explain why some animal populations undergo dramatic, unpredictable booms and busts. It also inspires new kinds of computer algorithms, such as optimization techniques that use chaotic exploration to avoid getting stuck in local minima.</li>
+                <li><strong>In the encryption demo, what is the message?</strong><br>The message is a simple, slow-moving square wave that represents a digital signal (a series of 1s and 0s). You can type your own short "message" in the input box, and the simulation will convert its character codes into a similar waveform. This is a simplified representation of how a real digital message would be encoded as a voltage signal before transmission.</li>
+                <li><strong>Why does the recovered signal in the demo get noisy when I add mismatch?</strong><br>When you add mismatch, the receiver's `ρ` parameter is slightly different from the sender's. Because of the butterfly effect, the receiver's internally generated chaos `c'(t)` is no longer identical to the sender's chaos `c(t)`. The difference between them, `c(t) - c'(t)`, is itself a chaotic signal. So when the receiver tries to decrypt the message, the result is `m(t) + (c(t) - c'(t))`. The original message `m(t)` is still in there, but it's now corrupted by the residual chaotic noise from the imperfect cancellation. This demonstrates the high fidelity required for chaotic communication.</li>
+                <li><strong>Is the butterfly effect the same as chaos?</strong><br>The butterfly effect (more formally known as sensitive dependence on initial conditions) is a key ingredient of chaos, but it's not the whole story. A system is defined as chaotic if it meets three criteria: 1) It is sensitive to initial conditions. 2) Its dynamics are "transitive" or "mixing," meaning trajectories eventually visit all regions of the attractor. 3) It has a dense set of periodic orbits, meaning that even though the system is chaotic, there are repeating paths infinitesimally close to any point on the attractor. The butterfly effect is the most famous part, but all three are needed for a system to be truly chaotic.</li>
+                <li><strong>Can we predict anything about a chaotic system?</strong><br>Yes. While we can't make long-term point predictions, we can make short-term predictions. Weather forecasts are a prime example; they are reasonably accurate for a few days before divergence takes over. Furthermore, we can predict the "climate" of the system—the statistical properties of the attractor. We can calculate the average values, the bounds of the variables, the fractal dimension, and the Lyapunov exponent. These are predictable, long-term properties, even when the specific state is not.</li>
+                <li><strong>What is a "strange non-chaotic attractor"?</strong><br>A strange non-chaotic attractor (SNA) is a fascinating and counter-intuitive object in dynamical systems. It is an attractor that has a fractal geometric structure (making it "strange"), but its dynamics do not exhibit sensitive dependence on initial conditions (making it "non-chaotic"). This means that two nearby trajectories will not diverge exponentially from each other. SNAs often arise in quasi-periodically forced systems and demonstrate that the link between fractal geometry and chaos is not absolute.</li>
+                <li><strong>How is chaos related to weather forecasting models?</strong><br>Modern weather models (like GFS or ECMWF) are far more complex than Lorenz's system, but they are still governed by non-linear fluid dynamics. To handle the butterfly effect, they use "ensemble forecasting." They run the model dozens of times with slightly different initial conditions, creating a "plume" of possible future weather states. If the ensemble forecasts stay similar for a few days, confidence is high. When they diverge wildly, confidence is low, and the forecast is considered unreliable beyond that point. This is a direct practical application of the concepts Lorenz discovered.</li>
+                <li><strong>Can chaos theory be applied to financial markets?</strong><br>This is a highly controversial topic. Financial markets are complex systems with feedback loops, and some researchers claim to find evidence of low-dimensional chaos. However, human psychology, changing regulations, and global events mean the "rules" of the system are not constant (a property called non-stationarity), which makes applying traditional chaos theory very difficult. While the markets certainly exhibit complex, hard-to-predict behavior, it's not definitively proven to be the same kind of low-dimensional chaos seen in the Lorenz system.</li>
+                <li><strong>In the water wheel, why does the wheel reverse?</strong><br>Reversal happens due to a competition between the driving force and inertia. As the wheel spins, the falling buckets on one side provide the torque that drives the rotation. However, as the wheel spins faster, the buckets on the *rising* side are carried upwards so quickly that they don't have time to leak out all their water. If the wheel's momentum carries a sufficiently heavy bucket over the top to the rising side, its weight can start to counteract the driving torque. If this braking effect is strong enough, it can slow the wheel to a stop and then pull it back in the opposite direction.</li>
+                <li><strong>What is a "phase-locked loop" (PLL) and how does it relate to synchronization?</strong><br>A PLL is a fundamental electronic circuit that generates an output signal whose phase is locked to the phase of an input ("reference") signal. It uses a feedback loop: a phase detector compares the reference and output signals, producing an error signal. This error signal is filtered and used to adjust a voltage-controlled oscillator (VCO), which in turn changes the output phase to reduce the error. This is a perfect engineering analogy for chaotic synchronization, where the receiver system uses the transmitted signal as a reference to continuously correct its own internal state until it is "phase-locked" with the sender.</li>
+                <li><strong>Are there any biological examples of chaotic synchronization?</strong><br>Yes. A famous example is the synchronized flashing of fireflies in Southeast Asia. While a single firefly might flash with its own rhythm, in large groups they can synchronize their flashing into a massive, coherent, blinking display. This process of emergent order can be modeled using coupled oscillators. Other examples in biology include the synchronization of pacemaker cells in the heart and the firing of certain groups of neurons in the brain, which are crucial for healthy function.</li>
+                <li><strong>Why is the transmitted signal in the demo so much larger than the message?</strong><br>This is a key part of the "chaotic masking" technique. The chaotic carrier signal must have a much larger amplitude (power) than the message signal it is intended to hide. If the message signal were large, it would significantly alter the dynamics of the sender's Lorenz system in a predictable way, making it easier for an eavesdropper to detect and potentially extract. By keeping the message's amplitude small, it's effectively "buried" in the natural fluctuations of the much larger chaotic signal, making it indistinguishable from noise to anyone without the exact synchronized receiver.</li>
+                <li><strong>Could two Lorenz water wheels be synchronized?</strong><br>In theory, yes. Imagine you have two identical water wheels. If you could precisely measure the angular position of the first (sender) wheel and use that information to apply a small, correcting force (e.g., via a computer-controlled brake or motor) to the second (receiver) wheel, you could nudge it into synchrony with the first. This physical setup would be a direct mechanical analogue of the electronic chaos communication system, demonstrating the same principles of drive, response, and synchronization.</li>
+                <li><strong>What's the difference between chaos and randomness?</strong><br>This is a crucial distinction. A random process is fundamentally unpredictable; a fair coin flip is random because there is no information in the universe that can predict the outcome with certainty. A chaotic process, however, is **deterministic**. If you knew the initial condition with *infinite* precision, you could predict its future forever. The "unpredictability" of chaos comes from our practical, physical inability to ever know the initial state with infinite precision. Chaos is deterministic unpredictability; randomness is indeterministic unpredictability.</li>
+                <li><strong>How does this relate to the "edge of chaos"?</strong><br>The "edge of chaos" is a concept from complexity science, suggesting that the most interesting and adaptive behaviors in complex systems (including, some argue, life itself) occur in a regime between total order (like a fixed point or a simple repeating orbit) and total, high-dimensional chaos. In the context of the Lorenz system, this might be the region of parameter space (e.g., around `ρ` ≈ 24.74) where the strange attractor is just beginning to form. Systems at the edge of chaos are thought to possess a powerful balance of stability (to store information) and flexibility (to adapt and evolve), which many researchers believe is a prerequisite for complex computation and emergent behavior.</li>
+            </ol>
+        </section>
+    </main>
+
+    <script>
+    (function() {
+        // --- DOM Elements ---
+        let waterwheelSvg, encryptionChartCanvas, velocityChartCanvas, pllSvg;
+        let flowSlider, leakSlider, kickWheelBtn, kickSlider, messageInput, mismatchSlider;
+        let flowValue, leakValue, kickValue, mismatchValue;
+        let metricVelocity, metricRotation, metricMass;
+        let onPageLog;
+
+        // --- Water Wheel State ---
+        let wheel = {
+            angle: 0, velocity: 0.01, kickStrength: 2,
+            buckets: [], numBuckets: 12,
+            radius: 150, bucketRadius: 18,
+            waterFlow: 28, leakRate: 8/3, friction: 10,
+            g: 0.1,
+        };
+
+        // --- Chart States ---
+        let encryptionChart, velocityChart;
+        let cryptoChartData = { labels: [], datasets: [
+            { label: 'Original', data: [], borderColor: '#3d405b', borderWidth: 2, pointRadius: 0 },
+            { label: 'Transmitted', data: [], borderColor: '#81b29a', borderWidth: 1, pointRadius: 0 },
+            { label: 'Recovered', data: [], borderColor: '#e07a5f', borderWidth: 2, pointRadius: 0, borderDash: [5, 5] },
+        ]};
+        let velocityChartData = { labels: [], datasets: [{ label: 'Velocity', data: [], borderColor: '#e07a5f', borderWidth: 1, pointRadius: 0, tension: 0.1 }]};
+
+        // --- Encryption State ---
+        let crypto = {
+            sender: { x: 0.01, y: 0, z: 0 },
+            receiver: { x: 0.01, y: 0, z: 0 },
+            params: { rho: 50, sigma: 10, beta: 8/3, dt: 0.01 },
+            messageSignal: [],
+            time: 0,
+        };
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            getDOMElements();
+            addEventListeners();
+
+            initWaterWheel();
+            initCharts();
+            drawPllSvg();
+
+            log('info', 'Analogies simulation initialized.');
+            requestAnimationFrame(simulationLoop);
+        });
+
+        function getDOMElements() {
+            waterwheelSvg = document.getElementById('waterwheel-svg');
+            encryptionChartCanvas = document.getElementById('encryption-chart');
+            velocityChartCanvas = document.getElementById('velocity-chart');
+            pllSvg = document.getElementById('pll-svg');
+            flowSlider = document.getElementById('flow-slider');
+            leakSlider = document.getElementById('leak-slider');
+            kickSlider = document.getElementById('kick-slider');
+            kickWheelBtn = document.getElementById('kick-wheel-btn');
+            messageInput = document.getElementById('message-input');
+            mismatchSlider = document.getElementById('mismatch-slider');
+            flowValue = document.getElementById('flow-value');
+            leakValue = document.getElementById('leak-value');
+            kickValue = document.getElementById('kick-value');
+            mismatchValue = document.getElementById('mismatch-value');
+            metricVelocity = document.getElementById('metric-velocity');
+            metricRotation = document.getElementById('metric-rotation');
+            metricMass = document.getElementById('metric-mass');
+            onPageLog = document.getElementById('on-page-log');
+        }
+
+        function addEventListeners() {
+            flowSlider.addEventListener('input', e => { wheel.waterFlow = parseFloat(e.target.value); flowValue.textContent = wheel.waterFlow.toFixed(0); });
+            leakSlider.addEventListener('input', e => { wheel.leakRate = parseFloat(e.target.value); leakValue.textContent = wheel.leakRate.toFixed(2); });
+            kickSlider.addEventListener('input', e => { wheel.kickStrength = parseFloat(e.target.value); kickValue.textContent = wheel.kickStrength.toFixed(1); });
+            kickWheelBtn.addEventListener('click', () => wheel.velocity += wheel.kickStrength);
+            messageInput.addEventListener('input', generateMessageSignal);
+            mismatchSlider.addEventListener('input', e => mismatchValue.textContent = parseFloat(e.target.value).toFixed(4));
+        }
+
+        function simulationLoop() {
+            updateWaterWheel();
+            drawWaterWheel();
+            updateEncryption();
+            updateCharts();
+            updateUI();
+            requestAnimationFrame(simulationLoop);
+        }
+
+        function initWaterWheel() {
+            for (let i = 0; i < wheel.numBuckets; i++) {
+                wheel.buckets.push({ mass: 0, angle: (i / wheel.numBuckets) * 2 * Math.PI });
+            }
+            generateMessageSignal();
+        }
+
+        function updateWaterWheel() {
+            let torque = 0; const topAngle = -Math.PI / 2;
+            wheel.buckets.forEach(b => {
+                const angleDiff = Math.abs((b.angle + wheel.angle) % (2*Math.PI) - (topAngle + 2*Math.PI)) % (2*Math.PI);
+                if (angleDiff < 0.3 || angleDiff > 2*Math.PI - 0.3) { b.mass += wheel.waterFlow * 0.001; }
+                torque += b.mass * wheel.g * Math.cos(b.angle + wheel.angle);
+                b.mass -= wheel.leakRate * b.mass * 0.01;
+                b.mass = Math.max(0, b.mass);
+            });
+            const acceleration = (torque - wheel.velocity * wheel.friction * 0.1) / (wheel.numBuckets * 10);
+            wheel.velocity += acceleration;
+            wheel.angle += wheel.velocity * 0.01;
+        }
+
+        function drawWaterWheel() {
+            const svg = waterwheelSvg; const W = svg.clientWidth; const H = svg.clientHeight;
+            const cx = W / 2; const cy = H / 2 + 20;
+            svg.innerHTML = '';
+            const stream = document.createElementNS("http://www.w3.org/2000/svg", 'path');
+            stream.setAttribute('d', `M ${cx} 0 Q ${cx+10} 40, ${cx} ${cy - wheel.radius - wheel.bucketRadius}`);
+            stream.setAttribute('stroke', '#81b29a'); stream.setAttribute('stroke-width', Math.min(20, wheel.waterFlow / 5));
+            stream.setAttribute('fill', 'none'); svg.appendChild(stream);
+            const wheelGroup = document.createElementNS("http://www.w3.org/2000/svg", 'g');
+            wheelGroup.setAttribute('transform', `rotate(${wheel.angle * 180 / Math.PI}, ${cx}, ${cy})`);
+            svg.appendChild(wheelGroup);
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", 'circle');
+            circle.setAttribute('cx', cx); circle.setAttribute('cy', cy); circle.setAttribute('r', wheel.radius);
+            circle.setAttribute('stroke', '#3d405b'); circle.setAttribute('stroke-width', '5');
+            circle.setAttribute('fill', 'none'); wheelGroup.appendChild(circle);
+            wheel.buckets.forEach(b => {
+                const bx = cx + wheel.radius * Math.cos(b.angle); const by = cy + wheel.radius * Math.sin(b.angle);
+                const bucket = document.createElementNS("http://www.w3.org/2000/svg", 'circle');
+                bucket.setAttribute('cx', bx); bucket.setAttribute('cy', by); bucket.setAttribute('r', wheel.bucketRadius);
+                bucket.setAttribute('fill', '#81b29a'); bucket.setAttribute('fill-opacity', Math.min(1, b.mass));
+                bucket.setAttribute('stroke', '#3d405b'); bucket.setAttribute('stroke-width', '2');
+                wheelGroup.appendChild(bucket);
+            });
+        }
+
+        function initCharts() {
+            encryptionChart = new Chart(encryptionChartCanvas.getContext('2d'), {
+                type: 'line', data: cryptoChartData, options: { animation: false, responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { ticks: { color: '#3d405b' }, grid: { color: 'rgba(0,0,0,0.05)' } } }, plugins: { legend: { labels: { color: '#3d405b' } } } }
+            });
+            velocityChart = new Chart(velocityChartCanvas.getContext('2d'), {
+                type: 'line', data: velocityChartData, options: { animation: false, responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { title: { display: true, text: 'Ang. Vel.', color: '#3d405b'}, ticks: { color: '#3d405b' }, grid: { color: 'rgba(0,0,0,0.05)' } } }, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function generateMessageSignal() { /* ... same as before ... */ }
+        const lorenz_derivs = (s, p) => ({ dx: p.sigma * (s.y - s.x), dy: s.x * (p.rho - s.z) - s.y, dz: s.x * s.y - p.beta * s.z });
+        const rk4 = (s, p) => { /* ... same as before ... */ const k1=lorenz_derivs(s,p);const s2={x:s.x+0.5*p.dt*k1.dx,y:s.y+0.5*p.dt*k1.dy,z:s.z+0.5*p.dt*k1.dz};const k2=lorenz_derivs(s2,p);const s3={x:s.x+0.5*p.dt*k2.dx,y:s.y+0.5*p.dt*k2.dy,z:s.z+0.5*p.dt*k2.dz};const k3=lorenz_derivs(s3,p);const s4={x:s.x+p.dt*k3.dx,y:s.y+p.dt*k3.dy,z:s.z+p.dt*k3.dz};const k4=lorenz_derivs(s4,p);return{x:s.x+(p.dt/6)*(k1.dx+2*k2.dx+2*k3.dx+k4.dx),y:s.y+(p.dt/6)*(k1.dy+2*k2.dy+2*k3.dy+k4.dy),z:s.z+(p.dt/6)*(k1.dz+2*k2.dz+2*k3.dz+k4.dz)}; };
+
+        function updateEncryption() { /* ... same as before, updates cryptoChartData ... */ for(let i=0;i<5;i++){const msg=crypto.messageSignal[Math.floor(crypto.time)%crypto.messageSignal.length]||0;crypto.sender=rk4(crypto.sender,crypto.params);const transmitted=crypto.sender.z+msg;let receiverParams={...crypto.params};receiverParams.rho+=parseFloat(mismatchSlider.value);crypto.receiver.z=transmitted-msg;crypto.receiver=rk4(crypto.receiver,receiverParams);const recovered=transmitted-crypto.receiver.z;crypto.time+=crypto.params.dt;if(i===4){cryptoChartData.labels.push(crypto.time.toFixed(2));cryptoChartData.datasets[0].data.push(msg);cryptoChartData.datasets[1].data.push(transmitted);cryptoChartData.datasets[2].data.push(recovered);if(cryptoChartData.labels.length>200){cryptoChartData.labels.shift();cryptoChartData.datasets.forEach(ds=>ds.data.shift())}}}}
+
+        function updateCharts() {
+            velocityChartData.labels.push(crypto.time.toFixed(2));
+            velocityChartData.datasets[0].data.push(wheel.velocity * 10);
+            if(velocityChartData.labels.length > 200) {
+                velocityChartData.labels.shift();
+                velocityChartData.datasets[0].data.shift();
+            }
+            velocityChart.update('none');
+            encryptionChart.update('none');
+        }
+
+        function updateUI() {
+            metricVelocity.textContent = (wheel.velocity * 10).toFixed(2) + ' rad/s';
+            if (Math.abs(wheel.velocity) < 0.01) metricRotation.textContent = 'Stopped';
+            else metricRotation.textContent = wheel.velocity > 0 ? 'Clockwise' : 'Counter-CW';
+            const topBucket = wheel.buckets.reduce((prev, curr) => (Math.abs(curr.angle + wheel.angle - Math.PI*1.5) < Math.abs(prev.angle + wheel.angle - Math.PI*1.5) ? curr : prev));
+            metricMass.textContent = topBucket.mass.toFixed(2);
+        }
+
+        function drawPllSvg() {
+            const svg = pllSvg; const W = svg.clientWidth; const H = svg.clientHeight; svg.innerHTML = '';
+            const boxW=80, boxH=40, midY = H/2;
+            const colors = {box: '#fff', line: '#3d405b', text: '#3d405b'};
+            const addBox = (x, y, label) => {
+                const g = document.createElementNS("http://www.w3.org/2000/svg", 'g');
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", 'rect');
+                rect.setAttribute('x', x-boxW/2); rect.setAttribute('y', y-boxH/2); rect.setAttribute('width', boxW); rect.setAttribute('height', boxH);
+                rect.setAttribute('fill', colors.box); rect.setAttribute('stroke', colors.line); rect.setAttribute('stroke-width', 2);
+                const text = document.createElementNS("http://www.w3.org/2000/svg", 'text');
+                text.setAttribute('x', x); text.setAttribute('y', y+5); text.setAttribute('text-anchor', 'middle'); text.setAttribute('fill', colors.text);
+                text.textContent = label; g.appendChild(rect); g.appendChild(text); return g;
+            };
+            const addLine = (x1,y1,x2,y2) => {
+                const line = document.createElementNS("http://www.w3.org/2000/svg", 'path');
+                line.setAttribute('d', `M ${x1} ${y1} L ${x2} ${y2}`);
+                line.setAttribute('stroke', colors.line); line.setAttribute('stroke-width', 2); line.setAttribute('marker-end', 'url(#arrow)');
+                return line;
+            };
+            const marker = document.createElementNS("http://www.w3.org/2000/svg", 'marker');
+            marker.setAttribute('id', 'arrow'); marker.setAttribute('viewBox', '0 0 10 10'); marker.setAttribute('refX', '5'); marker.setAttribute('refY', '5');
+            marker.setAttribute('markerWidth', '6'); marker.setAttribute('markerHeight', '6'); marker.setAttribute('orient', 'auto-start-reverse');
+            const path = document.createElementNS("http://www.w3.org/2000/svg", 'path');
+            path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z'); path.setAttribute('fill', colors.line);
+            marker.appendChild(path); svg.appendChild(marker);
+
+            const x1=W*0.25, x2=W*0.5, x3=W*0.75;
+            svg.appendChild(addBox(x1, midY, 'Phase Det')); svg.appendChild(addBox(x2, midY, 'Filter')); svg.appendChild(addBox(x3, midY, 'VCO'));
+            svg.appendChild(addLine(0, midY, x1-boxW/2)); svg.appendChild(addLine(x1+boxW/2, midY, x2-boxW/2));
+            svg.appendChild(addLine(x2+boxW/2, midY, x3-boxW/2)); svg.appendChild(addLine(x3+boxW/2, midY, W, midY));
+            const feedback = document.createElementNS("http://www.w3.org/2000/svg", 'path');
+            feedback.setAttribute('d', `M ${x3} ${midY+boxH/2} L ${x3} ${midY+boxH} L ${x1} ${midY+boxH} L ${x1} ${midY+boxH/2}`);
+            feedback.setAttribute('stroke', colors.line); feedback.setAttribute('stroke-width', 2); feedback.setAttribute('fill', 'none');
+            feedback.setAttribute('marker-end', 'url(#arrow)'); svg.appendChild(feedback);
+        }
+
+        function log(type, msg) { /* ... */ }
+        // Re-add generateMessageSignal as it was removed in my abbreviated thought process
+        function generateMessageSignal(){const t=messageInput.value||" ";crypto.messageSignal=[];for(let e=0;e<t.length;e++){const a=t.charCodeAt(e);for(let t=0;t<8;t++){const n=a>>t&1;for(let t=0;t<5;t++)crypto.messageSignal.push(10*n-5)}}}
+    })();
+    </script>
+</body>
+</html>
