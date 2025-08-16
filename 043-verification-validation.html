@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Verification & Validation</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #16a085; /* Green Sea */
+            --secondary-color: #2980b9; /* Belize Hole */
+            --accent-color: #c0392b; /* Pomegranate */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .chart-container { height: 300px; background: #222; padding: 10px; border-radius: 5px; }
+        .control-group { margin-bottom: 20px; }
+        .control label { display: block; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); float: right; }
+        .control input[type="range"] { width: 100%; }
+        .control button, .control select { background-color: var(--primary-color); color: #fff; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        .toggle-switch { display: flex; align-items: center; justify-content: space-between; }
+        code { background-color: #333; color: var(--secondary-color); padding: 2px 5px; border-radius: 3px; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Verification & Validation (V&V)</h1>
+            <p class="subtitle">Building Confidence in Computational Physics</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="chart-container"><canvas id="mainChart"></canvas></div>
+                <div class="chart-container" id="errorChartContainer"><canvas id="errorChart"></canvas></div>
+                <div class="content-column">
+                    <h2>Verification vs. Validation: A Crucial Distinction</h2>
+                    <p>In computational science, "correctness" has two distinct meanings, captured by the terms Verification and Validation (V&V). It is one of the most important and often misunderstood topics in the field.</p>
+                    <ul>
+                        <li><strong style="color:var(--secondary-color)">Verification: "Are we solving the equations right?"</strong> This is a purely mathematical exercise. It's the process of ensuring that the computer code you've written is a faithful and accurate implementation of the mathematical model you intended to solve. It checks for bugs, numerical errors, and convergence.</li>
+                        <li><strong style="color:var(--primary-color)">Validation: "Are we solving the right equations?"</strong> This is a scientific exercise. It's the process of determining how well your mathematical model (and your verified code) represents the real-world physics you are trying to simulate. This involves comparing the code's output to real experimental data.</li>
+                    </ul>
+                    <p>A code can be perfectly verified but fail validation. This means your code flawlessly solves the equations, but those equations themselves are an incomplete or incorrect description of reality. This simulation lets you explore both processes.</p>
+
+                    <h2>Guide: Verification Mode</h2>
+                    <p>In this mode, we test our code against a known **analytical solution** to the 1D heat equation. This is a perfect mathematical truth, so any deviation is due to error in our numerical code.</p>
+                    <ol>
+                        <li>Select "Verification" from the Mode dropdown. The main chart shows the numerical solution from our code and the exact analytical solution.</li>
+                        <li>Use the **Grid Points** slider to change the resolution of the simulation. Notice how the numerical solution gets closer to the analytical solution as the number of points increases.</li>
+                        <li>Click **"Run Convergence Test"**. This will run the simulation at several different resolutions and plot the error between the numerical and analytical solutions on the bottom chart. You should see that the error decreases as the grid spacing (dx) gets smaller. This is a **convergence test**, a cornerstone of code verification.</li>
+                    </ol>
+
+                    <h2>Guide: Validation Mode</h2>
+                    <p>Here, we assume our code is verified. We now test it against synthetic **"experimental data."**</p>
+                    <ol>
+                        <li>Select "Validation" from the Mode dropdown. The main chart now shows our code's prediction versus the experimental data points.</li>
+                        <li>Initially, the data should match the code well (with some random noise). This is a successful validation.</li>
+                        <li>Now, turn on the **"Include Hidden Physics in Experiment"** switch. This adds a systematic error to the experimental data, simulating a physical effect (like a small heat source) that was *not included in our mathematical model*.</li>
+                        <li>Notice that our code, even though it's perfectly verified, now fails to match the experiment. This is a **validation failure**. It tells us not that our code is wrong, but that our *model* of the physics is incomplete. This is how computational scientists discover the need for better physical theories.</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls</h2>
+                <div class="control-group">
+                    <label for="mode-select">Mode:</label>
+                    <select id="mode-select">
+                        <option value="verification">Verification</option>
+                        <option value="validation">Validation</option>
+                    </select>
+                </div>
+                <div id="verification-controls">
+                    <h4>Verification Controls</h4>
+                    <div class="control">
+                        <label>Grid Points <span class="value-display" id="grid-points-val">20</span></label>
+                        <input type="range" id="grid-points-slider" min="10" max="80" step="5" value="20">
+                    </div>
+                    <div class="control" style="margin-top:10px;"><button id="run-vv-btn">Run Simulation</button></div>
+                </div>
+                 <div id="validation-controls" style="display:none;">
+                    <h4>Validation Controls</h4>
+                     <div class="control toggle-switch">
+                         <label for="hidden-physics-toggle">Include Hidden Physics in Experiment</label>
+                         <input type="checkbox" id="hidden-physics-toggle">
+                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    (function() {
+        const dom = {
+            mainChart: document.getElementById('mainChart'),
+            errorChartContainer: document.getElementById('errorChartContainer'),
+            errorChart: document.getElementById('errorChart'),
+            modeSelect: document.getElementById('mode-select'),
+            verificationControls: document.getElementById('verification-controls'),
+            validationControls: document.getElementById('validation-controls'),
+            gridPointsSlider: document.getElementById('grid-points-slider'), gridPointsVal: document.getElementById('grid-points-val'),
+            runBtn: document.getElementById('run-vv-btn'),
+            hiddenPhysicsToggle: document.getElementById('hidden-physics-toggle'),
+        };
+
+        const state = {
+            mode: 'verification',
+            gridPoints: 20,
+            hiddenPhysics: false,
+        };
+        let mainChart, errorChart;
+
+        // --- Physics & Numerical Model ---
+        const L = 1.0; // Length of the rod
+        const ALPHA = 0.01; // Thermal diffusivity
+        const T_FINAL = 2.0; // Final time to simulate
+
+        function analyticalSolution(x, t) {
+            return Math.exp(-ALPHA * (Math.PI/L)**2 * t) * Math.sin(Math.PI * x / L);
+        }
+
+        function runNumericalSolver(N) {
+            const dx = L / (N - 1);
+            const dt = 0.5 * dx**2 / ALPHA; // Stability condition
+            let T = new Float32Array(N);
+            let T_new = new Float32Array(N);
+
+            // Initial condition
+            for (let j = 0; j < N; j++) T[j] = Math.sin(Math.PI * (j * dx) / L);
+
+            // Time stepping
+            for (let t = 0; t < T_FINAL; t += dt) {
+                for (let j = 1; j < N - 1; j++) {
+                    const laplacian = (T[j+1] - 2*T[j] + T[j-1]) / (dx*dx);
+                    T_new[j] = T[j] + ALPHA * dt * laplacian;
+                }
+                // Boundary conditions T(0)=T(L)=0 are implicit
+                [T, T_new] = [T_new, T];
+            }
+            return T;
+        }
+
+        function generateExperimentalData() {
+            const N = state.gridPoints;
+            const dx = L / (N-1);
+            const data = [];
+            for (let j = 0; j < N; j++) {
+                const x = j * dx;
+                let value = analyticalSolution(x, T_FINAL);
+                // Add systematic error (unmodeled physics)
+                if(state.hiddenPhysics) value += 0.1 * Math.sin(2*Math.PI*x/L);
+                // Add random noise
+                value += (Math.random() - 0.5) * 0.04;
+                data.push({x: x, y: value});
+            }
+            return data;
+        }
+
+        // --- Charting ---
+        function setupCharts() {
+            if(mainChart) mainChart.destroy();
+            if(errorChart) errorChart.destroy();
+
+            const mainCtx = dom.mainChart.getContext('2d');
+            mainChart = new Chart(mainCtx, {
+                type: 'line', data: { datasets: [] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'linear', position: 'bottom', title: {display: true, text: 'Position (x)'} }, y: { title: {display: true, text: 'Temperature'} } } }
+            });
+
+            const errorCtx = dom.errorChart.getContext('2d');
+            errorChart = new Chart(errorCtx, {
+                type: 'line', data: { datasets: [] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'logarithmic', title: {display: true, text: 'Grid Spacing (dx)'} }, y: { type: 'logarithmic', title: {display: true, text: 'L2 Error'} } } }
+            });
+        }
+
+        function updateMainChart() {
+            const N = state.gridPoints;
+            const x_coords = Array.from({length: N}, (_, i) => i * L / (N - 1));
+            const numerical = runNumericalSolver(N);
+            const analytical = x_coords.map(x => analyticalSolution(x, T_FINAL));
+
+            mainChart.data.labels = x_coords;
+            mainChart.data.datasets = [];
+
+            if (state.mode === 'verification') {
+                 mainChart.data.datasets.push({ label: 'Numerical Solution', data: Array.from(numerical), borderColor: '#2980b9', tension: 0.1, pointRadius: 2 });
+                 mainChart.data.datasets.push({ label: 'Analytical Solution', data: analytical, borderColor: '#16a085', tension: 0.1, borderDash: [5,5], pointRadius: 0 });
+            } else { // Validation
+                 mainChart.data.datasets.push({ label: 'Model Prediction', data: Array.from(numerical), borderColor: '#2980b9', tension: 0.1, pointRadius: 0 });
+                 mainChart.data.datasets.push({ label: 'Experimental Data', data: generateExperimentalData(), type: 'scatter', backgroundColor: '#c0392b' });
+            }
+            mainChart.update();
+        }
+
+        function runConvergenceTest() {
+            const resolutions = [10, 20, 40, 60, 80];
+            const errors = [];
+            const dxs = [];
+
+            for (let N of resolutions) {
+                const numerical = runNumericalSolver(N);
+                const dx = L / (N - 1);
+                dxs.push(dx);
+
+                let error_sq_sum = 0;
+                for (let j = 0; j < N; j++) {
+                    const analytical = analyticalSolution(j * dx, T_FINAL);
+                    error_sq_sum += (numerical[j] - analytical)**2;
+                }
+                errors.push(Math.sqrt(error_sq_sum / N));
+            }
+
+            errorChart.data.labels = dxs;
+            errorChart.data.datasets = [{
+                label: 'Error vs. Grid Spacing',
+                data: errors.map((e, i) => ({x: dxs[i], y: e})),
+                borderColor: '#e67e22',
+                showLine: true
+            }];
+            errorChart.update();
+        }
+
+        // --- Event Listeners ---
+        function switchMode() {
+            state.mode = dom.modeSelect.value;
+            const isVerification = state.mode === 'verification';
+            dom.verificationControls.style.display = isVerification ? 'block' : 'none';
+            dom.validationControls.style.display = isVerification ? 'none' : 'block';
+            dom.errorChartContainer.style.display = isVerification ? 'block' : 'none';
+            if (isVerification) dom.runBtn.textContent = 'Run Convergence Test';
+            else dom.runBtn.textContent = 'Run Simulation';
+            updateMainChart();
+        }
+
+        dom.modeSelect.addEventListener('change', switchMode);
+        dom.gridPointsSlider.addEventListener('input', () => {
+            state.gridPoints = parseInt(dom.gridPointsSlider.value);
+            dom.gridPointsVal.textContent = state.gridPoints;
+            if (state.mode === 'validation') updateMainChart();
+        });
+        dom.hiddenPhysicsToggle.addEventListener('change', () => {
+            state.hiddenPhysics = dom.hiddenPhysicsToggle.checked;
+            updateMainChart();
+        });
+        dom.runBtn.addEventListener('click', () => {
+            if (state.mode === 'verification') {
+                 updateMainChart();
+                 runConvergenceTest();
+            } else {
+                updateMainChart();
+            }
+        });
+
+        setupCharts();
+        switchMode();
+    })();
+    </script>
+</body>
+</html>

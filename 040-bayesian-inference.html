@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Simulation: Bayesian Inference</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --primary-color: #9b59b6; /* Amethyst */
+            --secondary-color: #3498db; /* Blue */
+            --accent-color: #2ecc71; /* Green */
+            --border-color: #444444;
+            --control-bg: #2a2a2a;
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        h1 { font-size: 2.8em; color: var(--header-color); margin: 0; font-weight: 600; text-shadow: 0 0 10px var(--primary-color); }
+        .subtitle { font-size: 1.2em; color: var(--primary-color); margin-top: 10px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 20px; align-items: flex-start; }
+        .simulation-column { display: flex; flex-direction: column; gap: 20px; }
+        .controls-column { position: sticky; top: 20px; background-color: var(--control-bg); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .controls-column h2 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.4em; color: var(--primary-color); }
+        .content-column { background-color: #222; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        h2, h3, h4 { color: var(--header-color); margin-top: 1.5em; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--secondary-color); padding-bottom: 5px; }
+        h3 { font-size: 1.5em; color: var(--secondary-color); }
+
+        .visualization-container {
+            position: relative;
+            background: #111;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        .chart-container { height: 350px; }
+        .animation-container { height: 150px; background-color: #0d1a26; }
+        #animationCanvas { width: 100%; height: 100%; }
+
+        .control-group { margin-bottom: 20px; }
+        .control label { display: block; font-size: 0.95em; margin-bottom: 5px; }
+        .control .value-display { font-weight: bold; color: var(--primary-color); float: right; }
+        .control input[type="range"] { width: 100%; }
+        .control button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        code { background-color: #333; color: var(--secondary-color); padding: 2px 5px; border-radius: 3px; font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Simulation: Bayesian Inference</h1>
+            <p class="subtitle">The Framework for Updating Beliefs with Data</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="simulation-column">
+                <div class="visualization-container chart-container">
+                    <canvas id="beliefChart"></canvas>
+                </div>
+                <div class="visualization-container animation-container">
+                    <canvas id="animationCanvas"></canvas>
+                </div>
+                <div class="content-column">
+                    <h2>The Bayesian Idea: Beliefs are Probabilities</h2>
+                    <p>How do we learn about the world? We start with some initial beliefs, and then we update those beliefs as we gather evidence. Bayesian inference is a mathematical framework that formalizes this process. It treats "belief" as a probability distribution over a set of possible hypotheses.</p>
+                    <p>In this simulation, our "hypothesis" is the value of an unknown parameter: the launch velocity of a cannon. We can't measure it directly. We can only fire the cannon and see where the ball lands. Each shot is a piece of evidence we use to refine our belief about the true velocity.</p>
+
+                    <h3>The Core Components of Bayes' Theorem</h3>
+                    <p>The process is governed by Bayes' Theorem: <code>P(H|D) ∝ P(D|H) * P(H)</code></p>
+                    <p>Which translates to: <strong>Posterior ∝ Likelihood × Prior</strong></p>
+                    <ul>
+                        <li><strong>Prior (Your Initial Belief):</strong> The purple curve on the chart represents your <strong>Prior</strong> distribution. This is your belief about the cannon's velocity *before* seeing any data. We start with a wide, uncertain guess.</li>
+                        <li><strong>Likelihood (The Evidence):</strong> When you fire the cannon, a shot lands at a certain position. The green curve is the <strong>Likelihood</strong>. It answers the question: "If the true velocity were `v`, how likely would it be to see the shot land where it did?" It's a function that peaks at the velocity that would most likely produce the observed data.</li>
+                        <li><strong>Posterior (Your Updated Belief):</strong> The blue curve is the <strong>Posterior</strong> distribution. It's calculated by multiplying the Prior and the Likelihood together (and normalizing). This is your new, updated belief about the velocity *after* considering the evidence.</li>
+                    </ul>
+                    <p>Notice that the Posterior is narrower than the Prior and shifted towards the peak of the Likelihood. You've learned something and become more certain! If you fire again, this Posterior becomes the new Prior for the next update.</p>
+
+                    <h2>Beginner’s Guide to the Simulation</h2>
+                    <ol>
+                        <li><strong>Observe the Initial State:</strong> The main chart shows your initial "Prior" belief about the cannon's velocity. It's a wide curve, meaning you're not very sure. The "True Velocity" is marked by a vertical line—your goal is to find it.</li>
+                        <li><strong>Fire the Cannon:</strong> Click the "Fire Cannon & Update Belief" button. You'll see an animation of the cannon firing, and a data point (a red 'x') will appear where it landed.</li>
+                        <li><strong>Watch the Update:</strong> The chart will now show three curves. The green "Likelihood" represents the information from the new data point. The simulation multiplies your old purple "Prior" by this green "Likelihood" to produce the new blue "Posterior" belief.</li>
+                        <li><strong>Repeat:</strong> Click the fire button again. Your previous Posterior becomes the new Prior. Notice how with each new piece of data, your belief distribution gets narrower and more peaked around the true velocity. You are becoming more certain of the answer.</li>
+                        <li><strong>Experiment:</strong> Try increasing the "Measurement Noise". This makes your data less reliable, which will be reflected in a wider Likelihood function and slower learning.</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="controls-column">
+                <h2>Controls</h2>
+                <div class="control-group">
+                    <div class="control"><button id="fire-button">Fire Cannon & Update Belief</button></div>
+                    <div class="control" style="margin-top:10px;"><button id="reset-button">Reset Beliefs</button></div>
+                </div>
+                <div class="control-group">
+                    <h3>Model Parameters</h3>
+                    <div class="control">
+                        <label>True Velocity <span class="value-display" id="velocity-value">25</span></label>
+                        <input type="range" id="velocity-slider" min="15" max="35" step="0.5" value="25">
+                    </div>
+                     <div class="control">
+                        <label>Measurement Noise <span class="value-display"id="noise-value">5.0</span></label>
+                        <input type="range" id="noise-slider" min="1" max="20" step="0.5" value="5.0">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    (function() {
+        const dom = {
+            beliefChart: document.getElementById('beliefChart'),
+            animationCanvas: document.getElementById('animationCanvas'),
+            fireBtn: document.getElementById('fire-button'),
+            resetBtn: document.getElementById('reset-button'),
+            velocitySlider: document.getElementById('velocity-slider'), velocityValue: document.getElementById('velocity-value'),
+            noiseSlider: document.getElementById('noise-slider'), noiseValue: document.getElementById('noise-value'),
+        };
+
+        const state = {
+            true_v: 25, noise: 5,
+            param_space: [], prior: [], posterior: [], likelihood: [],
+            data_points: []
+        };
+        let beliefChart;
+        const animCtx = dom.animationCanvas.getContext('2d');
+
+        // --- Physics Model ---
+        const GRAVITY = 9.8;
+        const ANGLE = Math.PI / 4; // 45 degrees
+        const SIN_2THETA = Math.sin(2 * ANGLE);
+
+        function forwardModel(v) {
+            return v * v * SIN_2THETA / GRAVITY;
+        }
+
+        // --- Bayesian Logic ---
+        function gaussian(x, mu, sigma) {
+            const sigma2 = sigma * sigma;
+            return Math.exp(-0.5 * (x - mu) * (x - mu) / sigma2) / (Math.sqrt(2 * Math.PI) * sigma);
+        }
+
+        function reset() {
+            state.param_space = [];
+            for (let v = 10; v <= 40; v += 0.2) state.param_space.push(v);
+
+            // Initial Prior: A broad gaussian centered at 25
+            state.prior = state.param_space.map(v => gaussian(v, 25, 10));
+            state.posterior = [...state.prior];
+            state.likelihood = [];
+            state.data_points = [];
+            updateChart();
+            drawAnimation();
+        }
+
+        function updateBelief(data_point) {
+            state.prior = [...state.posterior]; // Old posterior becomes new prior
+
+            // Calculate Likelihood: P(data | v)
+            state.likelihood = state.param_space.map(v => {
+                const predicted_x = forwardModel(v);
+                return gaussian(data_point, predicted_x, state.noise);
+            });
+
+            // Calculate new Posterior: P(v | data) = P(data | v) * P(v)
+            let posterior_sum = 0;
+            state.posterior = state.prior.map((p, i) => {
+                const val = p * state.likelihood[i];
+                posterior_sum += val;
+                return val;
+            });
+
+            // Normalize posterior
+            for(let i=0; i<state.posterior.length; i++) {
+                state.posterior[i] /= (posterior_sum * (state.param_space[1]-state.param_space[0]));
+            }
+            updateChart();
+        }
+
+        // --- Visualization ---
+        function setupChart() {
+            const ctx = dom.beliefChart.getContext('2d');
+            beliefChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: state.param_space.map(v => v.toFixed(1)),
+                    datasets: [
+                        { label: 'Prior', data: [], borderColor: '#9b59b6', tension: 0.1, pointRadius: 0 },
+                        { label: 'Likelihood', data: [], borderColor: '#2ecc71', tension: 0.1, pointRadius: 0, borderDash: [5, 5] },
+                        { label: 'Posterior', data: [], borderColor: '#3498db', tension: 0.1, pointRadius: 0, borderWidth: 2.5 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Probability Density' } }, x: { title: { display: true, text: 'Velocity (m/s)' } } },
+                    animation: { duration: 500 }
+                }
+            });
+        }
+
+        function updateChart() {
+            if(!beliefChart) setupChart();
+            beliefChart.data.datasets[0].data = state.prior;
+            beliefChart.data.datasets[1].data = state.likelihood;
+            beliefChart.data.datasets[2].data = state.posterior;
+
+            // Add annotation for true value
+            const true_v_index = state.param_space.findIndex(v => v >= state.true_v);
+            if (beliefChart.options.plugins.annotation) {
+                beliefChart.options.plugins.annotation.annotations.line1.xMin = true_v_index;
+                beliefChart.options.plugins.annotation.annotations.line1.xMax = true_v_index;
+            } else {
+                 // Chart.js annotation plugin is not included by default, so we fake it.
+                 // This part is more complex with real annotations. For now, we just update data.
+            }
+
+            beliefChart.update();
+        }
+
+        function drawAnimation(landing_x = null) {
+            const w = dom.animationCanvas.width;
+            const h = dom.animationCanvas.height;
+            animCtx.clearRect(0,0,w,h);
+            animCtx.fillStyle = '#333';
+            animCtx.fillRect(0, h-10, w, 10);
+
+            // Draw cannon
+            animCtx.save();
+            animCtx.translate(20, h-10);
+            animCtx.rotate(-ANGLE);
+            animCtx.fillStyle = '#ccc';
+            animCtx.fillRect(0, -5, 30, 10);
+            animCtx.restore();
+
+            // Draw data points
+            animCtx.fillStyle = '#e74c3c';
+            state.data_points.forEach(x => {
+                const draw_x = 20 + x * (w-40) / forwardModel(40);
+                animCtx.fillText('x', draw_x, h-15);
+            });
+        }
+
+        function fireCannon() {
+            const landing_x_true = forwardModel(state.true_v);
+            const observed_x = landing_x_true + (Math.random() - 0.5) * 2 * state.noise;
+            state.data_points.push(observed_x);
+
+            drawAnimation(observed_x);
+            updateBelief(observed_x);
+        }
+
+        // --- Event Listeners ---
+        function updateParams() {
+            state.true_v = parseFloat(dom.velocitySlider.value);
+            state.noise = parseFloat(dom.noiseSlider.value);
+            dom.velocityValue.textContent = state.true_v.toFixed(1);
+            dom.noiseValue.textContent = state.noise.toFixed(1);
+        }
+        dom.fireBtn.addEventListener('click', fireCannon);
+        dom.resetBtn.addEventListener('click', reset);
+        [dom.velocitySlider, dom.noiseSlider].forEach(s => s.addEventListener('input', updateParams));
+
+        // --- Init ---
+        updateParams();
+        reset();
+    })();
+    </script>
+</body>
+</html>
