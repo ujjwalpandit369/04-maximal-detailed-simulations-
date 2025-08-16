@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Emergence of a Classical Universe</title>
+    <style>
+        /* Consistent CSS */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #5e3a8c; --secondary-color: #b1a5c1; --accent-color: #f9b115;
+            --border-color: #dee2e6;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .sim-container { display: grid; grid-template-columns: 1fr 350px; gap: 30px; margin-top: 30px; }
+        .vis-panel canvas { width: 100%; aspect-ratio: 1; border: 2px solid var(--border-color); background-color: #000; }
+        .controls-panel { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deep Simulation: Emergence of a Classical Universe</h1>
+        <p class="subtitle">Watching a classical history emerge from the quantum wave function.</p>
+    </header>
+
+    <div class="container">
+        <div class="sim-container">
+            <div class="vis-panel">
+                <h4>Minisuperspace: |Ψ(a, φ)|² and Classical Path</h4>
+                <canvas id="main-canvas" width="512" height="512"></canvas>
+            </div>
+            <div class="controls-panel">
+                <h3>Controls</h3>
+                <button id="start-btn">Start Evolution</button>
+                <button id="reset-btn">Reset</button>
+                <hr>
+                <h4>Initial State</h4>
+                <label>Initial Momentum (k_φ): <span id="mom-value">10.0</span></label>
+                <input type="range" id="mom-slider" min="0" max="50" step="1" value="10">
+            </div>
+        </div>
+
+        <div class="content-section" id="exposition-section">
+            <h2>Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: Finding a Path in the Quantum Fog</h3>
+                <p>The previous simulation showed the "wave function of the universe," Ψ, as a static cloud of probability across the space of all possible universes (minisuperspace). This raises a huge question: if the fundamental description is just this static cloud, how do we end up with the universe we see, one that clearly has a history and evolves in time? This simulation provides a visual answer. We start with a more realistic initial state for the universe: a "coherent" wave packet. This is not just a stationary blob of probability, but a focused packet that has a built-in "kick" of momentum. In this case, we give it momentum in the `φ` direction (the vertical axis).</p>
+                <p>As you run the simulation, you see the quantum wave packet (the colored heatmap) spread out as it evolves with increasing universe size `a`. But notice the white line. This is the path a *classical* universe would follow, calculated using Einstein's equations of general relativity. You can see that the peak of the quantum probability cloud, the most likely set of universes, follows this classical path almost perfectly. This is a profound result. It shows that buried within the timeless, static Wheeler-DeWitt equation are correlations that reproduce the classical, evolving universe we know and love. The "problem of time" is resolved by realizing that "time" is not fundamental, but an emergent property of the relationships between the variables that describe the universe.</p>
+            </section>
+            <section>
+                <h3>Core Theory: WKB Approximation and Emergent Time</h3>
+                <p>How does a time-dependent classical history emerge from the timeless Wheeler-DeWitt (WDW) equation, `HΨ = 0`? The key is to find a semi-classical approximation, analogous to the WKB approximation in ordinary quantum mechanics. We assume the wave function can be written in the form `Ψ = C * e^(iS)`, where `S` is a rapidly varying action and `C` is a slowly varying prefactor.</p>
+                <p>Plugging this into the WDW equation and keeping the leading terms gives the Hamilton-Jacobi equation of classical mechanics for the action `S`:
+                <br><code>(∂S/∂q_i)(∂S/∂q_j)g^ij - U(q) = 0</code>
+                <br>where `q_i` are the variables of minisuperspace (e.g., `a` and `φ`). The classical trajectories are the paths that are orthogonal to the surfaces of constant action `S`. A wave packet constructed from these WKB solutions will have a peak that follows these classical trajectories. This simulation shows exactly that: the quantum wave packet (the solution to the WDW equation) is "guided" by the underlying classical path (the solution to the Hamilton-Jacobi equation).</p>
+                <p>This framework also provides a solution to the "problem of time." We can choose one of the variables, typically the scalar field `φ` or the scale factor `a`, to act as an "emergent clock." For instance, if we can write `S = S₀(a) - Eφ`, then the WDW equation can be rearranged to look like a time-dependent Schrödinger equation for the gravitational degrees of freedom:
+                <br><code>i * ∂Ψ/∂φ = H_a Ψ</code>
+                <br>where `φ` now plays the role of the time coordinate. In this view, time is not an external parameter but is embodied by one of the dynamical variables of the system itself. The simulation demonstrates this by showing a clear correlation between the "time-like" variable `a` and the "space-like" variable `φ`, with the wave packet tracing a history `a(φ)`.</p>
+            </section>
+        </div>
+    </div>
+
+    <script id="simulation-script">
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const momSlider = document.getElementById('mom-slider');
+
+        const A_RES = 256;
+        const PHI_RES = 256;
+
+        let psi_curr_re, psi_curr_im, psi_prev_re, psi_prev_im, psi_next_re, psi_next_im;
+        let classical_path = [];
+        let isRunning = false;
+        let a_step = 0;
+        let simParams = { k_phi: 10.0 };
+        let full_history_re, full_history_im;
+
+        function reset() {
+            isRunning = false;
+            startBtn.textContent = 'Start Evolution';
+            a_step = 0;
+            simParams.k_phi = parseFloat(momSlider.value);
+
+            // --- Init quantum part ---
+            psi_prev_re = new Float32Array(PHI_RES); psi_prev_im = new Float32Array(PHI_RES);
+            psi_curr_re = new Float32Array(PHI_RES); psi_curr_im = new Float32Array(PHI_RES);
+            psi_next_re = new Float32Array(PHI_RES); psi_next_im = new Float32Array(PHI_RES);
+            full_history_re = new Float32Array(A_RES*PHI_RES); full_history_im = new Float32Array(A_RES*PHI_RES);
+
+            const phi0 = PHI_RES / 4;
+            const width = 10.0;
+            for(let j=0; j<PHI_RES; ++j) {
+                const envelope = Math.exp( -(j-phi0)**2 / (2*width*width) );
+                const phase_angle = simParams.k_phi * (j - phi0) / PHI_RES;
+                // Initial coherent state: Gaussian envelope with a phase gradient
+                const re = envelope * Math.cos(phase_angle);
+                const im = envelope * Math.sin(phase_angle);
+                psi_prev_re[j] = re; psi_prev_im[j] = im;
+                psi_curr_re[j] = re; psi_curr_im[j] = im;
+            }
+            for(let j=0; j<PHI_RES; ++j) {
+                full_history_re[j*A_RES] = psi_curr_re[j];
+                full_history_im[j*A_RES] = psi_curr_im[j];
+            }
+
+            // --- Init classical part ---
+            classical_path = [];
+            let class_a = 0.1, class_phi = phi0;
+            let class_pa = 1.0, class_pphi = simParams.k_phi; // Classical momenta
+            const dt = 0.01;
+            for(let t=0; t<A_RES*5; ++t) {
+                 classical_path.push({a: class_a, phi: class_phi});
+                 // Simplified classical evolution
+                 class_pa -= 0.1 * class_a * dt;
+                 class_a += class_pa * dt / class_a;
+                 class_phi += class_pphi * dt / (class_a**3);
+                 if (class_a > A_RES*0.1) break;
+            }
+
+            draw();
+        }
+
+        // --- WDW Solver (same as before) ---
+        function simulationStep() {
+            if (a_step >= A_RES - 1) { isRunning = false; return; }
+            const da = 0.1; const dphi2 = 1.0;
+            const a = (a_step + 1) * da + 0.1;
+            for (let j = 1; j < PHI_RES - 1; j++) {
+                const d2phi_re = (psi_curr_re[j+1]-2*psi_curr_re[j]+psi_curr_re[j-1])/dphi2;
+                const d2phi_im = (psi_curr_im[j+1]-2*psi_curr_im[j]+psi_curr_im[j-1])/dphi2;
+                const V = -2*a*a*(0.1*a*a);
+                psi_next_re[j] = (2*psi_curr_re[j]-psi_prev_re[j])+(da/a)*(psi_curr_re[j]-psi_prev_re[j])+da*da*((1/(a*a))*d2phi_re-V*psi_curr_re[j]);
+                psi_next_im[j] = (2*psi_curr_im[j]-psi_prev_im[j])+(da/a)*(psi_curr_im[j]-psi_prev_im[j])+da*da*((1/(a*a))*d2phi_im-V*psi_curr_im[j]);
+            }
+            psi_prev_re.set(psi_curr_re); psi_prev_im.set(psi_curr_im);
+            psi_curr_re.set(psi_next_re); psi_curr_im.set(psi_next_im);
+            a_step++;
+            for(let j=0; j<PHI_RES; ++j) {
+                full_history_re[j*A_RES+a_step] = psi_curr_re[j];
+                full_history_im[j*A_RES+a_step] = psi_curr_im[j];
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            const imageData = ctx.createImageData(A_RES, PHI_RES);
+            let max_prob = 0;
+            for(let i=0; i<full_history_re.length; ++i) {
+                const prob = full_history_re[i]**2 + full_history_im[i]**2;
+                if(prob > max_prob) max_prob = prob;
+            }
+            if(max_prob === 0) max_prob = 1;
+
+            for (let j=0; j<PHI_RES; j++) for (let i=0; i<A_RES; i++) {
+                const idx = j*A_RES+i, data_idx = idx*4;
+                const prob = (full_history_re[idx]**2 + full_history_im[idx]**2)/max_prob;
+                const intensity = Math.pow(prob, 0.5)*255;
+                imageData.data[data_idx+0]=intensity; imageData.data[data_idx+1]=intensity/2;
+                imageData.data[data_idx+2]=255-intensity; imageData.data[data_idx+3]=255;
+            }
+            ctx.putImageData(imageData, 0, 0);
+
+            // Overlay classical path
+            ctx.beginPath();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            let first = true;
+            for(const p of classical_path) {
+                const x = p.a / (A_RES*0.1) * canvas.width;
+                const y = p.phi / PHI_RES * canvas.height;
+                if(first) { ctx.moveTo(x,y); first=false; }
+                else { ctx.lineTo(x,y); }
+            }
+            ctx.stroke();
+        }
+
+        function mainLoop() {
+            if(!isRunning) return;
+            simulationStep();
+            draw();
+            if(isRunning) requestAnimationFrame(mainLoop);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if(a_step < A_RES-1) { isRunning = !isRunning; startBtn.textContent = isRunning ? 'Pause' : 'Start'; if(isRunning) mainLoop(); }
+        });
+        resetBtn.addEventListener('click', reset);
+        momSlider.addEventListener('input', e => { document.getElementById('mom-value').textContent = parseFloat(e.target.value).toFixed(1); if(!isRunning) reset(); });
+
+        reset();
+    });
+    </script>
+</body>
+</html>

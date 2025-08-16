@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Lattice QCD Thermodynamics</title>
+    <style>
+        /* Using the established consistent CSS */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #5e3a8c; --secondary-color: #b1a5c1; --accent-color: #f9b115;
+            --border-color: #dee2e6;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .subtitle { font-size: 1.2em; font-style: italic; color: var(--secondary-color); }
+
+        .main-content { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; margin-top: 30px; }
+        .controls-column { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); align-self: start; }
+        .vis-column { display: flex; flex-direction: column; gap: 20px; }
+        .vis-panel { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .vis-panel canvas { width: 100%; border: 1px solid var(--border-color); background-color: #000; }
+        #lattice-canvas { aspect-ratio: 1; }
+        #plot-canvas { aspect-ratio: 2/1; }
+
+        .content-section { grid-column: 1 / -1; background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        label { display: block; margin: 15px 0 5px; font-weight: bold; color: var(--header-color); }
+        input[type="range"], input[type="number"] { width: 100%; box-sizing: border-box; }
+        button { background-color: var(--primary-color); color: white; border: none; padding: 10px 20px; margin-top: 10px; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover { background-color: #4a2d6e; }
+        #metrics-panel { margin-top: 15px; font-family: 'Courier New', Courier, monospace; background: #e9ecef; padding: 10px; border-radius: 4px; }
+
+        @media (max-width: 1000px) { .main-content { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deep Simulation: Lattice QCD Thermodynamics</h1>
+        <p class="subtitle">Simulating the confinement-deconfinement phase transition with Monte Carlo methods.</p>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="controls-column">
+                <h3>Controls</h3>
+                <div>
+                    <label for="beta-slider">Inverse Coupling, β (Temperature): <span id="beta-value">1.0</span></label>
+                    <input type="range" id="beta-slider" min="0.1" max="2.0" step="0.05" value="1.0">
+                </div>
+                <div>
+                    <label for="lattice-size">Lattice Size (L x L)</label>
+                    <input type="number" id="lattice-size" value="16" min="8" max="32" step="2">
+                </div>
+                <div>
+                    <label for="mc-sweeps">Monte Carlo Sweeps</label>
+                    <input type="number" id="mc-sweeps" value="1000" min="100" max="10000" step="100">
+                </div>
+                <button id="run-btn">Run Simulation</button>
+                <button id="reset-btn">Reset Lattice</button>
+                <div id="metrics-panel">Status: Idle</div>
+            </div>
+            <div class="vis-column">
+                <div class="vis-panel">
+                    <h4>U(1) Gauge Field Links (Color = Angle)</h4>
+                    <canvas id="lattice-canvas"></canvas>
+                </div>
+                <div class="vis-panel">
+                    <h4>Observables vs. MC Sweeps</h4>
+                    <canvas id="plot-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section" id="exposition-section">
+            <h2>Exposition: The States of Matter of the Universe</h2>
+            <section>
+                <h3>Beginner's Guide: From Hadrons to Quark-Gluon Plasma</h3>
+                <p>What happens when you heat matter to the hottest temperatures imaginable? At a few thousand degrees, solids melt into liquids. At a few tens of thousands, liquids boil into gases. At hundreds of thousands, atoms themselves break apart into a plasma of electrons and nuclei. But what if you keep going, to trillions of degrees, to the temperatures of the universe a microsecond after the Big Bang? At these extreme energies, protons and neutrons themselves "melt" into a primordial soup of their fundamental constituents: quarks and gluons. This exotic state of matter is called the **Quark-Gluon Plasma (QGP)**.</p>
+                <p>The theory that describes quarks and gluons is Quantum Chromodynamics (QCD). A key feature of QCD is **confinement**: at low temperatures (like in our everyday world), quarks are permanently "confined" inside protons and neutrons. The force between them is so strong that you can never pull a single quark out by itself. However, QCD predicts that at a critical temperature of about 2 trillion degrees Celsius, a phase transition occurs. The quarks and gluons become "deconfined" and can move freely within the QGP. This simulation allows you to witness this fundamental phase transition. By running the simulation at different temperatures, you can see the system change from a disordered, confining state to an ordered, deconfined state.</p>
+            </section>
+            <section>
+                <h3>Core Theory: Lattice Gauge Theory and the Polyakov Loop</h3>
+                <p>The equations of QCD are notoriously difficult to solve directly. To study non-perturbative phenomena like confinement, physicists use a computational technique called **Lattice Gauge Theory**. The idea is to replace continuous spacetime with a discrete grid, or "lattice." The gauge fields (which represent the forces, like gluons) live on the links connecting the lattice sites. This discretization turns the infinite-dimensional problem of quantum field theory into a large, but finite, statistical mechanics problem that can be solved on a computer.</p>
+                <p>This simulation solves a simplified "toy model" of QCD called **2D U(1) pure gauge theory**. While simpler, it contains the essential physics of confinement. The state of the system is defined by an angle `θ` on each link. The "action" or energy of the system is determined by summing over all the elementary squares, or **plaquettes**. The action of a single plaquette is `S_p = -β cos(θ_loop)`, where `θ_loop` is the sum of angles around the square. The system tries to minimize this action.
+                <ul>
+                    <li>At **low temperature (high β)**, the `β` term dominates. The system minimizes its energy by making all plaquette angles close to zero. This leads to a disordered, random configuration for the link angles. This is the **confined phase**.</li>
+                    <li>At **high temperature (low β)**, the `β` term is less important, and entropy dominates. The system finds it favorable to align the link angles over large distances. This is the **deconfined phase**.</li>
+                </ul>
+                </p>
+                <p>How do we measure confinement? We use an **order parameter** called the **Polyakov Loop**. A Polyakov loop is the product of all link variables wrapping around the lattice in the "time" direction (here, the vertical direction). It measures the energy cost of adding a single, static quark to the system.
+                <ul>
+                    <li>In the confined phase, the energy to add one quark is infinite. The Polyakov loop averages to **zero**.</li>
+                    <li>In the deconfined phase, the energy is finite. The Polyakov loop acquires a non-zero average value.</li>
+                </ul>
+                Therefore, the confinement-deconfinement transition is a phase transition where the Polyakov loop goes from zero to a non-zero value. This is precisely what you can measure in this simulation.
+                </p>
+            </section>
+            <section>
+                <h3>Advanced Details: The Metropolis Algorithm and Real QCD</h3>
+                <p>This simulation uses the **Metropolis algorithm**, a workhorse of computational physics. It's a type of Monte Carlo method that generates a representative set of lattice configurations according to the Boltzmann distribution `P(C) ∝ exp(-S(C))`. The algorithm works by iteratively proposing a small, random change to a single link variable. It calculates the change in action `ΔS` that this would cause. If `ΔS` is negative (the action decreases), the change is always accepted. If `ΔS` is positive, the change is accepted with a probability of `exp(-ΔS)`. This process guarantees that after many steps ("sweeps"), the configurations being generated are typical of a system in thermal equilibrium.</p>
+                <p>Real-world Lattice QCD is significantly more complex. First, the gauge group is SU(3), not U(1), meaning the variables on the links are 3x3 matrices, not simple angles. Second, spacetime is 4-dimensional. Third, a complete simulation must include the effects of dynamic quarks ("fermions"), which are computationally very expensive to simulate. This simulation is a "pure gauge" or "quenched" calculation, meaning it ignores the effects of quark-antiquark pairs bubbling out of the vacuum. Nonetheless, this simple U(1) model provides a powerful and qualitatively correct picture of the physics of confinement.</p>
+            </section>
+        </div>
+
+        <div class="content-section" id="interactive-guide-section">
+            <h2>Interactive Elements Guide</h2>
+            <p>This simulation allows you to discover the phase transition between the confined and deconfined states of matter.</p>
+            <ul>
+                <li><strong>Inverse Coupling, β (Temperature):</strong> This is the most important slider. It controls the inverse temperature of the system. Remember that **low β = high temperature** (deconfined phase) and **high β = low temperature** (confined phase). The critical transition for this model happens around `β ≈ 1.0`.</li>
+                <li><strong>Lattice Size:</strong> Controls the size of the square lattice. Larger lattices provide more accurate results but run slower. A change here will reset the simulation.</li>
+                <li><strong>Monte Carlo Sweeps:</strong> Sets the number of "sweeps" the simulation will run when you click "Run". A sweep consists of trying to update every single link on the lattice once, on average. More sweeps lead to better equilibration and more accurate averages.</li>
+                <li><strong>Run Simulation:</strong> Starts the Monte Carlo process. The simulation will run for the specified number of sweeps. During the run, the plots and lattice visualization will update periodically. Controls are disabled during the run.</li>
+                <li><strong>Reset Lattice:</strong> Resets the lattice links to a new random ("hot") configuration.</li>
+            </ul>
+            <h4>How to Find the Phase Transition:</h4>
+            <ol>
+                <li>Set `β` to a low value, like **0.5** (high temperature). Run the simulation for 1000-2000 sweeps. Look at the "Observables" plot. You should see the purple line (Polyakov Loop) converge to a non-zero value (e.g., ~0.6 or higher). This is the deconfined phase.</li>
+                <li>Now, set `β` to a high value, like **1.5** (low temperature). Run the simulation again. You should see the Polyakov loop quickly drop and fluctuate around **zero**. This is the confined phase.</li>
+                <li>Try to pinpoint the transition by trying `β` values around **1.0**. You will see that the system takes longer to equilibrate near the transition, a phenomenon known as "critical slowing down."</li>
+            </ol>
+        </div>
+    </div>
+
+    <script id="simulation-script">
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements ---
+        const latticeCanvas = document.getElementById('lattice-canvas');
+        const lCtx = latticeCanvas.getContext('2d');
+        const plotCanvas = document.getElementById('plot-canvas');
+        const pCtx = plotCanvas.getContext('2d');
+
+        const betaSlider = document.getElementById('beta-slider');
+        const betaValueSpan = document.getElementById('beta-value');
+        const latticeSizeInput = document.getElementById('lattice-size');
+        const mcSweepsInput = document.getElementById('mc-sweeps');
+        const runBtn = document.getElementById('run-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const metricsPanel = document.getElementById('metrics-panel');
+
+        // --- Lattice Simulation Class ---
+        class Lattice {
+            constructor(L, beta) {
+                this.L = L;
+                this.beta = beta;
+                this.N_LINKS = 2 * L * L;
+                // links_h[y][x], links_v[y][x]
+                this.links_h = Array(L).fill(0).map(() => new Float32Array(L));
+                this.links_v = Array(L).fill(0).map(() => new Float32Array(L));
+                this.hotStart();
+            }
+
+            hotStart() {
+                for (let y = 0; y < this.L; y++) {
+                    for (let x = 0; x < this.L; x++) {
+                        this.links_h[y][x] = Math.random() * 2 * Math.PI;
+                        this.links_v[y][x] = Math.random() * 2 * Math.PI;
+                    }
+                }
+            }
+
+            calculatePlaquette(x, y) {
+                const x_p = (x + 1) % this.L;
+                const y_p = (y + 1) % this.L;
+                // Correct Plaquette loop: U(x,y,H) + U(x+1,y,V) - U(x,y+1,H) - U(x,y,V)
+                return this.links_h[y][x] + this.links_v[y][x_p] - this.links_h[y_p][x] - this.links_v[y][x];
+            }
+
+            calculateAvgPlaquette() {
+                let total_action = 0;
+                for (let y = 0; y < this.L; y++) {
+                    for (let x = 0; x < this.L; x++) {
+                        total_action += Math.cos(this.calculatePlaquette(x, y));
+                    }
+                }
+                return total_action / (this.L * this.L);
+            }
+
+            calculatePolyakovLoop() {
+                let total_loop = [0, 0]; // [Re, Im]
+                for (let x = 0; x < this.L; x++) {
+                    let loop_phase = 0;
+                    for (let y = 0; y < this.L; y++) {
+                        loop_phase += this.links_v[y][x];
+                    }
+                    total_loop[0] += Math.cos(loop_phase);
+                    total_loop[1] += Math.sin(loop_phase);
+                }
+                const avg_re = total_loop[0] / this.L;
+                const avg_im = total_loop[1] / this.L;
+                return Math.sqrt(avg_re * avg_re + avg_im * avg_im);
+            }
+
+            metropolisUpdate() {
+                const x = Math.floor(Math.random() * this.L);
+                const y = Math.floor(Math.random() * this.L);
+                const dir = Math.floor(Math.random() * 2); // 0 for horizontal, 1 for vertical
+
+                const link_array = (dir === 0) ? this.links_h : this.links_v;
+                const old_angle = link_array[y][x];
+                const new_angle = Math.random() * 2 * Math.PI;
+
+                let S_old = 0, S_new = 0;
+                const x_m = (x - 1 + this.L) % this.L;
+                const y_m = (y - 1 + this.L) % this.L;
+
+                if (dir === 0) { // Horizontal link
+                    S_old += Math.cos(this.calculatePlaquette(x, y));
+                    S_old += Math.cos(this.calculatePlaquette(x, y_m));
+                    link_array[y][x] = new_angle; // Temporarily update
+                    S_new += Math.cos(this.calculatePlaquette(x, y));
+                    S_new += Math.cos(this.calculatePlaquette(x, y_m));
+                } else { // Vertical link
+                    S_old += Math.cos(this.calculatePlaquette(x, y));
+                    S_old += Math.cos(this.calculatePlaquette(x_m, y));
+                    link_array[y][x] = new_angle; // Temporarily update
+                    S_new += Math.cos(this.calculatePlaquette(x, y));
+                    S_new += Math.cos(this.calculatePlaquette(x_m, y));
+                }
+
+                const delta_S = this.beta * (S_new - S_old);
+
+                if (delta_S > 0 || Math.random() < Math.exp(delta_S)) {
+                    // Accept
+                } else {
+                    link_array[y][x] = old_angle; // Reject: revert
+                }
+            }
+
+            runSweep() {
+                for (let i = 0; i < this.N_LINKS; i++) {
+                    this.metropolisUpdate();
+                }
+            }
+        }
+
+        // --- Main Simulation Logic ---
+        let lattice;
+        let plotHistory = [];
+        let isRunning = false;
+
+        function initialize() {
+            const L = parseInt(latticeSizeInput.value);
+            const beta = parseFloat(betaSlider.value);
+            lattice = new Lattice(L, beta);
+            plotHistory = [];
+            drawLattice();
+            drawPlots();
+            metricsPanel.textContent = "Status: Idle. Press Run.";
+        }
+
+        function hslToRgb(h, s, l) {
+            let r, g, b;
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1 / 6) return p + (q - p) * 6 * t;
+                    if (t < 1 / 2) return q;
+                    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1 / 3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1 / 3);
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+
+        function drawLattice() {
+            if (!lattice) return;
+            const L = lattice.L;
+            const w = latticeCanvas.width;
+            const h = latticeCanvas.height;
+            const cell_size = w / L;
+            lCtx.fillStyle = 'black';
+            lCtx.fillRect(0, 0, w, h);
+
+            for (let y = 0; y < L; y++) {
+                for (let x = 0; x < L; x++) {
+                    // Horizontal link
+                    const h_angle = lattice.links_h[y][x] / (2 * Math.PI);
+                    const [r,g,b] = hslToRgb(h_angle, 0.9, 0.6);
+                    lCtx.strokeStyle = `rgb(${r},${g},${b})`;
+                    lCtx.lineWidth = 2;
+                    lCtx.beginPath();
+                    lCtx.moveTo((x + 0.5) * cell_size, (y + 0.5) * cell_size);
+                    lCtx.lineTo((x + 1.5) * cell_size, (y + 0.5) * cell_size);
+                    lCtx.stroke();
+
+                    // Vertical link
+                    const v_angle = lattice.links_v[y][x] / (2 * Math.PI);
+                    const [vr,vg,vb] = hslToRgb(v_angle, 0.9, 0.6);
+                    lCtx.strokeStyle = `rgb(${vr},${vg},${vb})`;
+                    lCtx.beginPath();
+                    lCtx.moveTo((x + 0.5) * cell_size, (y + 0.5) * cell_size);
+                    lCtx.lineTo((x + 0.5) * cell_size, (y + 1.5) * cell_size);
+                    lCtx.stroke();
+                }
+            }
+        }
+
+        function drawPlots() {
+            const w = plotCanvas.width;
+            const h = plotCanvas.height;
+            pCtx.fillStyle = 'white';
+            pCtx.fillRect(0,0,w,h);
+            if (plotHistory.length === 0) return;
+
+            // Draw Polyakov Loop (purple)
+            pCtx.strokeStyle = 'var(--primary-color)';
+            pCtx.lineWidth = 2;
+            pCtx.beginPath();
+            plotHistory.forEach((p, i) => {
+                const x = (i / plotHistory.length) * w;
+                const y = h - p.polyakov * h; // Polyakov is [0,1]
+                if(i===0) pCtx.moveTo(x,y); else pCtx.lineTo(x,y);
+            });
+            pCtx.stroke();
+
+            // Draw Plaquette (yellow)
+            pCtx.strokeStyle = 'var(--accent-color)';
+            pCtx.lineWidth = 2;
+            pCtx.beginPath();
+            plotHistory.forEach((p, i) => {
+                const x = (i / plotHistory.length) * w;
+                const y = h - (p.plaquette + 1)/2 * h; // Plaquette is [-1,1] -> [0,1]
+                if(i===0) pCtx.moveTo(x,y); else pCtx.lineTo(x,y);
+            });
+            pCtx.stroke();
+        }
+
+        async function runSimulation() {
+            if (isRunning) return;
+            isRunning = true;
+            runBtn.disabled = true;
+            resetBtn.disabled = true;
+            metricsPanel.textContent = "Status: Running...";
+
+            const sweeps = parseInt(mcSweepsInput.value);
+            plotHistory = [];
+
+            for (let i = 0; i < sweeps; i++) {
+                lattice.runSweep();
+                if (i % 10 === 0) { // Update plots periodically
+                    const polyakov = lattice.calculatePolyakovLoop();
+                    const plaquette = lattice.calculateAvgPlaquette();
+                    plotHistory.push({ polyakov, plaquette });
+
+                    if (i % 50 === 0) { // Update visuals less often
+                        drawLattice();
+                        drawPlots();
+                        metricsPanel.textContent = `Sweep ${i}/${sweeps} | P = ${polyakov.toFixed(3)} | <S> = ${plaquette.toFixed(3)}`;
+                        await new Promise(r => setTimeout(r, 0)); // Yield to browser
+                    }
+                }
+            }
+
+            drawLattice();
+            drawPlots();
+            const lastPoint = plotHistory[plotHistory.length-1];
+            metricsPanel.textContent = `Finished. Final P = ${lastPoint.polyakov.toFixed(3)}, <S> = ${lastPoint.plaquette.toFixed(3)}`;
+            isRunning = false;
+            runBtn.disabled = false;
+            resetBtn.disabled = false;
+        }
+
+        // --- Event Listeners ---
+        runBtn.addEventListener('click', runSimulation);
+        resetBtn.addEventListener('click', initialize);
+        betaSlider.addEventListener('input', e => {
+            lattice.beta = parseFloat(e.target.value);
+            betaValueSpan.textContent = lattice.beta.toFixed(2);
+        });
+        latticeSizeInput.addEventListener('change', initialize);
+
+        // --- Initial Setup ---
+        initialize();
+    });
+    </script>
+</body>
+</html>

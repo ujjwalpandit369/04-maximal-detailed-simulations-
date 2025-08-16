@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Quantum Prethermalization</title>
+    <style>
+        /* Consistent CSS from the project */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #5e3a8c; --secondary-color: #b1a5c1; --accent-color: #f9b115;
+            --border-color: #dee2e6;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .subtitle { font-size: 1.2em; font-style: italic; color: var(--secondary-color); }
+
+        .main-content { display: grid; grid-template-columns: 300px 1fr; gap: 30px; margin-top: 30px; }
+        .controls-column { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); align-self: start; }
+        .vis-column { display: flex; flex-direction: column; gap: 20px; }
+        .vis-panel { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .vis-panel canvas { width: 100%; border: 1px solid var(--border-color); background-color: #fdfdfd; }
+        #spin-config-canvas { aspect-ratio: 4/1; }
+        #observable-canvas { aspect-ratio: 2/1; }
+
+        .content-section { grid-column: 1 / -1; background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        label { display: block; margin: 15px 0 5px; font-weight: bold; color: var(--header-color); }
+        input[type="range"] { width: 100%; }
+        button { background-color: var(--primary-color); color: white; border: none; padding: 10px 20px; margin-top: 10px; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover { background-color: #4a2d6e; }
+        #metrics-panel { margin-top: 15px; font-family: 'Courier New', Courier, monospace; background: #e9ecef; padding: 10px; border-radius: 4px; }
+
+        @media (max-width: 900px) { .main-content { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deep Simulation: Quantum Prethermalization</h1>
+        <p class="subtitle">Observing the long-lived plateaus of nearly-integrable many-body systems.</p>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="controls-column">
+                <h3>Controls</h3>
+                <button id="start-btn">Start</button>
+                <button id="pause-btn">Pause</button>
+                <button id="reset-btn">Reset</button>
+                <div>
+                    <label for="epsilon-slider">Perturbation (ε): <span id="epsilon-value">0.00</span></label>
+                    <input type="range" id="epsilon-slider" min="0.0" max="0.5" step="0.05" value="0.0">
+                </div>
+                <div>
+                    <label for="delta-slider">Anisotropy (Δ): <span id="delta-value">1.00</span></label>
+                    <input type="range" id="delta-slider" min="0.0" max="2.0" step="0.1" value="1.0">
+                </div>
+                <div id="metrics-panel">Time: 0.00</div>
+            </div>
+            <div class="vis-column">
+                <div class="vis-panel">
+                    <h4>Spin Configuration ⟨Sᵢᶻ⟩</h4>
+                    <canvas id="spin-config-canvas"></canvas>
+                </div>
+                <div class="vis-panel">
+                    <h4>Central Spin Magnetization ⟨S₅ᶻ(t)⟩ vs. Time</h4>
+                    <canvas id="observable-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section" id="exposition-section">
+            <h2>Exposition: The Arrow of Time in a Quantum World</h2>
+            <section>
+                <h3>Beginner's Guide: Why Don't Humpty Dumpty's Pieces Reassemble?</h3>
+                <p>One of the deepest questions in physics is why time seems to flow in only one direction. A cup of coffee cools down but never spontaneously heats up. This is the essence of the second law of thermodynamics: systems tend toward thermal equilibrium. But what does "equilibrium" mean for a perfectly isolated quantum system, like a chain of atomic spins, that isn't connected to a hot or cold bath? The modern answer is that the system acts as its own bath. Information about its initial state gets scrambled among its many interacting parts until, for all practical purposes, it's lost. The system has "thermalized."</p>
+                <p>However, some special quantum systems, called **integrable systems**, are too orderly to scramble information effectively. They have hidden conservation laws that prevent them from ever truly thermalizing. They remember their initial state forever. This simulation explores what happens when we take such a special, integrable system and give it a tiny "kick" (`ε > 0`) to break its special property. The result is **prethermalization**: the system rapidly relaxes not to a true thermal state, but to a long-lived, non-thermal "plateau." It gets stuck in a state that looks like the equilibrium of the original, special system. Only on a much, much longer timescale will it eventually succumb to the chaos of the perturbation and drift towards true thermal equilibrium.</p>
+            </section>
+            <section>
+                <h3>Core Theory: ETH, Integrability, and Prethermal Plateaus</h3>
+                <p>The modern understanding of quantum thermalization is rooted in the **Eigenstate Thermalization Hypothesis (ETH)**. ETH posits that in a generic, chaotic (non-integrable) quantum system, every individual energy eigenstate already "looks thermal." This means that if you prepare the system in any state that is a superposition of many energy eigenstates, it will dephase over time, and the expectation values of local observables will relax to the thermal average predicted by statistical mechanics.</p>
+                <p>This simulation explores a system that can be tuned between two regimes. The base model is the **1D Heisenberg XXZ spin chain**, whose Hamiltonian is:
+                <br><code>H_XXZ = Σ [ SᵢˣSᵢ₊₁ˣ + SᵢʸSᵢ₊₁ʸ + Δ SᵢᶻSᵢ₊₁ᶻ ]</code>
+                <br>This model is famously **integrable**, meaning it has an extensive number of local conserved quantities beyond just energy. These additional conservation laws severely constrain the dynamics, preventing the system from exploring its entire phase space. Consequently, integrable systems violate ETH. When started in a non-equilibrium state, they relax to a **Generalized Gibbs Ensemble (GGE)**, a non-thermal steady state that remembers all the initial values of its conserved quantities.</p>
+                <p>We then add a small, **integrability-breaking perturbation**:
+                <br><code>H = H_XXZ + ε Σ SᵢᶻSᵢ₊₂ᶻ</code>
+                <br>This next-nearest-neighbor interaction `ε` breaks the special symmetries of the XXZ model. For any `ε > 0`, the system is now non-integrable and is expected to thermalize according to ETH. However, for small `ε`, the "memory" of the nearby integrable system is powerful. The system first undergoes a rapid relaxation to a **prethermal state** that is nearly identical to the GGE of the `ε=0` model. This creates a long-lived plateau in the value of local observables. The timescale to relax away from this plateau and towards the true thermal state is very long, scaling as `τ ~ 1/ε²`. This simulation allows you to directly visualize this prethermal plateau.</p>
+            </section>
+            <section>
+                <h3>Advanced Details: Implementation via Exact Diagonalization</h3>
+                <p>Simulating the time evolution of a quantum many-body system is computationally hard because the size of the Hilbert space grows exponentially with the number of particles, `dim = 2^L` for a spin-1/2 chain of length `L`. This simulation handles a system of `L=10` spins, corresponding to a state vector with 1024 complex components. To evolve the state, we must solve the Schrödinger equation `d|ψ⟩/dt = -iH|ψ⟩`.</p>
+                <p>This is achieved by first constructing the `1024 x 1024` Hamiltonian matrix `H`. Because the interactions are local (acting only on nearest or next-nearest neighbors), the matrix is very **sparse** (mostly filled with zeros). We can exploit this sparsity to store the matrix and perform matrix-vector multiplication efficiently. The time evolution is then carried out using a high-fidelity numerical integrator, the **4th-order Runge-Kutta (RK4)** method, which repeatedly applies the Hamiltonian to the state vector to step it forward in time. The initial state is prepared as a "domain wall" `|↑↑↑↑↑↓↓↓↓↓⟩`, which has high energy and is easy to construct, making it a standard choice for studying relaxation dynamics.</p>
+            </section>
+        </div>
+
+        <div class="content-section" id="interactive-guide-section">
+            <h2>Interactive Elements Guide</h2>
+            <p>This simulation shows the relaxation of a local observable in a quantum spin chain.</p>
+            <ul>
+                <li><strong>Start/Pause/Reset:</strong> Control the time evolution. Resetting is required after changing any slider, as the entire Hamiltonian must be rebuilt. This may take a moment.</li>
+                <li><strong>Perturbation (ε):</strong> This is the key control. It sets the strength of the integrability-breaking term.
+                    <ul>
+                        <li>Set `ε = 0.00`. The system is perfectly integrable. Run the simulation and watch the "Central Spin Magnetization" plot. The value will relax to a stable, non-zero value and stay there forever. This is the non-thermal GGE steady state.</li>
+                        <li>Set `ε` to a small value, like **0.10**. Run the simulation. You will see the central spin relax to almost the *exact same plateau* as the `ε=0` case. This is the prethermal plateau. If you could run for long enough, you would see it slowly decay to zero (the true thermal state), but this decay is too slow to see in the simulation's runtime.</li>
+                        <li>Set `ε` to a large value, like **0.50**. Now the perturbation is strong. You will see the observable relax much more quickly towards zero, bypassing the prethermal plateau entirely.</li>
+                    </ul>
+                </li>
+                <li><strong>Anisotropy (Δ):</strong> This slider changes the nature of the underlying integrable model, which in turn changes the value of the prethermal plateau.</li>
+                <li><strong>Spin Configuration Plot:</strong> This shows the magnetization `⟨Sᵢᶻ⟩` at each site. You can watch the initial sharp domain wall "melt" and spread across the system.</li>
+                <li><strong>Central Spin Plot:</strong> This is the main plot for observing prethermalization. It tracks the magnetization of the spin at the center of the chain as a function of time.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script id="simulation-script">
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements ---
+        const spinCanvas = document.getElementById('spin-config-canvas');
+        const sCtx = spinCanvas.getContext('2d');
+        const obsCanvas = document.getElementById('observable-canvas');
+        const oCtx = obsCanvas.getContext('2d');
+
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const epsilonSlider = document.getElementById('epsilon-slider');
+        const epsilonValueSpan = document.getElementById('epsilon-value');
+        const deltaSlider = document.getElementById('delta-slider');
+        const deltaValueSpan = document.getElementById('delta-value');
+        const metricsPanel = document.getElementById('metrics-panel');
+
+        // --- Complex Number Utilities ---
+        const c_add = (a, b) => [a[0] + b[0], a[1] + b[1]];
+        const c_sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+        const c_mul_s = (a, s) => [a[0] * s, a[1] * s];
+        const c_mul_i = (a) => [-a[1], a[0]]; // Multiply by i
+        const c_abs_sq = (a) => a[0] * a[0] + a[1] * a[1];
+
+        // --- Simulation Class ---
+        class QuantumSystem {
+            constructor(L, delta, epsilon) {
+                this.L = L;
+                this.dim = 1 << L;
+                this.delta = delta;
+                this.epsilon = epsilon;
+                this.time = 0;
+
+                this.psi = Array(this.dim).fill(0).map(() => [0, 0]);
+                this.H_sparse = []; // Sparse matrix as list of {r, c, v: [re,im]}
+                this.buildHamiltonian();
+                this.setInitialState();
+            }
+
+            getSpin(state_idx, site) {
+                return ((state_idx >> site) & 1) ? 0.5 : -0.5; // 1 is up, 0 is down
+            }
+
+            buildHamiltonian() {
+                this.H_sparse = [];
+                for (let i = 0; i < this.dim; i++) {
+                    let diagonal_val = 0;
+                    // Interaction terms
+                    for (let j = 0; j < this.L; j++) {
+                        const s_j = this.getSpin(i, j);
+                        // ZZ interaction (nearest neighbor)
+                        const s_j_plus_1 = this.getSpin(i, (j + 1) % this.L);
+                        diagonal_val += this.delta * s_j * s_j_plus_1;
+
+                        // Integrability-breaking ZZ interaction (next-nearest neighbor)
+                        const s_j_plus_2 = this.getSpin(i, (j + 2) % this.L);
+                        diagonal_val += this.epsilon * s_j * s_j_plus_2;
+
+                        // XX+YY -> S+S- + S-S+ (flip-flop)
+                        const site1 = j;
+                        const site2 = (j + 1) % this.L;
+                        if (this.getSpin(i, site1) !== this.getSpin(i, site2)) {
+                            const flipped_state_idx = i ^ (1 << site1) ^ (1 << site2);
+                             if (flipped_state_idx > i) { // Avoid double counting
+                                this.H_sparse.push({ r: flipped_state_idx, c: i, v: [0.5, 0] });
+                                this.H_sparse.push({ r: i, c: flipped_state_idx, v: [0.5, 0] });
+                            }
+                        }
+                    }
+                    if (Math.abs(diagonal_val) > 1e-9) {
+                        this.H_sparse.push({ r: i, c: i, v: [diagonal_val, 0] });
+                    }
+                }
+            }
+
+            setInitialState() {
+                this.time = 0;
+                this.psi.forEach(v => { v[0] = 0; v[1] = 0; });
+                // Domain wall state |...↑↑↑↓↓↓...>
+                const halfL = Math.floor(this.L / 2);
+                let state_idx = 0;
+                for(let i=halfL; i<this.L; ++i) state_idx |= (1 << i);
+                this.psi[state_idx] = [1, 0];
+            }
+
+            matVecMul(vec) {
+                const result = Array(this.dim).fill(0).map(() => [0, 0]);
+                for (const { r, c, v } of this.H_sparse) {
+                    const v_c = vec[c];
+                    const prod = [v[0]*v_c[0] - v[1]*v_c[1], v[0]*v_c[1] + v[1]*v_c[0]];
+                    result[r] = c_add(result[r], prod);
+                }
+                return result;
+            }
+
+            evolve_rk4(dt) {
+                // k1 = -i * H * psi
+                const H_psi = this.matVecMul(this.psi);
+                const k1 = c_mul_s(c_mul_i(H_psi), -1);
+
+                // k2 = -i * H * (psi + dt/2 * k1)
+                let temp_psi = Array(this.dim);
+                for(let i=0; i<this.dim; ++i) temp_psi[i] = c_add(this.psi[i], c_mul_s(k1[i], dt/2));
+                const H_temp_psi_1 = this.matVecMul(temp_psi);
+                const k2 = c_mul_s(c_mul_i(H_temp_psi_1), -1);
+
+                // k3 = -i * H * (psi + dt/2 * k2)
+                for(let i=0; i<this.dim; ++i) temp_psi[i] = c_add(this.psi[i], c_mul_s(k2[i], dt/2));
+                const H_temp_psi_2 = this.matVecMul(temp_psi);
+                const k3 = c_mul_s(c_mul_i(H_temp_psi_2), -1);
+
+                // k4 = -i * H * (psi + dt * k3)
+                for(let i=0; i<this.dim; ++i) temp_psi[i] = c_add(this.psi[i], c_mul_s(k3[i], dt));
+                const H_temp_psi_3 = this.matVecMul(temp_psi);
+                const k4 = c_mul_s(c_mul_i(H_temp_psi_3), -1);
+
+                // psi(t+dt) = psi(t) + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
+                for(let i=0; i<this.dim; ++i) {
+                    let sum_k = c_add(k1[i], c_mul_s(k2[i], 2));
+                    sum_k = c_add(sum_k, c_mul_s(k3[i], 2));
+                    sum_k = c_add(sum_k, k4[i]);
+                    this.psi[i] = c_add(this.psi[i], c_mul_s(sum_k, dt/6));
+                }
+                this.time += dt;
+            }
+
+            get_Sz_exp() {
+                const sz = new Float32Array(this.L);
+                for (let i = 0; i < this.L; i++) {
+                    let exp_val = 0;
+                    for (let j = 0; j < this.dim; j++) {
+                        exp_val += c_abs_sq(this.psi[j]) * this.getSpin(j, i);
+                    }
+                    sz[i] = exp_val;
+                }
+                return sz;
+            }
+        }
+
+        // --- Main Logic ---
+        let system;
+        let isRunning = false;
+        let animationFrameId;
+        let obsHistory = [];
+        const L = 10; // Fixed lattice size for performance
+
+        function setup() {
+            metricsPanel.textContent = "Status: Building Hamiltonian...";
+            setTimeout(() => {
+                const delta = parseFloat(deltaSlider.value);
+                const epsilon = parseFloat(epsilonSlider.value);
+                system = new QuantumSystem(L, delta, epsilon);
+                obsHistory = [];
+
+                deltaValueSpan.textContent = delta.toFixed(2);
+                epsilonValueSpan.textContent = epsilon.toFixed(2);
+
+                draw();
+                metricsPanel.textContent = "Status: Ready.";
+            }, 10); // Timeout to allow UI update
+        }
+
+        function draw() {
+            if (!system) return;
+            // Draw spin config
+            const sz = system.get_Sz_exp();
+            const w = spinCanvas.width, h = spinCanvas.height;
+            sCtx.fillStyle = 'var(--bg-color)';
+            sCtx.fillRect(0,0,w,h);
+            const barWidth = w / L;
+            for(let i=0; i<L; ++i) {
+                const val = sz[i]; // from -0.5 to 0.5
+                const barHeight = val * h;
+                sCtx.fillStyle = val > 0 ? 'var(--primary-color)' : 'var(--accent-color)';
+                sCtx.fillRect(i * barWidth, h/2 - barHeight, barWidth * 0.8, barHeight);
+            }
+
+            // Draw observable plot
+            const ow = obsCanvas.width, oh = obsCanvas.height;
+            oCtx.fillStyle = 'var(--bg-color)';
+            oCtx.fillRect(0,0,ow,oh);
+            oCtx.strokeStyle = 'var(--primary-color)';
+            oCtx.lineWidth = 2;
+            oCtx.beginPath();
+            obsHistory.forEach((p, i) => {
+                const x = (p.t / system.time) * ow;
+                const y = oh/2 - (p.sz / 0.5) * (oh/2);
+                if(i===0) oCtx.moveTo(x,y); else oCtx.lineTo(x,y);
+            });
+            oCtx.stroke();
+        }
+
+        function mainLoop() {
+            if (isRunning) {
+                system.evolve_rk4(0.1);
+                const sz_exp = system.get_Sz_exp();
+                obsHistory.push({ t: system.time, sz: sz_exp[Math.floor(L/2)] });
+                draw();
+                metricsPanel.textContent = `Time: ${system.time.toFixed(2)}`;
+                animationFrameId = requestAnimationFrame(mainLoop);
+            }
+        }
+
+        function reset() {
+            isRunning = false;
+            cancelAnimationFrame(animationFrameId);
+            setup();
+        }
+
+        startBtn.addEventListener('click', () => { if (!isRunning && system) { isRunning = true; mainLoop(); }});
+        pauseBtn.addEventListener('click', () => { isRunning = false; });
+        resetBtn.addEventListener('click', reset);
+        epsilonSlider.addEventListener('input', reset);
+        deltaSlider.addEventListener('input', reset);
+
+        reset();
+    });
+    </script>
+</body>
+</html>

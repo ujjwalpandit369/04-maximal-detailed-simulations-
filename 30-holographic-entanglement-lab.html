@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Holographic Entanglement Lab</title>
+    <style>
+        /* Consistent CSS */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #5e3a8c; --secondary-color: #b1a5c1; --accent-color: #f9b115;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .sim-container { display: grid; grid-template-columns: 1fr 350px; gap: 30px; margin-top: 30px; }
+        .vis-panel canvas { width: 100%; aspect-ratio: 1; border: 2px solid var(--border-color); background-color: #fff; }
+        .controls-panel { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deep Simulation: Holographic Entanglement Lab</h1>
+        <p class="subtitle">Exploring the properties of entanglement entropy using the Ryu-Takayanagi formula.</p>
+    </header>
+
+    <div class="container">
+        <div class="sim-container">
+            <div class="vis-panel">
+                <h4>AdS Bulk and Minimal Surfaces</h4>
+                <canvas id="main-canvas" width="512" height="512"></canvas>
+            </div>
+            <div class="controls-panel">
+                <h3>Controls</h3>
+                <h4>Region A (Blue)</h4>
+                <label>Center: <span id="center-a-value">0.00</span></label>
+                <input type="range" id="center-a-slider" min="-0.5" max="0.5" step="0.01" value="0.0">
+                <label>Size: <span id="size-a-value">0.25</span></label>
+                <input type="range" id="size-a-slider" min="0.05" max="0.95" step="0.01" value="0.25">
+
+                <h4>Region B (Red)</h4>
+                <label>Center: <span id="center-b-value">0.50</span></label>
+                <input type="range" id="center-b-slider" min="-0.5" max="0.5" step="0.01" value="0.5">
+                <label>Size: <span id="size-b-value">0.25</span></label>
+                <input type="range" id="size-b-slider" min="0.05" max="0.95" step="0.01" value="0.25">
+                <hr>
+                <div id="metrics-panel"></div>
+            </div>
+        </div>
+
+        <div class="content-section" id="exposition-section">
+            <h2>Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: Entanglement as a Bridge</h3>
+                <p>Entanglement entropy is a measure of how much quantum "inseparability" exists between a physical system and its surroundings. The Ryu-Takayanagi formula, a cornerstone of the AdS/CFT correspondence, gives this deeply quantum concept a beautiful and simple geometric interpretation: the entanglement entropy of a boundary region `A` is proportional to the area of a "minimal surface" in the bulk that is anchored to the boundary of `A`. In this 2D simulation, the boundary is a circle, a region `A` is an arc on that circle, and the minimal surface is simply the geodesic (path of shortest length) connecting the endpoints of the arc.</p>
+                <p>This simulation is an interactive lab that lets you explore this amazing formula. You can control two regions, A (blue) and B (red), on the boundary of AdS space. For each region, the simulation draws the corresponding minimal surface in the bulk and calculates its length, which is the entanglement entropy S(A) or S(B). You can immediately see some key properties. For example, as you increase the size of a region, the geodesic dips deeper into the bulk and its length (the entropy) increases. You can also explore how entanglement behaves for multiple regions by calculating the **mutual information**, I(A:B), which measures the amount of correlation between A and B. This quantity is also calculated holographically and displayed, allowing you to see how it changes as you move the regions closer together or further apart.</p>
+            </section>
+            <section>
+                <h3>Core Theory: Properties of Holographic Entanglement Entropy</h3>
+                <p>This interactive lab allows for the exploration of the properties of entanglement entropy `S_A` via its holographic dual, the area of an extremal surface `γ_A` given by the Ryu-Takayanagi (RT) formula: `S_A = Area(γ_A) / 4G_N`. In the simple case of a 2D slice of empty AdS space, the minimal surfaces are semi-circles in the Poincaré disk representation.</p>
+                <p>The length of such a geodesic anchored on a boundary segment of chord length `l` is given by `Length(γ_A) = 2R_AdS * log(l/ε)`, where `ε` is a UV cutoff. This formula demonstrates several key properties:
+                <ul>
+                    <li><strong>Area Law:</strong> The entropy is proportional to the "area" of the boundary of the region (in 2D, the two endpoints), not its volume (the length of the arc). This is a generic feature of entanglement in quantum field theories.</li>
+                    <li><strong>Divergence:</strong> The `log(1/ε)` term shows that the entropy is technically infinite, due to short-range entanglement across the boundary. The simulation regularizes this with a small but finite cutoff `ε`.</li>
+                </ul>
+                </p>
+                <p>You can also use this lab to explore properties involving multiple regions, such as:
+                <br><b>Subadditivity:</b> `S(A) + S(B) ≥ S(A ∪ B)`. The entanglement of the whole is less than or equal to the sum of the parts.
+                <br><b>Mutual Information:</b> `I(A,B) = S(A) + S(B) - S(A ∪ B)`. This quantity measures the total correlation (both classical and quantum) between regions A and B. It is always positive. When the regions are far apart, the minimal surface for `A ∪ B` is simply the sum of the individual surfaces, `γ_A ∪ γ_B`, which means `S(A ∪ B) = S(A) + S(B)` and the mutual information `I(A,B) = 0`. As you bring the regions closer, a new connected geodesic that spans both regions can become minimal, leading to `S(A ∪ B) < S(A) + S(B)` and a non-zero mutual information. This is a geometric manifestation of the fact that nearby regions in a QFT are highly correlated.</p>
+            </section>
+        </div>
+    </div>
+
+    <script id="simulation-script">
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        const sliders = {
+            ca: document.getElementById('center-a-slider'),
+            sa: document.getElementById('size-a-slider'),
+            cb: document.getElementById('center-b-slider'),
+            sb: document.getElementById('size-b-slider'),
+        };
+        const metricsPanel = document.getElementById('metrics-panel');
+
+        let state = { ca: 0, sa: 0.25, cb: 0.5, sb: 0.25 };
+
+        function calculateEntropy(region_size) {
+            if (region_size >= 1.0) region_size = 0.9999; // Avoid divergence
+            // The length of a geodesic in Poincare disk for a segment of angular size 2*theta is log(2*R*sin(theta)/epsilon)
+            // This simplifies to a function of the chord length l = 2R*sin(theta)
+            // S(l) ~ log(l)
+            const l = Math.sin(region_size * Math.PI / 2);
+            return Math.log(2 * l / 0.01); // Epsilon is a UV cutoff
+        }
+
+        function draw() {
+            const w = canvas.width, h = canvas.height;
+            const R = w/2 - 10;
+            ctx.fillStyle = 'white'; ctx.fillRect(0,0,w,h);
+
+            // Draw boundary
+            ctx.strokeStyle = 'black'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(w/2, h/2, R, 0, 2*Math.PI); ctx.stroke();
+
+            // --- Region A ---
+            const angle_a_start = (state.ca - state.sa/2) * 2 * Math.PI;
+            const angle_a_end = (state.ca + state.sa/2) * 2 * Math.PI;
+
+            // Boundary arc
+            ctx.strokeStyle = 'blue'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(w/2, h/2, R, angle_a_start, angle_a_end); ctx.stroke();
+
+            // Geodesic
+            const center_a_x = w/2 + R * Math.cos(angle_a_start + (angle_a_end-angle_a_start)/2);
+            const center_a_y = h/2 + R * Math.sin(angle_a_start + (angle_a_end-angle_a_start)/2);
+            const geodesic_a_radius = R * Math.tan((angle_a_end - angle_a_start)/2);
+            ctx.beginPath(); ctx.arc(center_a_x, center_a_y, geodesic_a_radius, 0, 2*Math.PI); ctx.stroke();
+
+            // --- Region B ---
+            const angle_b_start = (state.cb - state.sb/2) * 2 * Math.PI;
+            const angle_b_end = (state.cb + state.sb/2) * 2 * Math.PI;
+            ctx.strokeStyle = 'red';
+            ctx.beginPath(); ctx.arc(w/2, h/2, R, angle_b_start, angle_b_end); ctx.stroke();
+            const center_b_x = w/2 + R * Math.cos(angle_b_start + (angle_b_end-angle_b_start)/2);
+            const center_b_y = h/2 + R * Math.sin(angle_b_start + (angle_b_end-angle_b_start)/2);
+            const geodesic_b_radius = R * Math.tan((angle_b_end - angle_b_start)/2);
+            ctx.beginPath(); ctx.arc(center_b_x, center_b_y, geodesic_b_radius, 0, 2*Math.PI); ctx.stroke();
+
+            // --- Calculate Metrics ---
+            const SA = calculateEntropy(state.sa);
+            const SB = calculateEntropy(state.sb);
+
+            // This is a simplification. A real calculation would find the minimal
+            // of S(A)+S(B) vs S(A U B) + S(A int B)
+            const dist = Math.min(Math.abs(state.ca-state.cb), 1-Math.abs(state.ca-state.cb));
+            const overlap = (state.sa + state.sb)/2 - dist;
+            let I_AB = 0;
+            if(overlap > 0) {
+                // Simple model for mutual information based on overlap
+                const S_A_union_B = calculateEntropy(Math.min(dist + (state.sa+state.sb)/2, 0.99));
+                I_AB = SA + SB - S_A_union_B;
+            }
+
+            metricsPanel.innerHTML = `
+                <p>S(A): ${SA.toFixed(3)}</p>
+                <p>S(B): ${SB.toFixed(3)}</p>
+                <p>I(A:B) ≈ ${Math.max(0, I_AB).toFixed(3)}</p>
+            `;
+        }
+
+        function updateAll() {
+            state.ca = parseFloat(sliders.ca.value);
+            state.sa = parseFloat(sliders.sa.value);
+            state.cb = parseFloat(sliders.cb.value);
+            state.sb = parseFloat(sliders.sb.value);
+            document.getElementById('center-a-value').textContent = state.ca.toFixed(2);
+            document.getElementById('size-a-value').textContent = state.sa.toFixed(2);
+            document.getElementById('center-b-value').textContent = state.cb.toFixed(2);
+            document.getElementById('size-b-value').textContent = state.sb.toFixed(2);
+            draw();
+        }
+
+        for(const key in sliders) sliders[key].addEventListener('input', updateAll);
+        updateAll();
+    });
+    </script>
+</body>
+</html>

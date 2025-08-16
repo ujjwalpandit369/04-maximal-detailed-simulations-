@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Causal Dynamical Triangulations</title>
+    <style>
+        /* Consistent CSS */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #5e3a8c; --secondary-color: #b1a5c1; --accent-color: #f9b115;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .sim-container { display: grid; grid-template-columns: 1fr 350px; gap: 30px; margin-top: 30px; }
+        .vis-panel canvas { width: 100%; aspect-ratio: 1; border: 2px solid var(--border-color); background-color: #fff; }
+        .controls-panel { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .content-section { background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        @media (max-width: 900px) { .sim-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deep Simulation: Causal Dynamical Triangulations (CDT)</h1>
+        <p class="subtitle">Building spacetime from quantum fluctuations of geometry.</p>
+    </header>
+
+    <div class="container">
+        <div class="sim-container">
+            <div class="vis-panel">
+                <h4>1+1D Spacetime Triangulation</h4>
+                <canvas id="main-canvas" width="512" height="512"></canvas>
+            </div>
+            <div class="controls-panel">
+                <h3>Controls</h3>
+                <button id="start-btn">Start Monte Carlo</button>
+                <button id="reset-btn">Reset</button>
+                <hr>
+                <h4>Action Parameters</h4>
+                <label>k₀ (Cosmological Const.): <span id="k0-value">2.0</span></label>
+                <input type="range" id="k0-slider" min="0.5" max="4.0" step="0.1" value="2.0">
+                <div id="metrics-panel"></div>
+            </div>
+        </div>
+
+        <div class="content-section" id="exposition-section">
+            <h2>Exposition</h2>
+            <section>
+                <h3>Beginner's Guide: Building Spacetime with Triangles</h3>
+                <p>Instead of spacetime being a smooth sheet, what if it's "built" from tiny, fundamental triangular building blocks? This is the core idea behind Causal Dynamical Triangulations (CDT). This approach to quantum gravity is like building a universe with LEGOs, but the LEGOs are triangles (or their higher-dimensional versions, called simplices), and the building rules are governed by quantum mechanics and causality.</p>
+                <p>This simulation shows a 1+1 dimensional toy universe being built in this way. We start with a simple, regular arrangement of triangles forming a cylinder. This is just one possible "shape" for the universe. The simulation then explores other possible shapes using a Monte Carlo algorithm. At each step, it randomly picks a location and tries to make a small change to the triangulation—a "move." In this simulation, it performs a "diagonal flip," which takes two adjacent triangles and re-arranges them. This move is either accepted or rejected based on a set of rules derived from Einstein's theory of relativity (the "action"). Over many thousands of steps, the simulation explores a vast number of possible spacetime geometries. The amazing discovery of CDT is that, even though the microscopic rules are very simple and quantum, a stable, large-scale universe with properties like our own (e.g., being 4-dimensional and having a well-behaved shape) can emerge automatically from the collective behavior of these fluctuating triangles.</p>
+            </section>
+            <section>
+                <h3>Core Theory: The CDT Path Integral and Monte Carlo Methods</h3>
+                <p>Causal Dynamical Triangulations defines the quantum gravity path integral (`Z = ∫ D[g] exp(iS[g])`) as a sum over a space of discrete, causally well-behaved geometries. Each geometry, or "spacetime history," is a triangulation `T` built from simplices (in our 2D case, triangles) glued together along their faces. A key feature of CDT is that it imposes a global time foliation, meaning the geometry has a well-defined series of time slices. This distinguishes it from older "Euclidean Dynamical Triangulations" and is crucial for obtaining a well-behaved continuum limit.</p>
+                <p>The sum over all possible triangulations is weighted by a discrete form of the Einstein-Hilbert action, known as the <strong>Regge action</strong>. For 2D CDT, this action simplifies remarkably:
+                <br><code>S_E = -k₀N₀ + k₂N₂</code>
+                <br>where `N₀` is the total number of vertices and `N₂` is the total number of triangles in the triangulation. The parameter `k₀` is related to the cosmological constant, and `k₂` is related to the inverse of Newton's constant.
+                </p>
+                <p>This sum over all `T` is computationally intractable. Instead, we use a <strong>Metropolis Monte Carlo</strong> algorithm to sample the most important configurations in the sum. The algorithm works as follows:
+                <ol>
+                    <li>Start with an initial valid triangulation.</li>
+                    <li>Propose a local change to the triangulation, a "move." This simulation uses the simplest such move, the `(2,2)` or "diagonal flip" move. This move finds two triangles sharing an edge and flips the shared edge to connect the other two vertices.</li>
+                    <li>Calculate the change in the action, `ΔS = S_new - S_old`. For the `(2,2)` move and the simple action above, `N₀` and `N₂` do not change, so `ΔS = 0`.</li>
+                    <li>Accept the move with probability `P = min(1, exp(-ΔS))`. Since `ΔS=0`, all valid `(2,2)` moves are accepted. In a more complex simulation with moves that change `N₀` or `N₂`, this step would be non-trivial.</li>
+                    <li>Repeat millions of times.</li>
+                </ol>
+                By doing this, the simulation generates a sequence of triangulations that are representative of the full quantum sum. We can then measure geometric properties of these configurations to determine the large-scale, emergent properties of the quantum spacetime.</p>
+            </section>
+        </div>
+    </div>
+
+    <script id="simulation-script">
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const k0Slider = document.getElementById('k0-slider');
+        const metricsPanel = document.getElementById('metrics-panel');
+
+        let isRunning = false;
+        let simState = { k0: 2.0 };
+
+        let vertices = []; // { id, t, neighbors: Set }
+        let triangles = []; // { v: [id1, id2, id3] }
+
+        function reset() {
+            isRunning = false;
+            startBtn.textContent = 'Start Monte Carlo';
+            simState.k0 = parseFloat(k0Slider.value);
+
+            const T_slices = 20, L_slices = 10;
+            vertices = [];
+            triangles = [];
+
+            for(let t=0; t<T_slices; ++t) for(let x=0; x<L_slices; ++x) {
+                vertices.push({id: t*L_slices + x, t: t, neighbors: new Set()});
+            }
+
+            for(let t=0; t<T_slices-1; ++t) for(let x=0; x<L_slices; ++x) {
+                const v1_idx = t*L_slices + x;
+                const v2_idx = t*L_slices + (x+1)%L_slices;
+                const v3_idx = (t+1)*L_slices + x;
+                const v4_idx = (t+1)*L_slices + (x+1)%L_slices;
+                triangles.push({ v: [v1_idx, v2_idx, v4_idx] });
+                triangles.push({ v: [v1_idx, v4_idx, v3_idx] });
+            }
+            buildConnectivity();
+            draw();
+        }
+
+        function buildConnectivity() {
+            for(const v of vertices) v.neighbors.clear();
+            for(const tri of triangles) {
+                const [v1,v2,v3] = tri.v;
+                vertices[v1].neighbors.add(v2); vertices[v1].neighbors.add(v3);
+                vertices[v2].neighbors.add(v1); vertices[v2].neighbors.add(v3);
+                vertices[v3].neighbors.add(v1); vertices[v3].neighbors.add(v2);
+            }
+        }
+
+        function monteCarloStep() {
+            // Correct (2,2) Pachner move (simplest topological move)
+            if (triangles.length < 2) return;
+
+            const tri1_idx = Math.floor(Math.random() * triangles.length);
+            const tri1 = triangles[tri1_idx];
+
+            // Find an adjacent triangle
+            let tri2_idx = -1, tri2 = null, shared_edge = [];
+            for (let i = 0; i < triangles.length; i++) {
+                if (i === tri1_idx) continue;
+                const candidate_tri = triangles[i];
+                const common_vertices = tri1.v.filter(v => candidate_tri.v.includes(v));
+                if (common_vertices.length === 2) {
+                    tri2_idx = i;
+                    tri2 = candidate_tri;
+                    shared_edge = common_vertices;
+                    break;
+                }
+            }
+
+            if (!tri2) return; // No adjacent triangle found
+
+            const v1 = shared_edge[0], v2 = shared_edge[1];
+            const v3 = tri1.v.find(v => !shared_edge.includes(v));
+            const v4 = tri2.v.find(v => !shared_edge.includes(v));
+
+            // Check if move is valid (new edge v3-v4 must not already exist)
+            if (vertices[v3].neighbors.has(v4)) return;
+
+            // Perform the (2,2) move: flip the diagonal
+            const S_old = -simState.k0 * vertices.length + triangles.length;
+            const S_new = S_old; // (2,2) move doesn't change N0 or N2
+            const dS = 0;
+
+            if (Math.random() < Math.exp(-dS)) { // Always accepted for dS=0
+                triangles[tri1_idx] = { v: [v1, v3, v4] };
+                triangles[tri2_idx] = { v: [v2, v3, v4] };
+                buildConnectivity();
+            }
+        }
+
+        function draw() { /* ... unchanged drawing logic ... */
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            const T_slices = 20, L_slices = 10;
+
+            for(const v of vertices) {
+                v.x = (v.id % L_slices) * (canvas.width / (L_slices+1)) + 20;
+                v.y = v.t * (canvas.height / (T_slices+1)) + 20;
+            }
+
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            for(const tri of triangles) {
+                const v1=vertices[tri.v[0]], v2=vertices[tri.v[1]], v3=vertices[tri.v[2]];
+                ctx.beginPath();
+                ctx.moveTo(v1.x, v1.y); ctx.lineTo(v2.x, v2.y); ctx.lineTo(v3.x, v3.y);
+                ctx.closePath();
+                ctx.stroke();
+            }
+             metricsPanel.innerHTML = `<p>Triangles: ${triangles.length}</p><p>Vertices: ${vertices.length}</p>`;
+        }
+
+        function mainLoop() {
+            if(!isRunning) return;
+            for(let i=0; i<50; ++i) monteCarloStep();
+            draw();
+            requestAnimationFrame(mainLoop);
+        }
+
+        startBtn.addEventListener('click', () => { isRunning = !isRunning; startBtn.textContent = isRunning ? 'Pause' : 'Start'; if (isRunning) mainLoop(); });
+        resetBtn.addEventListener('click', reset);
+        k0Slider.addEventListener('input', e => { simState.k0 = parseFloat(e.target.value); document.getElementById('k0-value').textContent = simState.k0.toFixed(2); });
+        reset();
+    });
+    </script>
+</body>
+</html>

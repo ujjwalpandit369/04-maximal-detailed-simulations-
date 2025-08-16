@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Simulation: Real-Time Fermion Dynamics</title>
+    <style>
+        /* Consistent CSS from the project */
+        :root {
+            --bg-color: #f8f9fa; --text-color: #212529; --header-color: #003366;
+            --primary-color: #5e3a8c; --secondary-color: #b1a5c1; --accent-color: #f9b115;
+            --border-color: #dee2e6;
+        }
+        body { font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        h1, h2, h3, h4 { font-family: 'Helvetica', sans-serif; color: var(--header-color); font-weight: 700; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px; }
+        h1 { font-size: 2.8em; text-align: center; border: none; }
+        header { background: var(--header-color); color: var(--bg-color); padding: 20px; text-align: center; border-bottom: 5px solid var(--primary-color); }
+        .subtitle { font-size: 1.2em; font-style: italic; color: var(--secondary-color); }
+
+        .main-content { display: grid; grid-template-columns: 300px 1fr; gap: 30px; margin-top: 30px; }
+        .controls-column { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); align-self: start; }
+        .vis-panel { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .vis-panel canvas { width: 100%; border: 1px solid var(--border-color); background-color: #fdfdfd; aspect-ratio: 3/1; }
+
+        .content-section { grid-column: 1 / -1; background: white; padding: 30px; margin-top: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        label { display: block; margin: 15px 0 5px; font-weight: bold; color: var(--header-color); }
+        input[type="range"] { width: 100%; }
+        button { background-color: var(--primary-color); color: white; border: none; padding: 10px 20px; margin-top: 10px; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover { background-color: #4a2d6e; }
+        #metrics-panel { margin-top: 15px; font-family: 'Courier New', Courier, monospace; background: #e9ecef; padding: 10px; border-radius: 4px; }
+
+        @media (max-width: 900px) { .main-content { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deep Simulation: Real-Time Fermion Dynamics</h1>
+        <p class="subtitle">Visualizing a relativistic quantum wavepacket on a lattice.</p>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="controls-column">
+                <h3>Controls</h3>
+                <button id="start-btn">Start</button>
+                <button id="pause-btn">Pause</button>
+                <button id="reset-btn">Reset</button>
+                <div>
+                    <label for="mass-slider">Fermion Mass (m): <span id="mass-value">0.2</span></label>
+                    <input type="range" id="mass-slider" min="0.0" max="1.0" step="0.05" value="0.2">
+                </div>
+                <div>
+                    <label for="mom-slider">Initial Momentum (k): <span id="mom-value">0.5</span></label>
+                    <input type="range" id="mom-slider" min="-2.0" max="2.0" step="0.1" value="0.5">
+                </div>
+                <div id="metrics-panel">Time: 0.00</div>
+            </div>
+            <div class="vis-panel">
+                <h4>Fermion Probability Density |ψ(x)|²</h4>
+                <canvas id="wave-canvas"></canvas>
+            </div>
+        </div>
+
+        <div class="content-section" id="exposition-section">
+            <h2>Exposition: The Quantum Wavepacket</h2>
+            <section>
+                <h3>Beginner's Guide: The Fuzzy Life of a Particle</h3>
+                <p>In our everyday world, particles like baseballs have a definite position and momentum. We can know where they are and where they're going. In the quantum world, this certainty dissolves. A fundamental particle, like an electron, is better described as a "wavepacket"—a fuzzy blob of probability. This simulation shows the evolution of such a wavepacket for a single relativistic particle.</p>
+                <p>The purple shape on the screen represents the probability of finding our particle at any given position on the 1D line. You can see it's not a single point, but a spread-out wave. When you start the simulation, you're not watching a tiny ball move; you're watching the wave of probability itself flow and evolve over time. Notice two key quantum behaviors: the wavepacket moves with a certain velocity (related to the momentum you give it), but it also spreads out over time, a phenomenon called **dispersion**. This spreading is a fundamental feature of quantum mechanics, reflecting the inherent uncertainty in the particle's position and momentum.</p>
+            </section>
+            <section>
+                <h3>Core Theory: The Dirac Equation on a Lattice</h3>
+                <p>The behavior of a relativistic spin-1/2 fermion (like an electron) is governed by the **Dirac equation**. This simulation solves a discretized version of the Dirac equation in one spatial dimension. Putting such an equation on a lattice is not straightforward due to a famous obstacle known as the **fermion doubling problem**. A naive discretization of the Dirac equation on a lattice results in 2<sup>d</sup> species of fermions in `d` spatial dimensions, instead of the single species one started with. This is a profound issue tied to fundamental symmetries of nature (chiral symmetry).</p>
+                <p>To circumvent this, this simulation uses **staggered fermions** (also known as Kogut-Susskind fermions). This is a clever trick where the different components of the fermion's spinor field are placed on different lattice sites. In our 1+1 dimensional case, the two-component spinor `ψ` is split so that its first component, `ψ₁`, lives only on the even-numbered lattice sites, and the second component, `ψ₂`, lives only on the odd-numbered sites. This method effectively "thins out" the degrees of freedom and, in 1+1D, completely eliminates the doublers, leaving us with a single fermion species as desired. The time evolution is then performed by a "leapfrog" integration scheme that respects this staggered structure, updating the even and odd sites based on their neighbors.</p>
+            </section>
+            <section>
+                <h3>Advanced Details: Dispersion and Zitterbewegung</h3>
+                <p>The way the wavepacket spreads out—its **dispersion relation**—is a key physical property. For a non-relativistic particle, the group velocity is `v = p/m`. For a relativistic particle described by the Dirac equation, the energy is `E² = p² + m²`, leading to a velocity `v = dE/dp = p/E`. You can observe this in the simulation: for a given momentum `k`, a more massive particle will travel slower than a lighter one. The spreading of the packet is also affected by mass, with more massive particles dispersing more slowly as their behavior is more classical.</p>
+                <p>The Dirac equation also predicts a strange phenomenon called **Zitterbewegung** (German for "trembling motion"). This is a rapid, small-amplitude oscillation of the particle's position, even when it's "at rest" (has zero average momentum). This arises from the interference between the positive and negative energy solutions that are both part of the complete Dirac wave function. In this simulation, if you set the initial momentum to zero and the mass to a low value, you may observe the initially smooth Gaussian packet develop rapid, small-scale ripples and jitters as it evolves. This is a direct visualization of Zitterbewegung, a purely relativistic quantum effect with no classical analogue.</p>
+            </section>
+        </div>
+
+        <div class="content-section" id="interactive-guide-section">
+            <h2>Interactive Elements Guide</h2>
+            <p>This simulation evolves a 1D Dirac wavepacket in real time. The controls allow you to set the initial physical properties of the particle.</p>
+            <ul>
+                <li><strong>Start/Pause/Reset:</strong> These buttons control the time evolution. `Reset` is important as it re-initializes the wavepacket with the currently selected mass and momentum values.</li>
+                <li><strong>Fermion Mass (m):</strong> This slider controls the mass of the particle.
+                    <ul>
+                        <li>A **massless (m=0)** particle will travel at the speed of light (in this simulation, the maximum speed).</li>
+                        <li>A **massive** particle will travel slower than the speed of light. Observe how increasing the mass for a fixed momentum slows the wavepacket down.</li>
+                        <li>Mass also suppresses the rate of wavepacket spreading (dispersion). A very massive particle behaves more classically.</li>
+                    </ul>
+                </li>
+                <li><strong>Initial Momentum (k):</strong> This slider sets the initial momentum of the wavepacket.
+                    <ul>
+                        <li>A **positive momentum** makes the packet travel to the right.</li>
+                        <li>A **negative momentum** makes it travel to the left.</li>
+                        <li>Setting momentum to **zero** will cause the packet to spread out in place. This is the best configuration to try and observe the subtle ripples of Zitterbewegung.</li>
+                    </ul>
+                </li>
+                <li><strong>The Visualization:</strong> The plot shows the probability density `|ψ(x)|²` at each point `x` on the lattice. The total area under the curve is always conserved (equal to 1), representing the single, whole particle.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script id="simulation-script">
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements ---
+        const canvas = document.getElementById('wave-canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const massSlider = document.getElementById('mass-slider');
+        const massValueSpan = document.getElementById('mass-value');
+        const momSlider = document.getElementById('mom-slider');
+        const momValueSpan = document.getElementById('mom-value');
+        const metricsPanel = document.getElementById('metrics-panel');
+
+        // --- Complex Number Utilities ---
+        const c_add = (a, b) => [a[0] + b[0], a[1] + b[1]];
+        const c_mul_s = (a, s) => [a[0] * s, a[1] * s];
+        const c_mul_i = (a) => [-a[1], a[0]]; // Multiply by i
+        const c_abs_sq = (a) => a[0] * a[0] + a[1] * a[1];
+
+        // --- Simulation Class ---
+        class FermionLattice {
+            constructor(L, mass, k0, dt) {
+                this.L = L;
+                this.mass = mass;
+                this.k0 = k0;
+                this.dt = dt;
+                this.time = 0;
+
+                this.psi1 = Array(L).fill(0).map(() => [0, 0]);
+                this.psi2 = Array(L).fill(0).map(() => [0, 0]);
+
+                this.initializeWavepacket();
+            }
+
+            initializeWavepacket() {
+                const x0 = this.L / 2;
+                const sigma = this.L / 10;
+
+                // Free particle spinor for momentum k
+                const E = Math.sqrt(this.k0 * this.k0 + this.mass * this.mass);
+                const spinor_1 = [E + this.mass, 0];
+                const spinor_2 = [this.k0, 0];
+
+                let total_norm = 0;
+
+                for (let i = 0; i < this.L; i++) {
+                    const dist = i - x0;
+                    const envelope = Math.exp(-dist * dist / (2 * sigma * sigma));
+                    const phase = [Math.cos(this.k0 * i), Math.sin(this.k0 * i)];
+
+                    const term1 = c_mul_s(spinor_1, envelope);
+                    const term2 = c_mul_s(spinor_2, envelope);
+
+                    // psi1 lives on even sites, psi2 on odd sites
+                    if (i % 2 === 0) {
+                        this.psi1[i] = [term1[0]*phase[0] - term1[1]*phase[1], term1[0]*phase[1] + term1[1]*phase[0]];
+                    } else {
+                        this.psi2[i] = [term2[0]*phase[0] - term2[1]*phase[1], term2[0]*phase[1] + term2[1]*phase[0]];
+                    }
+                }
+
+                // Normalize the wavefunction
+                let norm_sq = 0;
+                for(let i=0; i<this.L; i++) {
+                     if (i % 2 === 0) norm_sq += c_abs_sq(this.psi1[i]);
+                     else norm_sq += c_abs_sq(this.psi2[i]);
+                }
+                const norm = Math.sqrt(norm_sq);
+                if (norm > 0) {
+                    for(let i=0; i<this.L; i++) {
+                        this.psi1[i] = c_mul_s(this.psi1[i], 1/norm);
+                        this.psi2[i] = c_mul_s(this.psi2[i], 1/norm);
+                    }
+                }
+            }
+
+            evolve() {
+                const psi1_new = Array(this.L).fill(0).map(() => [0, 0]);
+                const psi2_new = Array(this.L).fill(0).map(() => [0, 0]);
+
+                // Leapfrog integrator
+                for (let i = 0; i < this.L; i++) {
+                    const i_p = (i + 1) % this.L;
+                    const i_m = (i - 1 + this.L) % this.L;
+
+                    if (i % 2 === 0) { // Update psi1
+                        const deriv_psi2 = c_mul_s(c_add(this.psi2[i_p], c_mul_s(this.psi2[i_m], -1)), 0.5);
+                        // d(psi1)/dt = -D*psi2 - i*m*psi1
+                        let d_psi1_dt = c_mul_s(deriv_psi2, -1);
+                        d_psi1_dt = c_add(d_psi1_dt, c_mul_s(c_mul_i(this.psi1[i]), -this.mass));
+                        psi1_new[i] = c_add(this.psi1[i], c_mul_s(d_psi1_dt, this.dt));
+                        psi2_new[i] = this.psi2[i]; // Staggered update
+                    } else { // Update psi2
+                        const deriv_psi1 = c_mul_s(c_add(this.psi1[i_p], c_mul_s(this.psi1[i_m], -1)), 0.5);
+                        // d(psi2)/dt = -D*psi1 - i*m*psi2
+                        let d_psi2_dt = c_mul_s(deriv_psi1, -1);
+                        d_psi2_dt = c_add(d_psi2_dt, c_mul_s(c_mul_i(this.psi2[i]), -this.mass));
+                        psi2_new[i] = c_add(this.psi2[i], c_mul_s(d_psi2_dt, this.dt));
+                        psi1_new[i] = this.psi1[i]; // Staggered update
+                    }
+                }
+                this.psi1 = psi1_new;
+                this.psi2 = psi2_new;
+                this.time += this.dt;
+            }
+
+            getProbabilityDensity() {
+                const density = new Float32Array(this.L);
+                for (let i = 0; i < this.L; i++) {
+                    if (i % 2 === 0) {
+                        density[i] = c_abs_sq(this.psi1[i]);
+                    } else {
+                        density[i] = c_abs_sq(this.psi2[i]);
+                    }
+                }
+                return density;
+            }
+        }
+
+        // --- Main Logic ---
+        let lattice;
+        let isRunning = false;
+        let animationFrameId;
+
+        function setup() {
+            const L = 200;
+            const mass = parseFloat(massSlider.value);
+            const k0 = parseFloat(momSlider.value);
+            const dt = 0.05;
+            lattice = new FermionLattice(L, mass, k0, dt);
+            massValueSpan.textContent = mass.toFixed(2);
+            momValueSpan.textContent = k0.toFixed(2);
+        }
+
+        function draw() {
+            const density = lattice.getProbabilityDensity();
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.fillStyle = 'var(--bg-color)';
+            ctx.fillRect(0, 0, w, h);
+
+            let max_density = 0;
+            for(let i=0; i<density.length; ++i) max_density = Math.max(max_density, density[i]);
+            if(max_density === 0) max_density = 1;
+
+            ctx.fillStyle = 'var(--primary-color)';
+            ctx.beginPath();
+            ctx.moveTo(0, h);
+            for (let i = 0; i < density.length; i++) {
+                const x = (i / density.length) * w;
+                const y = h - (density[i] / max_density) * h * 0.95;
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(w, h);
+            ctx.closePath();
+            ctx.fill();
+
+            metricsPanel.textContent = `Time: ${lattice.time.toFixed(2)}`;
+        }
+
+        function mainLoop() {
+            if (isRunning) {
+                for(let i=0; i<5; ++i) lattice.evolve(); // 5 steps per frame for speed
+                draw();
+                animationFrameId = requestAnimationFrame(mainLoop);
+            }
+        }
+
+        function reset() {
+            isRunning = false;
+            cancelAnimationFrame(animationFrameId);
+            setup();
+            draw();
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                isRunning = true;
+                mainLoop();
+            }
+        });
+        pauseBtn.addEventListener('click', () => { isRunning = false; });
+        resetBtn.addEventListener('click', reset);
+        massSlider.addEventListener('input', reset);
+        momSlider.addEventListener('input', reset);
+
+        // --- Initial Setup ---
+        reset();
+    });
+    </script>
+</body>
+</html>
